@@ -1,14 +1,14 @@
 //state.js
 const gameState = {
     // Player Currency Values
-    coins: 10,
+    coins: 0,
     seeds: 1,
-    crops: 1,
+    crops: 0,
     water: 10,
 
     // Field Information
     plots: 1,
-    plotDisableCoefficient: 1.25, // Coefficient used to calculate plot disable time
+    plotDisableCoefficient: 1.15, // Coefficient used to calculate plot disable time
 
     // Game Progress Information
     totalCoinsEarned: 0,      // Total number of coins the player has earned throughout the game
