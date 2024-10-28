@@ -1,14 +1,5 @@
 /* src/css/styles.css */
-
-/*
-body, h1, h2, h3, h4, h5, h6, p, ul, ol {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-*/
-
-/* Set up the body */
+/* Base styles */
 body {
     font-family: monospace;
     display: flex;
@@ -17,12 +8,15 @@ body {
     justify-content: center;
     width: 100%;
     margin: 0;
+    padding: 0 10px;
+    box-sizing: border-box;
+    text-align: center;
 }
 
-/* Add some spacing to header */
+/* Header styles */
 header {
     width: 100%;
-    padding: 1%;
+    padding: 15px 5px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -35,17 +29,19 @@ main {
     align-items: center;
     justify-content: center;
     width: 100%;
-    padding: 20px;
+    padding: 10px;
 }
 
 /* Currency Bar Styles */
 .currency-bar {
     display: flex;
-    justify-content: space-around;
+    flex-wrap: wrap;
+    justify-content: center;
     align-items: center;
     width: 90%;
-    padding: 10px;
+    padding: 10px 5px;
     border: dashed 2.5px #000;    
+    gap: 10px;
 }
 
 .currency-item {
@@ -53,7 +49,8 @@ main {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 5px 10px;
+    padding: 5px;
+    min-width: 80px;
 }
 
 .currency-item span {
@@ -62,43 +59,48 @@ main {
     padding: 5px;
     border: 1px solid #000;
     background: #fff;
+    width: auto;
+    min-width: 60px;
+    box-sizing: border-box;
 }
 
 /* Container Title Styles */
 .container-title {
     display: flex;
     flex-direction: column;
+    align-items: center;
     font-weight: bold;
-    font-size: 1.5em;
+    font-size: clamp(1.2em, 4vw, 1.5em);
     padding: .25em;
     margin: .25em;
+    text-align: center;
 }
 
 /* Field Styles */
 .field-container {
     display: grid;
-    grid-template-columns: repeat(10, 1fr); /* 10 columns */
-    grid-template-rows: repeat(10, 1fr); /* 10 rows */
-    gap: 5px; /* Adjust the gap as needed */
+    grid-template-columns: repeat(10, 1fr);
+    grid-template-rows: repeat(10, 1fr);
+    gap: 3px;
     width: 95%;
-    max-width: 1000px; /* Maximum width to maintain scalability */
-    aspect-ratio: 1 / 1; /* Ensures the field remains a square */
-    padding: 10px;
-    box-sizing: border-box;
-    border: 2px dashed black; /* Optional border for visualization */
+    max-width: 1000px;
+    aspect-ratio: 1 / 1;
+    padding: 5px;
+    border: 2px dashed black;
 }
 
 /* Plot Button Styles */
 .plotButton {
     width: 100%;
-    aspect-ratio: 1 / 1; /* Ensures buttons are square */
+    aspect-ratio: 1 / 1;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: inherit;
-    font-size: 150%;
+    font-size: clamp(100%, 3vw, 150%);
     font-weight: lighter;
-    box-sizing: border-box;
+    padding: 0;
+    touch-action: manipulation;
 }
 
 /* Store Styles */
@@ -108,7 +110,9 @@ main {
     width: 95%;
     display: flex;
     align-items: center;
-    justify-content: space-around;
+    justify-content: center;
+    padding: 10px 5px;
+    margin-top: 15px;
     text-align: center;
 }
 
@@ -128,25 +132,30 @@ main {
     justify-content: center;
     padding: 2%;
     margin: 2%;
+    margin-left: 10px;
+    margin-right: 10px;
 }
 
 .item-title {
     font: inherit;
     display: flex;
     flex-direction: column;
+    align-items: center;
     justify-content: space-around;
-    min-width: 50%;
     padding: 2%;
     margin: 2%;
     width: 90%;
+    text-align: center;
 }
 
 .store-button {
     font: inherit;
     display: flex;
     width: 90%;
+    max-width: 300px;
     align-items: center;
     justify-content: center;
+    touch-action: manipulation;
 }
 
 /* Upgrade Styles */
@@ -157,22 +166,44 @@ main {
     display: flex;
     align-items: center;
     justify-content: space-around;
+    padding: 10px 5px;
+    margin-top: 15px;
     text-align: center;
 }
 
 .upgrades-section {
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
     padding: 2%;
 }
 
 .upgrade-button {
     width: 75%;
+    max-width: 250px;
+    touch-action: manipulation;
 }
 
 #click-upgrades-section {
     display: flex;
     align-items: center;
+    justify-content: center;
+}
+
+/* Media Queries for larger screens */
+@media screen and (min-width: 768px) {
+    .currency-bar {
+        flex-wrap: nowrap;
+        justify-content: space-around;
+    }
+
+    .field-container {
+        gap: 5px;
+        padding: 10px;
+    }
+
+    body {
+        padding: 0 20px;
+    }
 }
