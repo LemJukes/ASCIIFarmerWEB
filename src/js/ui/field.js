@@ -1,5 +1,5 @@
 // ./ui/field.js
-import { getState } from "../state.js";
+import { getState, updateState } from "../state.js";
 import { handlePlotClick } from '../handlers/plotHandlers.js'; 
 
 function initializeFieldTitle() {
@@ -46,12 +46,29 @@ function updateField() {
 
     const plots = gameState.plots; // Retrieve the plots variable from the game state
 
+    // Initialize plotStates array if needed or if size doesn't match
+    if (!gameState.plotStates || gameState.plotStates.length !== plots) {
+        const newPlotStates = [];
+        for (let i = 0; i < plots; i++) {
+            // Preserve existing plot states if they exist, otherwise create new ones
+            if (gameState.plotStates && gameState.plotStates[i]) {
+                newPlotStates.push(gameState.plotStates[i]);
+            } else {
+                newPlotStates.push({ symbol: '~', cropType: null, waterCount: 0 });
+            }
+        }
+        updateState({ plotStates: newPlotStates });
+        gameState.plotStates = newPlotStates;
+    }
+
     // Create and append plot buttons for the number of plots owned by the player
     for (let i = 0; i < plots; i++) {
         const plot = document.createElement('button');
-        plot.textContent = '~'; // Set the initial text for the plot button (untilled)
+        const plotState = gameState.plotStates[i];
+        plot.textContent = plotState.symbol; // Set the text from plot state
         plot.className = 'plotButton'; // Set the class for styling the plot button
-        plot.addEventListener('click', () => handlePlotClick(plot)); // Add a click event listener to handle plot interactions
+        plot.dataset.plotIndex = i; // Store the plot index for reference
+        plot.addEventListener('click', () => handlePlotClick(plot, i)); // Pass index to handler
         fieldElement.appendChild(plot); // Append the plot button to the field element
     }
 }

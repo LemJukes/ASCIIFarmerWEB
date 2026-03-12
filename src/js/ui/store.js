@@ -1,20 +1,33 @@
 // ./ui/store.js.
 const storeValues = {
     // Items for Sale Values
-    // Seed Purchase Variables
+    // Seed Purchase Variables (generic - kept for compatibility)
     seedCost: 1,
     seedQuantity: 1,
     seedBulkCostCoefficient: .9,
+    
+    // Crop-Specific Seed Costs
+    wheatSeedCost: 1,
+    cornSeedCost: 3,
+    tomatoSeedCost: 5,
+    
     // Water Purchase Variables
     waterCost: 1,
     waterQuantity: 10,
+    
     //Plot Purchase Variables
     plotCost: 10,
+    
     // Player Sellable Item Values
-    // Crop Sale Variables
+    // Crop Sale Variables (generic - kept for compatibility)
     cropPrice: 2,
     cropQuantity: 1,
     cropBulkPriceCoefficient: 1.2,
+    
+    // Crop-Specific Sale Prices
+    wheatPrice: 2,
+    cornPrice: 5,
+    tomatoPrice: 8,
 }
 
 function getStoreValues() {
@@ -26,7 +39,9 @@ function updateStoreValues(updates) {
 }
 
 import { getState, } from "../state.js";
-import { buySeed, buyWater, buyPlot, sellCrops, buyBulkSeeds, sellBulkCrops } from "../handlers/storeHandlers.js";
+import { buySeed, buyWater, buyPlot, sellCrops, buyBulkSeeds, sellBulkCrops, 
+         buyWheatSeeds, buyCornSeeds, buyTomatoSeeds,
+         sellWheat, sellCorn, sellTomato } from "../handlers/storeHandlers.js";
 
 function initializeStoreTitle() {
     // Store Title as a Button
@@ -65,27 +80,64 @@ function initializeStore() {
     itemsForSaleTitle.setAttribute('aria-label', 'Items for Sale Section Title');
     store.appendChild(itemsForSaleTitle);
 
-    // Seed Purchasing
-        // Seed Item Title
-        const buySeedsSection = document.createElement('section');
-        buySeedsSection.classList.add('item-title');
-        buySeedsSection.id = 'buySeedsSection';
-        buySeedsSection.textContent = 'Buy Seeds';
-        buySeedsSection.setAttribute('aria-label', 'Buy Seeds Title');
-        itemsForSaleSection.appendChild(buySeedsSection);
+    // Seed Purchasing - Wheat Seeds
+        const buyWheatSeedsSection = document.createElement('section');
+        buyWheatSeedsSection.classList.add('item-title');
+        buyWheatSeedsSection.id = 'buyWheatSeedsSection';
+        buyWheatSeedsSection.textContent = 'Buy Wheat Seeds';
+        buyWheatSeedsSection.setAttribute('aria-label', 'Buy Wheat Seeds Title');
+        itemsForSaleSection.appendChild(buyWheatSeedsSection);
 
-        // Seed Button
-        const buySeedsButton = document.createElement('button');
-        buySeedsButton.classList.add('store-button');
-        buySeedsButton.textContent = `${storeValues.seedQuantity}x`;
-        buySeedsButton.onclick = buySeed;
-        buySeedsSection.appendChild(buySeedsButton);
+        const buyWheatSeedsButton = document.createElement('button');
+        buyWheatSeedsButton.classList.add('store-button');
+        buyWheatSeedsButton.textContent = `1x`;
+        buyWheatSeedsButton.onclick = buyWheatSeeds;
+        buyWheatSeedsSection.appendChild(buyWheatSeedsButton);
 
-        // Seed Cost Title
-        const buySeedsCost = document.createElement('span');
-        buySeedsCost.classList.add('item-price');
-        buySeedsCost.textContent = `${storeValues.seedCost} coin`;
-        buySeedsSection.appendChild(buySeedsCost);
+        const buyWheatSeedsCost = document.createElement('span');
+        buyWheatSeedsCost.classList.add('item-price');
+        buyWheatSeedsCost.textContent = `${storeValues.wheatSeedCost} coin`;
+        buyWheatSeedsSection.appendChild(buyWheatSeedsCost);
+
+    // Seed Purchasing - Corn Seeds
+        const buyCornSeedsSection = document.createElement('section');
+        buyCornSeedsSection.classList.add('item-title');
+        buyCornSeedsSection.id = 'buyCornSeedsSection';
+        buyCornSeedsSection.textContent = 'Buy Corn Seeds';
+        buyCornSeedsSection.setAttribute('aria-label', 'Buy Corn Seeds Title');
+        buyCornSeedsSection.style.display = 'none'; // Hidden until unlocked
+        itemsForSaleSection.appendChild(buyCornSeedsSection);
+
+        const buyCornSeedsButton = document.createElement('button');
+        buyCornSeedsButton.classList.add('store-button');
+        buyCornSeedsButton.textContent = `1x`;
+        buyCornSeedsButton.onclick = buyCornSeeds;
+        buyCornSeedsSection.appendChild(buyCornSeedsButton);
+
+        const buyCornSeedsCost = document.createElement('span');
+        buyCornSeedsCost.classList.add('item-price');
+        buyCornSeedsCost.textContent = `${storeValues.cornSeedCost} coins`;
+        buyCornSeedsSection.appendChild(buyCornSeedsCost);
+
+    // Seed Purchasing - Tomato Seeds
+        const buyTomatoSeedsSection = document.createElement('section');
+        buyTomatoSeedsSection.classList.add('item-title');
+        buyTomatoSeedsSection.id = 'buyTomatoSeedsSection';
+        buyTomatoSeedsSection.textContent = 'Buy Tomato Seeds';
+        buyTomatoSeedsSection.setAttribute('aria-label', 'Buy Tomato Seeds Title');
+        buyTomatoSeedsSection.style.display = 'none'; // Hidden until unlocked
+        itemsForSaleSection.appendChild(buyTomatoSeedsSection);
+
+        const buyTomatoSeedsButton = document.createElement('button');
+        buyTomatoSeedsButton.classList.add('store-button');
+        buyTomatoSeedsButton.textContent = `1x`;
+        buyTomatoSeedsButton.onclick = buyTomatoSeeds;
+        buyTomatoSeedsSection.appendChild(buyTomatoSeedsButton);
+
+        const buyTomatoSeedsCost = document.createElement('span');
+        buyTomatoSeedsCost.classList.add('item-price');
+        buyTomatoSeedsCost.textContent = `${storeValues.tomatoSeedCost} coins`;
+        buyTomatoSeedsSection.appendChild(buyTomatoSeedsCost);
 
         // Water Refill Purchasing
         // Water Item Title
@@ -122,27 +174,64 @@ function initializeStore() {
     playerSellableItemsTitle.setAttribute('aria-label', 'Player Sellable Items Section Title');
     store.appendChild(playerSellableItemsTitle);
 
-    // Crop Selling
-        // Crop Item Title
-        const sellCropsSection = document.createElement('section');
-        sellCropsSection.classList.add('item-title');
-        sellCropsSection.id = 'sellCropsSection';
-        sellCropsSection.textContent = 'Sell Crops';
-        sellCropsSection.setAttribute('aria-label', 'Sell Crops Title');
-        playerSellableItems.appendChild(sellCropsSection);
+    // Crop Selling - Wheat
+        const sellWheatSection = document.createElement('section');
+        sellWheatSection.classList.add('item-title');
+        sellWheatSection.id = 'sellWheatSection';
+        sellWheatSection.textContent = 'Sell Wheat';
+        sellWheatSection.setAttribute('aria-label', 'Sell Wheat Title');
+        playerSellableItems.appendChild(sellWheatSection);
 
-        // Crop Button
-        const sellCropsButton = document.createElement('button');
-        sellCropsButton.classList.add('store-button');
-        sellCropsButton.textContent = `${storeValues.cropQuantity}x`;
-        sellCropsButton.onclick = sellCrops;
-        sellCropsSection.appendChild(sellCropsButton);
+        const sellWheatButton = document.createElement('button');
+        sellWheatButton.classList.add('store-button');
+        sellWheatButton.textContent = `1x`;
+        sellWheatButton.onclick = sellWheat;
+        sellWheatSection.appendChild(sellWheatButton);
 
-        // Crop Price Title
-        const sellCropsCost = document.createElement('span');
-        sellCropsCost.classList.add('item-price');
-        sellCropsCost.textContent = `${storeValues.cropPrice} coins`;
-        sellCropsSection.appendChild(sellCropsCost);
+        const sellWheatPrice = document.createElement('span');
+        sellWheatPrice.classList.add('item-price');
+        sellWheatPrice.textContent = `${storeValues.wheatPrice} coins`;
+        sellWheatSection.appendChild(sellWheatPrice);
+
+    // Crop Selling - Corn
+        const sellCornSection = document.createElement('section');
+        sellCornSection.classList.add('item-title');
+        sellCornSection.id = 'sellCornSection';
+        sellCornSection.textContent = 'Sell Corn';
+        sellCornSection.setAttribute('aria-label', 'Sell Corn Title');
+        sellCornSection.style.display = 'none'; // Hidden until unlocked
+        playerSellableItems.appendChild(sellCornSection);
+
+        const sellCornButton = document.createElement('button');
+        sellCornButton.classList.add('store-button');
+        sellCornButton.textContent = `1x`;
+        sellCornButton.onclick = sellCorn;
+        sellCornSection.appendChild(sellCornButton);
+
+        const sellCornPrice = document.createElement('span');
+        sellCornPrice.classList.add('item-price');
+        sellCornPrice.textContent = `${storeValues.cornPrice} coins`;
+        sellCornSection.appendChild(sellCornPrice);
+
+    // Crop Selling - Tomato
+        const sellTomatoSection = document.createElement('section');
+        sellTomatoSection.classList.add('item-title');
+        sellTomatoSection.id = 'sellTomatoSection';
+        sellTomatoSection.textContent = 'Sell Tomato';
+        sellTomatoSection.setAttribute('aria-label', 'Sell Tomato Title');
+        sellTomatoSection.style.display = 'none'; // Hidden until unlocked
+        playerSellableItems.appendChild(sellTomatoSection);
+
+        const sellTomatoButton = document.createElement('button');
+        sellTomatoButton.classList.add('store-button');
+        sellTomatoButton.textContent = `1x`;
+        sellTomatoButton.onclick = sellTomato;
+        sellTomatoSection.appendChild(sellTomatoButton);
+
+        const sellTomatoPrice = document.createElement('span');
+        sellTomatoPrice.classList.add('item-price');
+        sellTomatoPrice.textContent = `${storeValues.tomatoPrice} coins`;
+        sellTomatoSection.appendChild(sellTomatoPrice);
 
     // Field Expansion Section
     const fieldExpansionSection = document.createElement('section');

@@ -5,13 +5,13 @@ import { updateCurrencyBar } from "../ui/currency.js";
 import { updateField } from "../ui/field.js";
 import { getStoreValues, updateStoreValues } from "../ui/store.js";
 import { updateWaterRefillsPurchased } from "./upgradeHandlers.js";
-import { trackMilestones, 
-         getMilestoneValues, 
+import { trackAchievements, 
+         getAchievementValues, 
          updateSeedsBought, 
          updateCropsSold, 
          updateCoinsEarned,
-
-        } from "./milestoneHandlers.js";
+         checkCropUnlocks,
+        } from "./achievementHandlers.js";
 
 
 // Purchasing Handlers
@@ -49,7 +49,7 @@ function buyBulkSeeds(event) {
             coins: gameState.coins - bulkCost,
             seeds: gameState.seeds + bulkQuantity,
         });
-        updateSeedsBought(bulkQuantity); // Update seedsBought and check milestones
+        updateSeedsBought(bulkQuantity); // Update seedsBought and check achievements
         updateCurrencyBar();
     } else {
         console.log("Not enough coins to buy bulk seeds");
@@ -59,7 +59,7 @@ function buyBulkSeeds(event) {
 function buyWater() {
     const gameState = getState();
     const storeValues = getStoreValues();
-    const milestones = getMilestoneValues();
+    const achievements = getAchievementValues();
 
     // Check if the player's water is already at capacity
     if (gameState.water >= gameState.waterCapacity) {
@@ -75,13 +75,14 @@ function buyWater() {
         updateState({
             coins: gameState.coins - storeValues.waterCost,
             water: newWaterLevel,
+            totalCoinsSpent: gameState.totalCoinsSpent + storeValues.waterCost,
         });
 
-        // Increment waterRefillsPurchased and check for milestone
+        // Increment waterRefillsPurchased and check for achievement
         updateWaterRefillsPurchased();
 
-        // Track milestones and update the UI
-        trackMilestones(gameState, milestones);
+        // Track achievements and update the UI
+        trackAchievements(gameState, achievements);
         updateCurrencyBar();
     } else {
         console.log("Not enough coins to buy water");
@@ -102,6 +103,7 @@ function buyPlot() {
         updateState({
             coins: gameState.coins - plotCost,
             plots: gameState.plots + 1,
+            totalCoinsSpent: gameState.totalCoinsSpent + plotCost,
         });
         storeValues.plotCost = plotCost;
         updateStoreValues({
@@ -162,4 +164,110 @@ function sellBulkCrops(event) {
     }
 }
 
-export { buySeed, buyWater, buyPlot, sellCrops, buyBulkSeeds, sellBulkCrops };
+// Crop-Specific Seed Purchasing Handlers
+function buyWheatSeeds() {
+    const gameState = getState();
+    const storeValues = getStoreValues();
+    if (gameState.coins >= storeValues.wheatSeedCost) {
+        updateState({
+            coins: gameState.coins - storeValues.wheatSeedCost,
+            wheatSeeds: gameState.wheatSeeds + 1,
+            totalCoinsSpent: gameState.totalCoinsSpent + storeValues.wheatSeedCost,
+        });
+        updateSeedsBought(1);
+        updateCurrencyBar();
+    } else {
+        console.log("Not enough coins to buy wheat seeds");
+    }
+}
+
+function buyCornSeeds() {
+    const gameState = getState();
+    const storeValues = getStoreValues();
+    if (gameState.coins >= storeValues.cornSeedCost) {
+        updateState({
+            coins: gameState.coins - storeValues.cornSeedCost,
+            cornSeeds: gameState.cornSeeds + 1,
+            totalCoinsSpent: gameState.totalCoinsSpent + storeValues.cornSeedCost,
+        });
+        updateSeedsBought(1);
+        updateCurrencyBar();
+    } else {
+        console.log("Not enough coins to buy corn seeds");
+    }
+}
+
+function buyTomatoSeeds() {
+    const gameState = getState();
+    const storeValues = getStoreValues();
+    if (gameState.coins >= storeValues.tomatoSeedCost) {
+        updateState({
+            coins: gameState.coins - storeValues.tomatoSeedCost,
+            tomatoSeeds: gameState.tomatoSeeds + 1,
+            totalCoinsSpent: gameState.totalCoinsSpent + storeValues.tomatoSeedCost,
+        });
+        updateSeedsBought(1);
+        updateCurrencyBar();
+    } else {
+        console.log("Not enough coins to buy tomato seeds");
+    }
+}
+
+// Crop-Specific Selling Handlers
+function sellWheat() {
+    const gameState = getState();
+    const storeValues = getStoreValues();
+    if (gameState.wheat > 0) {
+        updateState({
+            coins: gameState.coins + storeValues.wheatPrice,
+            wheat: gameState.wheat - 1,
+            crops: gameState.crops - 1, // Update generic crops count
+        });
+        updateCoinsEarned(storeValues.wheatPrice);
+        updateCropsSold(1);
+        updateState({ wheatSold: gameState.wheatSold + 1 });
+        updateCurrencyBar();
+    } else {
+        console.log("No wheat available to sell");
+    }
+}
+
+function sellCorn() {
+    const gameState = getState();
+    const storeValues = getStoreValues();
+    if (gameState.corn > 0) {
+        updateState({
+            coins: gameState.coins + storeValues.cornPrice,
+            corn: gameState.corn - 1,
+            crops: gameState.crops - 1,
+        });
+        updateCoinsEarned(storeValues.cornPrice);
+        updateCropsSold(1);
+        updateState({ cornSold: gameState.cornSold + 1 });
+        updateCurrencyBar();
+    } else {
+        console.log("No corn available to sell");
+    }
+}
+
+function sellTomato() {
+    const gameState = getState();
+    const storeValues = getStoreValues();
+    if (gameState.tomato > 0) {
+        updateState({
+            coins: gameState.coins + storeValues.tomatoPrice,
+            tomato: gameState.tomato - 1,
+            crops: gameState.crops - 1,
+        });
+        updateCoinsEarned(storeValues.tomatoPrice);
+        updateCropsSold(1);
+        updateState({ tomatoSold: gameState.tomatoSold + 1 });
+        updateCurrencyBar();
+    } else {
+        console.log("No tomatoes available to sell");
+    }
+}
+
+export { buySeed, buyWater, buyPlot, sellCrops, buyBulkSeeds, sellBulkCrops,
+         buyWheatSeeds, buyCornSeeds, buyTomatoSeeds,
+         sellWheat, sellCorn, sellTomato };

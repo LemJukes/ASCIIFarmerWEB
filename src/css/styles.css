@@ -8,7 +8,7 @@ body {
     justify-content: center;
     width: 100%;
     margin: 0;
-    padding: 0 10px;
+    padding: 0 5px;
     box-sizing: border-box;
     text-align: center;
 }
@@ -16,7 +16,7 @@ body {
 /* Header styles */
 header {
     width: 100%;
-    padding: 15px 5px;
+    padding: 8px 5px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -32,19 +32,25 @@ main {
     align-items: center;
     justify-content: center;
     width: 100%;
-    padding: 10px;
+    max-width: 1200px;
+    padding: 5px;
+    margin: 0 auto;
+    box-sizing: border-box;
 }
 
 /* Currency Bar Styles */
 .currency-bar {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    width: 90%;
-    padding: 10px 5px;
+    justify-content: flex-start;
+    align-items: flex-start;
+    width: 100%;
+    max-width: 600px;
+    padding: 5px;
     border: dashed 2.5px #000;    
-    gap: 10px;
+    gap: 8px;
+    box-sizing: border-box;
+    margin: 5px 0;
 }
 
 .currency-item {
@@ -52,19 +58,34 @@ main {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 5px;
-    min-width: 80px;
+    padding: 3px;
+    min-width: 70px;
+    flex: 0 1 auto;
 }
 
 .currency-item span {
     display: block;
-    margin-top: 5px;
-    padding: 5px;
+    margin-top: 3px;
+    padding: 3px 5px;
     border: 1px solid #000;
     background: #fff;
     width: auto;
     min-width: 60px;
     box-sizing: border-box;
+}
+
+.currency-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 3px;
+    gap: 3px;
+}
+
+.currency-subitem {
+    font-size: 0.9em;
+    min-width: 60px;
 }
 
 /* Container Title Styles */
@@ -74,8 +95,8 @@ main {
     align-items: center;
     font-weight: bold;
     font-size: clamp(1.2em, 4vw, 1.5em);
-    padding: .25em;
-    margin: .25em;
+    padding: .15em;
+    margin: .15em;
     text-align: center;
 }
 
@@ -84,12 +105,14 @@ main {
     display: grid;
     grid-template-columns: repeat(10, 1fr);
     grid-template-rows: repeat(10, 1fr);
-    gap: 3px;
-    width: 95%;
-    max-width: 1000px;
+    gap: 2px;
+    width: 100%;
+    max-width: 600px;
     aspect-ratio: 1 / 1;
     padding: 5px;
     border: 2px dashed black;
+    box-sizing: border-box;
+    margin: 5px 0;
 }
 
 /* Plot Button Styles */
@@ -110,13 +133,16 @@ main {
 .store-container {
     font: inherit;
     border: 2px dashed black;
-    width: 95%;
+    width: 100%;
+    max-width: 600px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 10px 5px;
-    margin-top: 15px;
+    padding: 5px;
+    margin-top: 8px;
     text-align: center;
+    box-sizing: border-box;
 }
 
 .store-secton-title {
@@ -131,12 +157,13 @@ main {
 .store-section {
     font-weight: normal;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    padding: 2%;
-    margin: 2%;
-    margin-left: 10px;
-    margin-right: 10px;
+    padding: 5px;
+    margin: 5px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .item-title {
@@ -165,13 +192,16 @@ main {
 .upgrades-container {
     font: inherit;
     border: 2px dashed black;
-    width: 95%;
+    width: 100%;
+    max-width: 600px;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-around;
-    padding: 10px 5px;
-    margin-top: 15px;
+    padding: 5px;
+    margin-top: 8px;
     text-align: center;
+    box-sizing: border-box;
 }
 
 .upgrades-section {

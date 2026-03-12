@@ -1,6 +1,6 @@
 //src/js/ui/upgrades.js+
 
-import { buyWaterCapacityUpgrade, buyExpandedClickUpgradeMk1 } from "../handlers/upgradeHandlers.js";
+import { buyWaterCapacityUpgrade, buyExpandedClickUpgradeMk1, buyExpandedClickUpgradeMk2, buyExpandedClickUpgradeMk3 } from "../handlers/upgradeHandlers.js";
 
 const upgradeValues = {
     waterUpgradeCost: 50,
@@ -12,6 +12,16 @@ const upgradeValues = {
         //Mk1 Values
         expandedClickMk1Purchased: false, // Flag indicating whether the expanded click upgrade has been purchased
         expandedClickMk1Enabled: false,   // Flag indicating whether the expanded click upgrade is enabled
+        
+        //Mk2 Values
+        expandedClickMk2Cost: 500,
+        expandedClickMk2Purchased: false,
+        expandedClickMk2Enabled: false,
+        
+        //Mk3 Values
+        expandedClickMk3Cost: 2000,
+        expandedClickMk3Purchased: false,
+        expandedClickMk3Enabled: false,
 }
 
 function getUpgradeValues() {
