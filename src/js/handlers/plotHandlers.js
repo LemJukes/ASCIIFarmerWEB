@@ -91,7 +91,7 @@ function handlePlotClick(plot, plotIndex) {
             plot.disabled = true;
 
             // Calculate the disabled time based on the number of plots
-            const baseTime = 3000;
+            const baseTime = 1500;
             const initialDisableCoefficient = 1;
             const numPlots = document.getElementById('field').childElementCount;
             const coefficientIncrease = Math.floor(numPlots / 5) * 0.5;
@@ -353,7 +353,7 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
             plot.disabled = true;
 
             const numPlots = document.getElementById('field').childElementCount;
-            const disabledTime = 3000 * Math.pow(1.5, Math.floor(numPlots / 3));
+            const disabledTime =  1500 * Math.pow(1.5, Math.floor(numPlots / 3));
 
             setTimeout(() => {
                 plot.disabled = false;
