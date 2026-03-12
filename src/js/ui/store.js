@@ -67,18 +67,18 @@ function initializeStore() {
     store.id = 'store';
     store.setAttribute('aria-label', 'The Store');
 
-    // Items for Sale Section
-    const itemsForSaleSection = document.createElement('section');
-    itemsForSaleSection.classList.add('store-section');
-    itemsForSaleSection.id = 'items-for-sale';
-    itemsForSaleSection.setAttribute('aria-label', 'Items for Sale Section');
+    // Buy Items Section
+    const buyItemsSection = document.createElement('section');
+    buyItemsSection.classList.add('store-section');
+    buyItemsSection.id = 'buy-items';
+    buyItemsSection.setAttribute('aria-label', 'Buy Items Section');
 
-    // Items for Sale Section Title
-    const itemsForSaleTitle = document.createElement('h3');
-    itemsForSaleTitle.classList.add('store-section-title');
-    itemsForSaleTitle.textContent = 'Items for Sale';
-    itemsForSaleTitle.setAttribute('aria-label', 'Items for Sale Section Title');
-    store.appendChild(itemsForSaleTitle);
+    // Buy Items Section Title
+    const buyItemsTitle = document.createElement('h3');
+    buyItemsTitle.classList.add('store-section-title');
+    buyItemsTitle.textContent = 'Buy Items';
+    buyItemsTitle.setAttribute('aria-label', 'Buy Items Section Title');
+    store.appendChild(buyItemsTitle);
 
     // Seed Purchasing - Wheat Seeds
         const buyWheatSeedsSection = document.createElement('section');
@@ -86,7 +86,7 @@ function initializeStore() {
         buyWheatSeedsSection.id = 'buyWheatSeedsSection';
         buyWheatSeedsSection.textContent = 'Buy Wheat Seeds';
         buyWheatSeedsSection.setAttribute('aria-label', 'Buy Wheat Seeds Title');
-        itemsForSaleSection.appendChild(buyWheatSeedsSection);
+        buyItemsSection.appendChild(buyWheatSeedsSection);
 
         const buyWheatSeedsButton = document.createElement('button');
         buyWheatSeedsButton.classList.add('store-button');
@@ -106,7 +106,7 @@ function initializeStore() {
         buyCornSeedsSection.textContent = 'Buy Corn Seeds';
         buyCornSeedsSection.setAttribute('aria-label', 'Buy Corn Seeds Title');
         buyCornSeedsSection.style.display = 'none'; // Hidden until unlocked
-        itemsForSaleSection.appendChild(buyCornSeedsSection);
+        buyItemsSection.appendChild(buyCornSeedsSection);
 
         const buyCornSeedsButton = document.createElement('button');
         buyCornSeedsButton.classList.add('store-button');
@@ -126,7 +126,7 @@ function initializeStore() {
         buyTomatoSeedsSection.textContent = 'Buy Tomato Seeds';
         buyTomatoSeedsSection.setAttribute('aria-label', 'Buy Tomato Seeds Title');
         buyTomatoSeedsSection.style.display = 'none'; // Hidden until unlocked
-        itemsForSaleSection.appendChild(buyTomatoSeedsSection);
+        buyItemsSection.appendChild(buyTomatoSeedsSection);
 
         const buyTomatoSeedsButton = document.createElement('button');
         buyTomatoSeedsButton.classList.add('store-button');
@@ -146,7 +146,7 @@ function initializeStore() {
         buyWaterSection.id = 'buyWaterSection';
         buyWaterSection.textContent = 'Buy Water';
         buyWaterSection.setAttribute('aria-label', 'Buy Water Title');
-        itemsForSaleSection.appendChild(buyWaterSection);
+        buyItemsSection.appendChild(buyWaterSection);
 
         // Water Button
         const buyWaterButton = document.createElement('button');
@@ -270,7 +270,7 @@ function initializeStore() {
         buyPlotSection.appendChild(buyPlotCost);
 
     // Append sections to store
-    itemsForSaleTitle.appendChild(itemsForSaleSection);
+    buyItemsTitle.appendChild(buyItemsSection);
     playerSellableItemsTitle.appendChild(playerSellableItems);
     fieldExpansionTitle.appendChild(fieldExpansionSection);
 
