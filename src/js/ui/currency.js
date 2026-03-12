@@ -2,7 +2,7 @@
 import { getState, logGameState } from "../state.js";
 import { trackAchievements } from "../handlers/achievementHandlers.js";
 import { getStoreValues, initializeStore } from "./store.js";
-import { logUpgradeValues } from "./upgrades.js";
+//import { logUpgradeValues } from "./upgrades.js";
 
 function initializeCurrencyBarTitle() {
     // Currency Bar Title
@@ -126,7 +126,7 @@ function updateCurrencyBar() {
     updatePlotCostDisplay();
     trackAchievements();
     logGameState();
-    logUpgradeValues();    
+//    logUpgradeValues();    
 }
 
 

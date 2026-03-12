@@ -32,10 +32,10 @@ function updateUpgradeValues(updates) {
     Object.assign(upgradeValues, updates);
 }
 
-function logUpgradeValues() {
-    const upgadeValues = getUpgradeValues();
-    console.log('Upgrade Values:', upgradeValues);
-}
+//function logUpgradeValues() {
+//    const upgadeValues = getUpgradeValues();
+//    console.log('Upgrade Values:', upgradeValues);
+//}
 
 
 function initializeUpgradesTitle() {
@@ -216,7 +216,7 @@ function updateExpandedClickUpgradeButton() {
 
 export { getUpgradeValues,
          updateUpgradeValues,
-         logUpgradeValues,
+         //logUpgradeValues,
          initializeUpgradesTitle, 
          initializeUpgrades,
          initializeWaterUpgradesSection,
