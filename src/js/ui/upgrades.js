@@ -1,8 +1,9 @@
 //src/js/ui/upgrades.js+
 
+import { savePartialSnapshot } from "../persistence.js";
 import { buyWaterCapacityUpgrade, buyExpandedClickUpgradeMk1, buyExpandedClickUpgradeMk2, buyExpandedClickUpgradeMk3 } from "../handlers/upgradeHandlers.js";
 
-const upgradeValues = {
+const initialUpgradeValues = {
     waterUpgradeCost: 50,
     
     //Epanded Click Values
@@ -24,12 +25,34 @@ const upgradeValues = {
         expandedClickMk3Enabled: false,
 }
 
+const upgradeValues = { ...initialUpgradeValues };
+
 function getUpgradeValues() {
     return { ...upgradeValues};
 }
 
+function getUpgradeValuesSnapshot() {
+    return { ...upgradeValues };
+}
+
+function applyUpgradeValuesSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') {
+        return;
+    }
+
+    const merged = { ...initialUpgradeValues };
+    for (const key of Object.keys(initialUpgradeValues)) {
+        if (Object.prototype.hasOwnProperty.call(snapshot, key)) {
+            merged[key] = snapshot[key];
+        }
+    }
+
+    Object.assign(upgradeValues, merged);
+}
+
 function updateUpgradeValues(updates) {
     Object.assign(upgradeValues, updates);
+    savePartialSnapshot({ upgradeValues: getUpgradeValuesSnapshot() });
 }
 
 //function logUpgradeValues() {
@@ -215,6 +238,8 @@ function updateExpandedClickUpgradeButton() {
 */
 
 export { getUpgradeValues,
+         getUpgradeValuesSnapshot,
+         applyUpgradeValuesSnapshot,
          updateUpgradeValues,
          //logUpgradeValues,
          initializeUpgradesTitle, 

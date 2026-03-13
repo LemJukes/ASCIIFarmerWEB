@@ -224,6 +224,19 @@ main {
     justify-content: center;
 }
 
+.reset-save-button {
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 6px 10px;
+    border: 1px solid #000;
+    background: #fff;
+    cursor: pointer;
+    z-index: 1000;
+}
+
 /* Media Queries for larger screens */
 @media screen and (min-width: 768px) {
     .currency-bar {

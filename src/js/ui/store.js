@@ -1,5 +1,7 @@
 // ./ui/store.js.
-const storeValues = {
+import { savePartialSnapshot } from "../persistence.js";
+
+const initialStoreValues = {
     // Items for Sale Values
     // Seed Purchase Variables (generic - kept for compatibility)
     seedCost: 1,
@@ -30,12 +32,34 @@ const storeValues = {
     tomatoPrice: 8,
 }
 
+const storeValues = { ...initialStoreValues };
+
 function getStoreValues() {
     return { ...storeValues};
 }
 
+function getStoreValuesSnapshot() {
+    return { ...storeValues };
+}
+
+function applyStoreValuesSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') {
+        return;
+    }
+
+    const merged = { ...initialStoreValues };
+    for (const key of Object.keys(initialStoreValues)) {
+        if (Object.prototype.hasOwnProperty.call(snapshot, key)) {
+            merged[key] = snapshot[key];
+        }
+    }
+
+    Object.assign(storeValues, merged);
+}
+
 function updateStoreValues(updates) {
     Object.assign(storeValues, updates);
+    savePartialSnapshot({ storeValues: getStoreValuesSnapshot() });
 }
 
 import { getState, } from "../state.js";
@@ -339,6 +363,8 @@ function addBulkCropSaleButton(sellBulkCropsText, sellBulkCropsCostText) {
 export { initializeStore, 
          initializeStoreTitle, 
          getStoreValues, 
+         getStoreValuesSnapshot,
+         applyStoreValuesSnapshot,
          updateStoreValues,
          addBulkSeedButton, 
          addBulkCropSaleButton };

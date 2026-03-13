@@ -1,5 +1,7 @@
 //state.js
-const gameState = {
+import { savePartialSnapshot } from "./persistence.js";
+
+const initialGameState = {
     // Player Currency Values
     coins: 0,
     seeds: 1, // Generic seeds (kept for backward compatibility)
@@ -43,12 +45,62 @@ const gameState = {
 
 }
 
+const gameState = { ...initialGameState };
+
 function getState() {
     return { ...gameState };
 }
 
+function getStateSnapshot() {
+    return {
+        ...gameState,
+        plotStates: Array.isArray(gameState.plotStates)
+            ? gameState.plotStates.map(plot => ({
+                symbol: plot?.symbol ?? '~',
+                cropType: plot?.cropType ?? null,
+                waterCount: Number(plot?.waterCount) || 0,
+            }))
+            : [],
+        achievementsUnlocked: Array.isArray(gameState.achievementsUnlocked)
+            ? [...gameState.achievementsUnlocked]
+            : [],
+    };
+}
+
+function applyStateSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') {
+        return;
+    }
+
+    const merged = { ...initialGameState };
+
+    for (const key of Object.keys(initialGameState)) {
+        if (Object.prototype.hasOwnProperty.call(snapshot, key)) {
+            merged[key] = snapshot[key];
+        }
+    }
+
+    const normalizedPlotStates = Array.isArray(merged.plotStates)
+        ? merged.plotStates.map(plot => ({
+            symbol: plot?.symbol ?? '~',
+            cropType: plot?.cropType ?? null,
+            waterCount: Number(plot?.waterCount) || 0,
+        }))
+        : [];
+
+    const normalizedAchievements = Array.isArray(merged.achievementsUnlocked)
+        ? [...merged.achievementsUnlocked]
+        : [];
+
+    Object.assign(gameState, merged, {
+        plotStates: normalizedPlotStates,
+        achievementsUnlocked: normalizedAchievements,
+    });
+}
+
 function updateState(updates) {
     Object.assign(gameState, updates);
+    savePartialSnapshot({ gameState: getStateSnapshot() });
 }
 
 function logGameState() {
@@ -56,4 +108,4 @@ function logGameState() {
     console.log('Game State:', gameState);
 }
 
-export { getState, updateState, logGameState, gameState };
+export { getState, getStateSnapshot, applyStateSnapshot, updateState, logGameState, gameState };
