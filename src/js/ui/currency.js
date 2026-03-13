@@ -100,7 +100,7 @@ function initializeCurrencyBar(){
     currencyBar.appendChild(cropsGroup);
 
     const htmlMain = document.querySelector('main');
-    htmlMain.insertBefore(currencyBar, htmlMain.firstChild)
+    htmlMain.appendChild(currencyBar)
 }
 
 function updateCurrencyBar() {
