@@ -1,5 +1,11 @@
 /* src/css/styles.css */
 /* Base styles */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 body {
     font-family: monospace;
     display: flex;
@@ -8,9 +14,11 @@ body {
     justify-content: center;
     width: 100%;
     margin: 0;
-    padding: 0 5px;
+    max-width: 100vw;
+    padding: 0 clamp(4px, 2vw, 12px);
     box-sizing: border-box;
     text-align: center;
+    overflow-x: hidden;
 }
 
 /* Header styles */
@@ -21,6 +29,14 @@ header {
     justify-content: center;
     align-items: center;
     text-align: left;
+}
+
+header pre {
+    margin: 0;
+    max-width: 100%;
+    font-size: clamp(0.31rem, 1.5vw, 1rem);
+    line-height: 1;
+    overflow-x: auto;
 }
 
 
@@ -42,13 +58,13 @@ main {
 .currency-bar {
     display: flex;
     flex-wrap: wrap;
-    justify-content: flex-start;
-    align-items: flex-start;
-    width: 100%;
+    justify-content: center;
+    align-items: stretch;
+    width: min(100%, 600px);
     max-width: 600px;
-    padding: 5px;
+    padding: 4px 6px;
     border: dashed 2.5px #000;    
-    gap: 8px;
+    gap: 6px;
     box-sizing: border-box;
     margin: 5px 0;
 }
@@ -58,19 +74,27 @@ main {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 3px;
-    min-width: 70px;
-    flex: 0 1 auto;
+    justify-content: flex-start;
+    padding: 2px;
+    min-width: 64px;
+    flex: 1 1 72px;
+    line-height: 1.1;
+}
+
+.currency-item--offset::before {
+    content: "\00a0";
+    display: block;
+    line-height: 1;
 }
 
 .currency-item span {
     display: block;
-    margin-top: 3px;
-    padding: 3px 5px;
+    margin-top: 2px;
+    padding: 2px 4px;
     border: 1px solid #000;
     background: #fff;
-    width: auto;
-    min-width: 60px;
+    width: 100%;
+    min-width: 0;
     box-sizing: border-box;
 }
 
@@ -79,13 +103,21 @@ main {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 3px;
-    gap: 3px;
+    padding: 2px;
+    gap: 2px;
+    min-width: 74px;
+    flex: 1 1 86px;
+}
+
+.currency-group strong {
+    font-size: 0.95em;
+    line-height: 1;
 }
 
 .currency-subitem {
-    font-size: 0.9em;
-    min-width: 60px;
+    font-size: 0.85em;
+    min-width: 0;
+    width: 100%;
 }
 
 /* Container Title Styles */
@@ -241,7 +273,18 @@ main {
 @media screen and (min-width: 768px) {
     .currency-bar {
         flex-wrap: nowrap;
-        justify-content: space-around;
+        justify-content: space-between;
+        gap: 4px;
+    }
+
+    .currency-item {
+        min-width: 0;
+        flex: 1 1 0;
+    }
+
+    .currency-group {
+        min-width: 0;
+        flex: 1 1 0;
     }
 
     .field-container {

@@ -31,7 +31,7 @@ function initializeCurrencyBar(){
     
     // Coins
     const coinsItem = document.createElement('div');
-    coinsItem.classList.add('currency-item');
+    coinsItem.classList.add('currency-item', 'currency-item--offset');
     coinsItem.innerHTML = `Coins:<br> <span id="coins" aria-label="Player coins">${gameState.coins}</span>`;
     currencyBar.appendChild(coinsItem);
 
@@ -63,12 +63,12 @@ function initializeCurrencyBar(){
 
     // Water
     const waterItem = document.createElement('div');
-    waterItem.classList.add('currency-item');
+    waterItem.classList.add('currency-item', 'currency-item--offset');
     waterItem.innerHTML = `Water:<br> <span id="water" aria-label="Current water">${gameState.water}</span>`;
     currencyBar.appendChild(waterItem);
     
     const waterCapItem = document.createElement('div');
-    waterCapItem.classList.add('currency-item');
+    waterCapItem.classList.add('currency-item', 'currency-item--offset');
     waterCapItem.innerHTML = `Water Cap:<br> <span id="water-capacity" aria-label="Water capacity">${gameState.waterCapacity}</span>`;
     currencyBar.appendChild(waterCapItem);
 
