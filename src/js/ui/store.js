@@ -65,7 +65,8 @@ function updateStoreValues(updates) {
 import { getState, } from "../state.js";
 import { buySeed, buyWater, buyPlot, sellCrops, buyBulkSeeds, sellBulkCrops, 
          buyWheatSeeds, buyCornSeeds, buyTomatoSeeds,
-         sellWheat, sellCorn, sellTomato } from "../handlers/storeHandlers.js";
+         sellWheat, sellCorn, sellTomato,
+         buyBulkSeedPack, sellBulkCropPack, buyBulkWaterRefill } from "../handlers/storeHandlers.js";
 
 function initializeStoreTitle() {
     // Store Title as a Button
@@ -84,6 +85,7 @@ function initializeStoreTitle() {
 }
 
 function initializeStore() {
+    const gameState = getState();
 
     // Store Section
     const store = document.createElement('section');
@@ -129,7 +131,7 @@ function initializeStore() {
         buyCornSeedsSection.id = 'buyCornSeedsSection';
         buyCornSeedsSection.textContent = 'Buy Corn Seeds';
         buyCornSeedsSection.setAttribute('aria-label', 'Buy Corn Seeds Title');
-        buyCornSeedsSection.style.display = 'none'; // Hidden until unlocked
+        buyCornSeedsSection.style.display = gameState.cornUnlocked ? 'flex' : 'none';
         buyItemsSection.appendChild(buyCornSeedsSection);
 
         const buyCornSeedsButton = document.createElement('button');
@@ -149,7 +151,7 @@ function initializeStore() {
         buyTomatoSeedsSection.id = 'buyTomatoSeedsSection';
         buyTomatoSeedsSection.textContent = 'Buy Tomato Seeds';
         buyTomatoSeedsSection.setAttribute('aria-label', 'Buy Tomato Seeds Title');
-        buyTomatoSeedsSection.style.display = 'none'; // Hidden until unlocked
+        buyTomatoSeedsSection.style.display = gameState.tomatoUnlocked ? 'flex' : 'none';
         buyItemsSection.appendChild(buyTomatoSeedsSection);
 
         const buyTomatoSeedsButton = document.createElement('button');
@@ -223,7 +225,7 @@ function initializeStore() {
         sellCornSection.id = 'sellCornSection';
         sellCornSection.textContent = 'Sell Corn';
         sellCornSection.setAttribute('aria-label', 'Sell Corn Title');
-        sellCornSection.style.display = 'none'; // Hidden until unlocked
+        sellCornSection.style.display = gameState.cornUnlocked ? 'flex' : 'none';
         playerSellableItems.appendChild(sellCornSection);
 
         const sellCornButton = document.createElement('button');
@@ -243,7 +245,7 @@ function initializeStore() {
         sellTomatoSection.id = 'sellTomatoSection';
         sellTomatoSection.textContent = 'Sell Tomato';
         sellTomatoSection.setAttribute('aria-label', 'Sell Tomato Title');
-        sellTomatoSection.style.display = 'none'; // Hidden until unlocked
+        sellTomatoSection.style.display = gameState.tomatoUnlocked ? 'flex' : 'none';
         playerSellableItems.appendChild(sellTomatoSection);
 
         const sellTomatoButton = document.createElement('button');
@@ -307,57 +309,121 @@ function initializeStore() {
     }
 }
 
-function addBulkSeedButton(buyBulkSeedsText, buyBulkSeedsCostText) {
-    const buySeedsSection = document.getElementById('buySeedsSection');
+function addBulkSeedButton(achievementValue, bonusTier) {
+    const gameState = getState();
+    const quantity = Math.max(5, Math.floor(achievementValue * 0.1));
+    const discountMultiplier = Math.max(0.55, 0.9 - bonusTier * 0.03);
 
-    if (!buySeedsSection) {
-        console.error('Items for Sale section not found');
-        return;
-    }
+    const seedSections = [
+        { crop: 'wheat', sectionId: 'buyWheatSeedsSection', seedCost: storeValues.wheatSeedCost, unlocked: true },
+        { crop: 'corn', sectionId: 'buyCornSeedsSection', seedCost: storeValues.cornSeedCost, unlocked: gameState.cornUnlocked },
+        { crop: 'tomato', sectionId: 'buyTomatoSeedsSection', seedCost: storeValues.tomatoSeedCost, unlocked: gameState.tomatoUnlocked },
+    ];
 
-    // Extract quantity and cost from the text
-    const bulkSeedQuantity = parseInt(buyBulkSeedsText);
-    const bulkSeedCost = parseInt(buyBulkSeedsCostText);
+    seedSections.forEach(({ crop, sectionId, seedCost, unlocked }) => {
+        if (!unlocked) {
+            return;
+        }
 
-    // Seed Bulk Button
-    const buyBulkSeedsButton = document.createElement('button');
-    buyBulkSeedsButton.classList.add('store-button');
-    buyBulkSeedsButton.textContent = buyBulkSeedsText;
-    buyBulkSeedsButton.onclick = buyBulkSeeds;
-    buySeedsSection.appendChild(buyBulkSeedsButton);
+        const section = document.getElementById(sectionId);
+        if (!section) {
+            return;
+        }
 
-    // Seed Bulk Cost Title
-    const buyBulkSeedsCost = document.createElement('span');
-    buyBulkSeedsCost.classList.add('item-price');
-    buyBulkSeedsCost.textContent = buyBulkSeedsCostText;
-    buySeedsSection.appendChild(buyBulkSeedsCost);
+        const buttonId = `${crop}-bulk-seed-${achievementValue}`;
+        if (document.getElementById(buttonId)) {
+            return;
+        }
 
+        const totalCost = Math.max(1, Math.ceil(quantity * seedCost * discountMultiplier));
+
+        const bulkButton = document.createElement('button');
+        bulkButton.classList.add('store-button');
+        bulkButton.id = buttonId;
+        bulkButton.textContent = `${quantity}x`;
+        bulkButton.addEventListener('click', () => buyBulkSeedPack(crop, quantity, totalCost));
+        section.appendChild(bulkButton);
+
+        const bulkCost = document.createElement('span');
+        bulkCost.classList.add('item-price');
+        bulkCost.id = `${buttonId}-cost`;
+        bulkCost.textContent = `${totalCost} coins`;
+        section.appendChild(bulkCost);
+    });
 }
 
-function addBulkCropSaleButton(sellBulkCropsText, sellBulkCropsCostText) {
-    // Ensure sellCropsSection is present in the DOM
-    const sellCropsSection = document.getElementById('sellCropsSection');
+function addBulkCropSaleButton(achievementValue, bonusTier) {
+    const gameState = getState();
+    const quantity = Math.max(5, Math.floor(achievementValue * 0.1));
+    const bonusPercent = Math.min(50, 5 + bonusTier * 5);
+    const multiplier = 1 + bonusPercent / 100;
 
-    if (!sellCropsSection) {  // Correct the condition to check if the section is not found
-        console.error('Sell Crops Section not found in the DOM');
+    const cropSections = [
+        { crop: 'wheat', sectionId: 'sellWheatSection', cropPrice: storeValues.wheatPrice, unlocked: true },
+        { crop: 'corn', sectionId: 'sellCornSection', cropPrice: storeValues.cornPrice, unlocked: gameState.cornUnlocked },
+        { crop: 'tomato', sectionId: 'sellTomatoSection', cropPrice: storeValues.tomatoPrice, unlocked: gameState.tomatoUnlocked },
+    ];
+
+    cropSections.forEach(({ crop, sectionId, cropPrice, unlocked }) => {
+        if (!unlocked) {
+            return;
+        }
+
+        const section = document.getElementById(sectionId);
+        if (!section) {
+            return;
+        }
+
+        const buttonId = `${crop}-bulk-sale-${achievementValue}`;
+        if (document.getElementById(buttonId)) {
+            return;
+        }
+
+        const payout = Math.max(1, Math.floor(quantity * cropPrice * multiplier));
+
+        const bulkButton = document.createElement('button');
+        bulkButton.classList.add('store-button');
+        bulkButton.id = buttonId;
+        bulkButton.textContent = `${quantity}x`;
+        bulkButton.addEventListener('click', () => sellBulkCropPack(crop, quantity, payout));
+        section.appendChild(bulkButton);
+
+        const bulkValue = document.createElement('span');
+        bulkValue.classList.add('item-price');
+        bulkValue.id = `${buttonId}-value`;
+        bulkValue.textContent = `${payout} coins (+${bonusPercent}%)`;
+        section.appendChild(bulkValue);
+    });
+}
+
+function addBulkWaterRefillButton(achievementValue, bonusTier) {
+    const buyWaterSection = document.getElementById('buyWaterSection');
+    if (!buyWaterSection) {
         return;
     }
 
-    const bulkCropQuantity = parseInt(sellBulkCropsText);
-    const bulkCropCost = parseInt(sellBulkCropsCostText);
+    const quantity = Math.max(20, Math.floor(achievementValue * 0.5));
+    const bonusWater = bonusTier * 2;
+    const refillAmount = quantity + bonusWater;
+    const scaledCost = Math.max(1, Math.ceil((quantity / 10) * storeValues.waterCost * (1 - Math.min(0.35, bonusTier * 0.03))));
 
-    // Crop Bulk Sale Button
-    const sellBulkCropsButton = document.createElement('button');
-    sellBulkCropsButton.classList.add('store-button');
-    sellBulkCropsButton.textContent = sellBulkCropsText;
-    sellBulkCropsButton.onclick = sellBulkCrops; // Assign the buyBulkCrops function as the click handler
-    sellCropsSection.appendChild(sellBulkCropsButton);
+    const buttonId = `bulk-water-refill-${achievementValue}`;
+    if (document.getElementById(buttonId)) {
+        return;
+    }
 
-    // Crop Bulk Sale Cost Title
-    const sellBulkCropsCost = document.createElement('span');
-    sellBulkCropsCost.classList.add('item-price');
-    sellBulkCropsCost.textContent = sellBulkCropsCostText;
-    sellCropsSection.appendChild(sellBulkCropsCost);
+    const waterButton = document.createElement('button');
+    waterButton.classList.add('store-button');
+    waterButton.id = buttonId;
+    waterButton.textContent = `${refillAmount}x`;
+    waterButton.addEventListener('click', () => buyBulkWaterRefill(refillAmount, scaledCost));
+    buyWaterSection.appendChild(waterButton);
+
+    const waterCost = document.createElement('span');
+    waterCost.classList.add('item-price');
+    waterCost.id = `${buttonId}-cost`;
+    waterCost.textContent = `${scaledCost} coins (+${bonusWater} bonus)`;
+    buyWaterSection.appendChild(waterCost);
 }
 
 export { initializeStore, 
@@ -367,4 +433,5 @@ export { initializeStore,
          applyStoreValuesSnapshot,
          updateStoreValues,
          addBulkSeedButton, 
-         addBulkCropSaleButton };
+         addBulkCropSaleButton,
+         addBulkWaterRefillButton };

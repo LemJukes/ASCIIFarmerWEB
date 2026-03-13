@@ -2,41 +2,92 @@ import { getState, updateState } from '../state.js';
 import { updateCurrencyBar } from '../ui/currency.js';
 import { getUpgradeValues } from '../ui/upgrades.js';
 import { getCropConfig, getGrowthSymbol } from '../cropConfig.js';
+import { playPlotBubbleForState, playAdjacentBubbleForState } from '../ui/sfx.js';
+import { TOOLS, WATERING_SYMBOLS, getRequiredToolForSymbol } from '../toolConfig.js';
+
+const GRID_WIDTH = 9;
+
+function getSelectedTool(gameState) {
+    return gameState.selectedTool || TOOLS.PLOW;
+}
+
+function getWrongToolMessage(currentSymbol) {
+    if (currentSymbol === '~') {
+        return `You need the ${TOOLS.PLOW} selected to till this plot.`;
+    }
+
+    if (currentSymbol === '=') {
+        return `You need the ${TOOLS.SEED_BAG} selected to plant seeds.`;
+    }
+
+    if (WATERING_SYMBOLS.includes(currentSymbol)) {
+        return `You need the ${TOOLS.WATERING_CAN} selected to water crops.`;
+    }
+
+    return 'You need the correct tool selected for this action.';
+}
+
+function getSelectedSeedType(gameState) {
+    if (gameState.selectedSeedType === 'tomato' && gameState.tomatoUnlocked) {
+        return 'tomato';
+    }
+
+    if (gameState.selectedSeedType === 'corn' && gameState.cornUnlocked) {
+        return 'corn';
+    }
+
+    return 'wheat';
+}
+
+function getSeedInventoryKey(seedType) {
+    if (seedType === 'corn') {
+        return 'cornSeeds';
+    }
+
+    if (seedType === 'tomato') {
+        return 'tomatoSeeds';
+    }
+
+    return 'wheatSeeds';
+}
 
 function handlePlotClick(plot, plotIndex) {
     const gameState = getState();
     const plotState = gameState.plotStates[plotIndex]; // Get the plot state object
     const currentSymbol = plotState.symbol;
+    const selectedTool = getSelectedTool(gameState);
+    const requiredTool = getRequiredToolForSymbol(currentSymbol);
+    let didChange = false;
+
+    if (requiredTool && selectedTool !== requiredTool) {
+        alert(getWrongToolMessage(currentSymbol));
+        return;
+    }
 
     switch (currentSymbol) {
         case '~': // Untilled
             // Tilling the plot requires no cost
             plotState.symbol = '=';
             plot.textContent = '=';
+            didChange = true;
             break;
             
         case '=': // Tilled
-            // Check which crop type to plant based on available seeds
-            let selectedCropType = null;
-            
-            if (gameState.wheatSeeds >= 1) {
-                selectedCropType = 'wheat';
-                updateState({ wheatSeeds: gameState.wheatSeeds - 1 });
-            } else if (gameState.cornSeeds >= 1) {
-                selectedCropType = 'corn';
-                updateState({ cornSeeds: gameState.cornSeeds - 1 });
-            } else if (gameState.tomatoSeeds >= 1) {
-                selectedCropType = 'tomato';
-                updateState({ tomatoSeeds: gameState.tomatoSeeds - 1 });
-            } else {
-                alert("Not enough seeds!");
+            const selectedSeedType = getSelectedSeedType(gameState);
+            const selectedSeedInventoryKey = getSeedInventoryKey(selectedSeedType);
+
+            if (gameState[selectedSeedInventoryKey] < 1) {
+                alert(`Not enough ${selectedSeedType} seeds!`);
                 return;
             }
             
+            updateState({ [selectedSeedInventoryKey]: gameState[selectedSeedInventoryKey] - 1 });
+            
             plotState.symbol = '.';
-            plotState.cropType = selectedCropType;
+            plotState.cropType = selectedSeedType;
             plotState.waterCount = 0;
             plot.textContent = '.';
+            didChange = true;
             break;
             
         case '.': // Planted - start watering
@@ -62,6 +113,8 @@ function handlePlotClick(plot, plotIndex) {
                     plotState.symbol = getGrowthSymbol(plotState.waterCount - 1);
                     plot.textContent = plotState.symbol;
                 }
+
+                didChange = true;
             } else {
                 alert("Not enough water!");
             }
@@ -70,18 +123,25 @@ function handlePlotClick(plot, plotIndex) {
         case '¥': // Grown wheat
         case '₡': // Grown corn
         case '₮': // Grown tomato
-            // Harvesting the crop
-            const cropType = plotState.cropType;
-            if (cropType === 'wheat') {
-                updateState({ wheat: gameState.wheat + 1 });
-            } else if (cropType === 'corn') {
-                updateState({ corn: gameState.corn + 1 });
-            } else if (cropType === 'tomato') {
-                updateState({ tomato: gameState.tomato + 1 });
+            // Harvesting without scythe has a 50% chance to fail
+            const hasScytheSelected = selectedTool === TOOLS.SCYTHE;
+            const harvestSucceeded = hasScytheSelected || Math.random() < 0.5;
+
+            if (harvestSucceeded) {
+                const cropType = plotState.cropType;
+                if (cropType === 'wheat') {
+                    updateState({ wheat: gameState.wheat + 1 });
+                } else if (cropType === 'corn') {
+                    updateState({ corn: gameState.corn + 1 });
+                } else if (cropType === 'tomato') {
+                    updateState({ tomato: gameState.tomato + 1 });
+                }
+
+                // Update generic crops count for backward compatibility
+                updateState({ crops: gameState.crops + 1 });
+            } else {
+                alert('Harvest missed! Select the Scythe to guarantee harvests.');
             }
-            
-            // Update generic crops count for backward compatibility
-            updateState({ crops: gameState.crops + 1 });
             
             // Reset plot
             plotState.symbol = '~';
@@ -89,6 +149,7 @@ function handlePlotClick(plot, plotIndex) {
             plotState.waterCount = 0;
             plot.textContent = '~';
             plot.disabled = true;
+            didChange = true;
 
             // Calculate the disabled time based on the number of plots
             const baseTime = 1500;
@@ -108,6 +169,12 @@ function handlePlotClick(plot, plotIndex) {
             console.warn(`Unknown plot symbol: ${currentSymbol}`);
             break;
     }
+
+    if (!didChange) {
+        return;
+    }
+
+    playPlotBubbleForState(currentSymbol);
 
     // Update the game state with modified plot states
     updateState({ plotStates: gameState.plotStates });
@@ -136,7 +203,7 @@ function affectAdjacentPlotsMk1(index) {
     const plots = Array.from(field.children);
 
     // Affect the left plot if it exists and is not on the left edge
-    if (index % 10 !== 0 && plots[index - 1]) {
+    if (index % GRID_WIDTH !== 0 && plots[index - 1]) {
         const leftPlot = plots[index - 1];
         const leftIndex = index - 1;
         if (!leftPlot.disabled) {
@@ -145,7 +212,7 @@ function affectAdjacentPlotsMk1(index) {
     }
 
     // Affect the right plot if it exists and is not on the right edge
-    if (index % 10 !== 9 && plots[index + 1]) {
+    if (index % GRID_WIDTH !== GRID_WIDTH - 1 && plots[index + 1]) {
         const rightPlot = plots[index + 1];
         const rightIndex = index + 1;
         if (!rightPlot.disabled) {
@@ -161,7 +228,7 @@ function affectAdjacentPlotsMk2(index) {
     const totalPlots = plots.length;
 
     // Affect the left plot if it exists and is not on the left edge
-    if (index % 10 !== 0 && plots[index - 1]) {
+    if (index % GRID_WIDTH !== 0 && plots[index - 1]) {
         const leftPlot = plots[index - 1];
         const leftIndex = index - 1;
         if (!leftPlot.disabled) {
@@ -170,7 +237,7 @@ function affectAdjacentPlotsMk2(index) {
     }
 
     // Affect the right plot if it exists and is not on the right edge
-    if (index % 10 !== 9 && plots[index + 1]) {
+    if (index % GRID_WIDTH !== GRID_WIDTH - 1 && plots[index + 1]) {
         const rightPlot = plots[index + 1];
         const rightIndex = index + 1;
         if (!rightPlot.disabled) {
@@ -179,18 +246,18 @@ function affectAdjacentPlotsMk2(index) {
     }
 
     // Affect the plot above if it exists
-    if (index >= 10 && plots[index - 10]) {
-        const topPlot = plots[index - 10];
-        const topIndex = index - 10;
+    if (index >= GRID_WIDTH && plots[index - GRID_WIDTH]) {
+        const topPlot = plots[index - GRID_WIDTH];
+        const topIndex = index - GRID_WIDTH;
         if (!topPlot.disabled) {
             handleAdjacentPlotClickMk1(topPlot, topIndex);
         }
     }
 
     // Affect the plot below if it exists
-    if (index + 10 < totalPlots && plots[index + 10]) {
-        const bottomPlot = plots[index + 10];
-        const bottomIndex = index + 10;
+    if (index + GRID_WIDTH < totalPlots && plots[index + GRID_WIDTH]) {
+        const bottomPlot = plots[index + GRID_WIDTH];
+        const bottomIndex = index + GRID_WIDTH;
         if (!bottomPlot.disabled) {
             handleAdjacentPlotClickMk1(bottomPlot, bottomIndex);
         }
@@ -202,30 +269,30 @@ function affectAdjacentPlotsMk3(index) {
     const field = document.getElementById('field');
     const plots = Array.from(field.children);
     const totalPlots = plots.length;
-    const isLeftEdge = index % 10 === 0;
-    const isRightEdge = index % 10 === 9;
+    const isLeftEdge = index % GRID_WIDTH === 0;
+    const isRightEdge = index % GRID_WIDTH === GRID_WIDTH - 1;
 
     // Top-left
-    if (index >= 10 && !isLeftEdge && plots[index - 11]) {
-        const plot = plots[index - 11];
+    if (index >= GRID_WIDTH && !isLeftEdge && plots[index - GRID_WIDTH - 1]) {
+        const plot = plots[index - GRID_WIDTH - 1];
         if (!plot.disabled) {
-            handleAdjacentPlotClickMk1(plot, index - 11);
+            handleAdjacentPlotClickMk1(plot, index - GRID_WIDTH - 1);
         }
     }
 
     // Top
-    if (index >= 10 && plots[index - 10]) {
-        const plot = plots[index - 10];
+    if (index >= GRID_WIDTH && plots[index - GRID_WIDTH]) {
+        const plot = plots[index - GRID_WIDTH];
         if (!plot.disabled) {
-            handleAdjacentPlotClickMk1(plot, index - 10);
+            handleAdjacentPlotClickMk1(plot, index - GRID_WIDTH);
         }
     }
 
     // Top-right
-    if (index >= 10 && !isRightEdge && plots[index - 9]) {
-        const plot = plots[index - 9];
+    if (index >= GRID_WIDTH && !isRightEdge && plots[index - GRID_WIDTH + 1]) {
+        const plot = plots[index - GRID_WIDTH + 1];
         if (!plot.disabled) {
-            handleAdjacentPlotClickMk1(plot, index - 9);
+            handleAdjacentPlotClickMk1(plot, index - GRID_WIDTH + 1);
         }
     }
 
@@ -246,26 +313,26 @@ function affectAdjacentPlotsMk3(index) {
     }
 
     // Bottom-left
-    if (index + 10 < totalPlots && !isLeftEdge && plots[index + 9]) {
-        const plot = plots[index + 9];
+    if (index + GRID_WIDTH < totalPlots && !isLeftEdge && plots[index + GRID_WIDTH - 1]) {
+        const plot = plots[index + GRID_WIDTH - 1];
         if (!plot.disabled) {
-            handleAdjacentPlotClickMk1(plot, index + 9);
+            handleAdjacentPlotClickMk1(plot, index + GRID_WIDTH - 1);
         }
     }
 
     // Bottom
-    if (index + 10 < totalPlots && plots[index + 10]) {
-        const plot = plots[index + 10];
+    if (index + GRID_WIDTH < totalPlots && plots[index + GRID_WIDTH]) {
+        const plot = plots[index + GRID_WIDTH];
         if (!plot.disabled) {
-            handleAdjacentPlotClickMk1(plot, index + 10);
+            handleAdjacentPlotClickMk1(plot, index + GRID_WIDTH);
         }
     }
 
     // Bottom-right
-    if (index + 10 < totalPlots && !isRightEdge && plots[index + 11]) {
-        const plot = plots[index + 11];
+    if (index + GRID_WIDTH < totalPlots && !isRightEdge && plots[index + GRID_WIDTH + 1]) {
+        const plot = plots[index + GRID_WIDTH + 1];
         if (!plot.disabled) {
-            handleAdjacentPlotClickMk1(plot, index + 11);
+            handleAdjacentPlotClickMk1(plot, index + GRID_WIDTH + 1);
         }
     }
 }
@@ -275,34 +342,36 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
     const gameState = getState();
     const plotState = gameState.plotStates[plotIndex];
     const currentSymbol = plotState.symbol;
+    const selectedTool = getSelectedTool(gameState);
+    const requiredTool = getRequiredToolForSymbol(currentSymbol);
+    let didChange = false;
+
+    if (requiredTool && selectedTool !== requiredTool) {
+        return;
+    }
 
     switch (currentSymbol) {
         case '~': // Untilled
             plotState.symbol = '=';
             plot.textContent = '=';
+            didChange = true;
             break;
             
         case '=': // Tilled
-            // Plant if seeds available (prioritize wheat for adjacent plots)
-            let selectedCropType = null;
-            
-            if (gameState.wheatSeeds >= 1) {
-                selectedCropType = 'wheat';
-                updateState({ wheatSeeds: gameState.wheatSeeds - 1 });
-            } else if (gameState.cornSeeds >= 1) {
-                selectedCropType = 'corn';
-                updateState({ cornSeeds: gameState.cornSeeds - 1 });
-            } else if (gameState.tomatoSeeds >= 1) {
-                selectedCropType = 'tomato';
-                updateState({ tomatoSeeds: gameState.tomatoSeeds - 1 });
-            } else {
-                return; // No seeds available, skip
+            const selectedSeedType = getSelectedSeedType(gameState);
+            const selectedSeedInventoryKey = getSeedInventoryKey(selectedSeedType);
+
+            if (gameState[selectedSeedInventoryKey] < 1) {
+                return;
             }
             
+            updateState({ [selectedSeedInventoryKey]: gameState[selectedSeedInventoryKey] - 1 });
+            
             plotState.symbol = '.';
-            plotState.cropType = selectedCropType;
+            plotState.cropType = selectedSeedType;
             plotState.waterCount = 0;
             plot.textContent = '.';
+            didChange = true;
             break;
             
         case '.': // Planted - start watering
@@ -327,23 +396,29 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
                     plotState.symbol = getGrowthSymbol(plotState.waterCount - 1);
                     plot.textContent = plotState.symbol;
                 }
+
+                didChange = true;
             }
             break;
             
         case '¥': // Grown wheat
         case '₡': // Grown corn
         case '₮': // Grown tomato
-            // Harvest the crop
-            const cropType = plotState.cropType;
-            if (cropType === 'wheat') {
-                updateState({ wheat: gameState.wheat + 1 });
-            } else if (cropType === 'corn') {
-                updateState({ corn: gameState.corn + 1 });
-            } else if (cropType === 'tomato') {
-                updateState({ tomato: gameState.tomato + 1 });
+            const hasScytheSelected = selectedTool === TOOLS.SCYTHE;
+            const harvestSucceeded = hasScytheSelected || Math.random() < 0.5;
+
+            if (harvestSucceeded) {
+                const cropType = plotState.cropType;
+                if (cropType === 'wheat') {
+                    updateState({ wheat: gameState.wheat + 1 });
+                } else if (cropType === 'corn') {
+                    updateState({ corn: gameState.corn + 1 });
+                } else if (cropType === 'tomato') {
+                    updateState({ tomato: gameState.tomato + 1 });
+                }
+
+                updateState({ crops: gameState.crops + 1 });
             }
-            
-            updateState({ crops: gameState.crops + 1 });
             
             // Reset plot
             plotState.symbol = '~';
@@ -351,6 +426,7 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
             plotState.waterCount = 0;
             plot.textContent = '~';
             plot.disabled = true;
+            didChange = true;
 
             const numPlots = document.getElementById('field').childElementCount;
             const disabledTime =  1500 * Math.pow(1.5, Math.floor(numPlots / 3));
@@ -363,6 +439,12 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
         default:
             break;
     }
+
+    if (!didChange) {
+        return;
+    }
+
+    playAdjacentBubbleForState(currentSymbol);
 
     // Update the game state with modified plot states
     updateState({ plotStates: gameState.plotStates });

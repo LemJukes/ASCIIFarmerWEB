@@ -157,28 +157,32 @@ function updateWaterUpgradeButton() {
 }
 
 function initializeClickUpgradesSection() {
-    
-    // Expanded Click Upgrades Section
-    const expandedClickUpgradesSection = document.createElement('section');
-    expandedClickUpgradesSection.classList.add('upgrades-section');
-    expandedClickUpgradesSection.id = 'click-upgrades-section';
+    let expandedClickUpgradesSection = document.getElementById('click-upgrades-section');
 
-    // Expanded Click Upgrades Section Title
-    const expandedClickUpgradesTitle = document.createElement('h3');
-    expandedClickUpgradesTitle.classList.add('upgrades-section-title');
-    expandedClickUpgradesTitle.id = 'expanded-click-upgrades-title';
-    expandedClickUpgradesTitle.textContent = 'Expanded Click Upgrades';
-    expandedClickUpgradesSection.appendChild(expandedClickUpgradesTitle);
+    if (!expandedClickUpgradesSection) {
+        // Expanded Click Upgrades Section
+        expandedClickUpgradesSection = document.createElement('section');
+        expandedClickUpgradesSection.classList.add('upgrades-section');
+        expandedClickUpgradesSection.id = 'click-upgrades-section';
 
-    // Add the Upgrades section to the store or main window
-    const mainDiv = document.getElementById('upgrades-container'); // Assuming 'main' is the main container
-    if (mainDiv) {
-        mainDiv.appendChild(expandedClickUpgradesSection);
-        addExpandedClickUpgradeButton();
-    } else {
-        console.error('Upgrades Container not found');
+        // Expanded Click Upgrades Section Title
+        const expandedClickUpgradesTitle = document.createElement('h3');
+        expandedClickUpgradesTitle.classList.add('upgrades-section-title');
+        expandedClickUpgradesTitle.id = 'expanded-click-upgrades-title';
+        expandedClickUpgradesTitle.textContent = 'Expanded Click Upgrades';
+        expandedClickUpgradesSection.appendChild(expandedClickUpgradesTitle);
+
+        // Add the Upgrades section to the store or main window
+        const mainDiv = document.getElementById('upgrades-container'); // Assuming 'main' is the main container
+        if (mainDiv) {
+            mainDiv.appendChild(expandedClickUpgradesSection);
+        } else {
+            console.error('Upgrades Container not found');
+            return;
+        }
     }
 
+    addExpandedClickUpgradeButton();
 }
 
 function addExpandedClickUpgradeButton() {
@@ -189,35 +193,86 @@ function addExpandedClickUpgradeButton() {
         return;
     }
 
-    // Expanded Click Upgrade Purchase Button
-    const expandedClickUpgradeLVL = upgradeValues.expandedClickUpgradeLVL;
-    const expandedClickUpgradeBuyButton = document.createElement('button');
-    expandedClickUpgradeBuyButton.classList.add('upgrade-button');
-    expandedClickUpgradeBuyButton.id = `expanded-click-upgrade-mk${expandedClickUpgradeLVL}-buy-button`;
-    expandedClickUpgradeBuyButton.textContent = 'Unlock Mk.' + expandedClickUpgradeLVL ;
-    // Map levels to their corresponding functions
-    const buyExpandedClickUpgrade = () => {
-        switch (expandedClickUpgradeLVL) {
-            case 1:
-                return buyExpandedClickUpgradeMk1;
-            case 2:
-                return buyExpandedClickUpgradeMk2;
-            case 3:
-                return buyExpandedClickUpgradeMk3;
-            // Add more cases as needed
-            default:
-                throw new Error(`Unknown expanded click upgrade level: ${expandedClickUpgradeLVL}`);
+    const ensureMkToggle = (level, enabledKey) => {
+        const toggleId = `expanded-click-mk${level}-toggle-checkbox`;
+        if (document.getElementById(toggleId)) {
+            return;
         }
+
+        const label = document.createElement('label');
+        label.classList.add('expanded-click-label');
+        label.id = `expanded-click-mk${level}-toggle-label`;
+        label.textContent = `Mk. ${level} - `;
+        label.htmlFor = toggleId;
+
+        const toggle = document.createElement('input');
+        toggle.classList.add('expanded-click-checkbox');
+        toggle.type = 'checkbox';
+        toggle.id = toggleId;
+        toggle.checked = Boolean(upgradeValues[enabledKey]);
+        toggle.addEventListener('change', function() {
+            updateUpgradeValues({ [enabledKey]: this.checked });
+        });
+
+        expandedClickUpgradesSection.appendChild(label);
+        expandedClickUpgradesSection.appendChild(toggle);
     };
 
-    expandedClickUpgradeBuyButton.addEventListener('click', buyExpandedClickUpgrade());
+    if (upgradeValues.expandedClickMk1Purchased) {
+        ensureMkToggle(1, 'expandedClickMk1Enabled');
+    }
+
+    if (upgradeValues.expandedClickMk2Purchased) {
+        ensureMkToggle(2, 'expandedClickMk2Enabled');
+    }
+
+    if (upgradeValues.expandedClickMk3Purchased) {
+        ensureMkToggle(3, 'expandedClickMk3Enabled');
+    }
+
+    const existingBuyButtons = expandedClickUpgradesSection.querySelectorAll('[id^="expanded-click-upgrade-mk"][id$="-buy-button"]');
+    existingBuyButtons.forEach((button) => button.remove());
+
+    const existingCostElements = expandedClickUpgradesSection.querySelectorAll('#expanded-click-upgrade-cost, #expanded-click-upgrade-mk2-cost, #expanded-click-upgrade-mk3-cost');
+    existingCostElements.forEach((costElement) => costElement.remove());
+
+    let nextLevel = null;
+    let nextCost = null;
+    let nextCostId = null;
+    let nextHandler = null;
+
+    if (!upgradeValues.expandedClickMk1Purchased) {
+        nextLevel = 1;
+        nextCost = upgradeValues.expandedClickUpgradeCost;
+        nextCostId = 'expanded-click-upgrade-cost';
+        nextHandler = buyExpandedClickUpgradeMk1;
+    } else if (!upgradeValues.expandedClickMk2Purchased) {
+        nextLevel = 2;
+        nextCost = upgradeValues.expandedClickMk2Cost;
+        nextCostId = 'expanded-click-upgrade-mk2-cost';
+        nextHandler = buyExpandedClickUpgradeMk2;
+    } else if (!upgradeValues.expandedClickMk3Purchased) {
+        nextLevel = 3;
+        nextCost = upgradeValues.expandedClickMk3Cost;
+        nextCostId = 'expanded-click-upgrade-mk3-cost';
+        nextHandler = buyExpandedClickUpgradeMk3;
+    }
+
+    if (!nextLevel || !nextHandler) {
+        return;
+    }
+
+    const expandedClickUpgradeBuyButton = document.createElement('button');
+    expandedClickUpgradeBuyButton.classList.add('upgrade-button');
+    expandedClickUpgradeBuyButton.id = `expanded-click-upgrade-mk${nextLevel}-buy-button`;
+    expandedClickUpgradeBuyButton.textContent = `Unlock Mk.${nextLevel}`;
+    expandedClickUpgradeBuyButton.addEventListener('click', nextHandler);
     expandedClickUpgradesSection.appendChild(expandedClickUpgradeBuyButton);
 
-    // Expanded Click Upgrade Cost text
     const expandedClickUpgradeCost = document.createElement('span');
     expandedClickUpgradeCost.classList.add('upgrade-price');
-    expandedClickUpgradeCost.id = 'expanded-click-upgrade-cost'
-    expandedClickUpgradeCost.textContent = upgradeValues.expandedClickUpgradeCost + ' coins';
+    expandedClickUpgradeCost.id = nextCostId;
+    expandedClickUpgradeCost.textContent = `${nextCost} coins`;
     expandedClickUpgradesSection.appendChild(expandedClickUpgradeCost);
 }
 

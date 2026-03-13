@@ -1,14 +1,15 @@
 // ./handlers/achievementHandlers.js
 
 import { getState, updateState } from "../state.js"
-import { getStoreValues, addBulkSeedButton, addBulkCropSaleButton } from "../ui/store.js";
+import { addBulkSeedButton, addBulkCropSaleButton, addBulkWaterRefillButton } from "../ui/store.js";
 import { initializeUpgradesTitle, initializeUpgrades, initializeWaterUpgradesSection, initializeClickUpgradesSection } from "../ui/upgrades.js";
+import { updateToolboxDisplay } from "../ui/toolbox.js";
 
 const achievementValues =  {
     totalCoinsEarned: [100, 500, 1000, 5000],
-    cropsSold: [50, 100, 500],
-    seedsBought: [50, 100, 250, 500, 1000, 2500],
-    waterRefillsPurchased: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 1000],
+    cropsSold: [100, 500, 1000],
+    seedsBought: [100, 500, 1000],
+    waterRefillsPurchased: [20, 50, 100, 250, 500],
 }
 
 function getAchievementValues() {
@@ -67,6 +68,10 @@ function trackAchievements() {
             
         }
     }
+
+    checkSeedsBoughtAchievements();
+    checkCropsSoldAchievements();
+    checkWaterRefillPurchaseAchievements();
 }
 
 // Achievement Bulk Unlock Logic
@@ -81,18 +86,18 @@ function updateSeedsBought(amount) {
 function checkSeedsBoughtAchievements() {
     const gameState = getState();
     const achievedSeedsBoughtAchievements = [];
-    const storeValues = getStoreValues();
 
-    for (const achievement of achievementValues.seedsBought) {
-        if (gameState.seedsBought >= achievement && !gameState.achievementsUnlocked.includes(`seedsBought-${achievement}`)) {
-            gameState.achievementsUnlocked.push(`seedsBought-${achievement}`);
-            achievedSeedsBoughtAchievements.push(achievement);
-            console.log(`Seeds Bought Achievement unlocked: ${achievement}`);
-            const buyBulkSeedsText = `${Math.floor(achievement * 0.1)}x`;
-            const buyBulkSeedsCostText = `${Math.floor(achievement * 0.1 * storeValues.seedBulkCostCoefficient)} coins`;
-            addBulkSeedButton(buyBulkSeedsText, buyBulkSeedsCostText);
+    achievementValues.seedsBought.forEach((achievement, index) => {
+        if (gameState.seedsBought >= achievement) {
+            if (!gameState.achievementsUnlocked.includes(`seedsBought-${achievement}`)) {
+                gameState.achievementsUnlocked.push(`seedsBought-${achievement}`);
+                achievedSeedsBoughtAchievements.push(achievement);
+                console.log(`Seeds Bought Achievement unlocked: ${achievement}`);
+            }
+
+            addBulkSeedButton(achievement, index + 1);
         }
-    }
+    });
 
     //console.log('Achieved Seeds Bought Achievements:', achievedSeedsBoughtAchievements);
     return achievedSeedsBoughtAchievements;
@@ -109,21 +114,40 @@ function updateCropsSold(amount) {
 function checkCropsSoldAchievements() {
     const gameState = getState();
     const achievedCropsSoldAchievements = [];
-    const storeValues = getStoreValues();
 
-    for (const achievement of achievementValues.cropsSold) {
-        if (gameState.cropsSold >= achievement && !gameState.achievementsUnlocked.includes(`cropsSold-${achievement}`)) {
-            gameState.achievementsUnlocked.push(`cropsSold-${achievement}`);
-            achievedCropsSoldAchievements.push(achievement);
-            console.log(`Crops Sold Achievement unlocked: ${achievement}`);
-            const sellBulkCropsText = `${Math.floor(achievement * 0.1)}x`;
-            const sellBulkCropsCostText = `${Math.floor(achievement * 0.1 * storeValues.cropBulkPriceCoefficient)} coins`;
-            addBulkCropSaleButton(sellBulkCropsText, sellBulkCropsCostText);
+    achievementValues.cropsSold.forEach((achievement, index) => {
+        if (gameState.cropsSold >= achievement) {
+            if (!gameState.achievementsUnlocked.includes(`cropsSold-${achievement}`)) {
+                gameState.achievementsUnlocked.push(`cropsSold-${achievement}`);
+                achievedCropsSoldAchievements.push(achievement);
+                console.log(`Crops Sold Achievement unlocked: ${achievement}`);
+            }
+
+            addBulkCropSaleButton(achievement, index + 1);
         }
-    }
+    });
 
     //console.log('Achieved Crops Sold Achievements:', achievedCropsSoldAchievements);
     return achievedCropsSoldAchievements;
+}
+
+function checkWaterRefillPurchaseAchievements() {
+    const gameState = getState();
+    const achievedWaterAchievements = [];
+
+    achievementValues.waterRefillsPurchased.forEach((achievement, index) => {
+        if (gameState.waterRefillsPurchased >= achievement) {
+            if (!gameState.achievementsUnlocked.includes(`waterRefillsPurchased-${achievement}`)) {
+                gameState.achievementsUnlocked.push(`waterRefillsPurchased-${achievement}`);
+                achievedWaterAchievements.push(achievement);
+                console.log(`Water Refill Achievement unlocked: ${achievement}`);
+            }
+
+            addBulkWaterRefillButton(achievement, index + 1);
+        }
+    });
+
+    return achievedWaterAchievements;
 }
 
 function updateCoinsEarned(amount) {
@@ -145,6 +169,9 @@ function checkCropUnlocks() {
         console.log('Corn unlocked! You can now buy corn seeds.');
         showCornInStore();
         showCornInCurrency();
+        updateToolboxDisplay();
+        checkSeedsBoughtAchievements();
+        checkCropsSoldAchievements();
     }
     
     // Unlock tomato at 100 coins spent
@@ -153,6 +180,9 @@ function checkCropUnlocks() {
         console.log('Tomato unlocked! You can now buy tomato seeds.');
         showTomatoInStore();
         showTomatoInCurrency();
+        updateToolboxDisplay();
+        checkSeedsBoughtAchievements();
+        checkCropsSoldAchievements();
     }
 }
 
@@ -160,16 +190,16 @@ function checkCropUnlocks() {
 function showCornInStore() {
     const cornSeedSection = document.getElementById('buyCornSeedsSection');
     const cornSellSection = document.getElementById('sellCornSection');
-    if (cornSeedSection) cornSeedSection.style.display = 'block';
-    if (cornSellSection) cornSellSection.style.display = 'block';
+    if (cornSeedSection) cornSeedSection.style.display = 'flex';
+    if (cornSellSection) cornSellSection.style.display = 'flex';
 }
 
 // Helper function to show tomato sections in store
 function showTomatoInStore() {
     const tomatoSeedSection = document.getElementById('buyTomatoSeedsSection');
     const tomatoSellSection = document.getElementById('sellTomatoSection');
-    if (tomatoSeedSection) tomatoSeedSection.style.display = 'block';
-    if (tomatoSellSection) tomatoSellSection.style.display = 'block';
+    if (tomatoSeedSection) tomatoSeedSection.style.display = 'flex';
+    if (tomatoSellSection) tomatoSellSection.style.display = 'flex';
 }
 
 // Helper function to show corn in currency bar
@@ -218,6 +248,7 @@ export { trackAchievements,
          checkSeedsBoughtAchievements, 
          updateCropsSold, 
          checkCropsSoldAchievements, 
+         checkWaterRefillPurchaseAchievements,
          updateCoinsEarned,
          checkCropUnlocks,
         }

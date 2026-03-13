@@ -41,6 +41,10 @@ const initialGameState = {
     // Water Upgrade Values:
     waterCapacity: 10,
 
+    // Tool Selection
+    selectedTool: 'Plow',
+    selectedSeedType: 'wheat',
+
     achievementsUnlocked: [],   // Array to store the achievements the player has unlocked
 
 }

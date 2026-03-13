@@ -59,6 +59,27 @@ function buyBulkSeeds(event) {
 function buyWater() {
     const gameState = getState();
     const storeValues = getStoreValues();
+
+    buyWaterRefill({
+        amount: storeValues.waterQuantity,
+        cost: storeValues.waterCost,
+        gameState,
+    });
+}
+
+function buyBulkWaterRefill(amount, cost) {
+    const gameState = getState();
+
+    buyWaterRefill({
+        amount,
+        cost,
+        gameState,
+    });
+}
+
+function buyWaterRefill({ amount, cost, gameState }) {
+    const refillAmount = Math.max(1, Number(amount) || 1);
+    const refillCost = Math.max(0, Number(cost) || 0);
     const achievements = getAchievementValues();
 
     // Check if the player's water is already at capacity
@@ -68,14 +89,14 @@ function buyWater() {
     }
 
     // Check if the player has enough coins to buy water
-    if (gameState.coins >= storeValues.waterCost) {
+    if (gameState.coins >= refillCost) {
         // Calculate the new water level, ensuring it does not exceed the water capacity
-        const newWaterLevel = Math.min(gameState.water + 10, gameState.waterCapacity);
+        const newWaterLevel = Math.min(gameState.water + refillAmount, gameState.waterCapacity);
         
         updateState({
-            coins: gameState.coins - storeValues.waterCost,
+            coins: gameState.coins - refillCost,
             water: newWaterLevel,
-            totalCoinsSpent: gameState.totalCoinsSpent + storeValues.waterCost,
+            totalCoinsSpent: gameState.totalCoinsSpent + refillCost,
         });
 
         // Increment waterRefillsPurchased and check for achievement
@@ -89,7 +110,77 @@ function buyWater() {
     }
 }
 
+function buyBulkSeedPack(cropType, quantity, totalCost) {
+    const seedKeyByCrop = {
+        wheat: 'wheatSeeds',
+        corn: 'cornSeeds',
+        tomato: 'tomatoSeeds',
+    };
+
+    const seedKey = seedKeyByCrop[cropType];
+    if (!seedKey) {
+        return;
+    }
+
+    const gameState = getState();
+    const packQuantity = Math.max(1, Number(quantity) || 1);
+    const packCost = Math.max(0, Number(totalCost) || 0);
+
+    if (gameState.coins >= packCost) {
+        updateState({
+            coins: gameState.coins - packCost,
+            [seedKey]: gameState[seedKey] + packQuantity,
+            totalCoinsSpent: gameState.totalCoinsSpent + packCost,
+        });
+        updateSeedsBought(packQuantity);
+        updateCurrencyBar();
+    } else {
+        console.log(`Not enough coins to buy ${cropType} seed pack`);
+    }
+}
+
+function sellBulkCropPack(cropType, quantity, payout) {
+    const cropKeyByType = {
+        wheat: 'wheat',
+        corn: 'corn',
+        tomato: 'tomato',
+    };
+
+    const cropKey = cropKeyByType[cropType];
+    if (!cropKey) {
+        return;
+    }
+
+    const gameState = getState();
+    const sellQuantity = Math.max(1, Number(quantity) || 1);
+    const sellPayout = Math.max(0, Number(payout) || 0);
+
+    if (gameState[cropKey] >= sellQuantity) {
+        updateState({
+            coins: gameState.coins + sellPayout,
+            [cropKey]: gameState[cropKey] - sellQuantity,
+            crops: gameState.crops - sellQuantity,
+        });
+
+        updateCoinsEarned(sellPayout);
+        updateCropsSold(sellQuantity);
+
+        if (cropType === 'wheat') {
+            updateState({ wheatSold: gameState.wheatSold + sellQuantity });
+        } else if (cropType === 'corn') {
+            updateState({ cornSold: gameState.cornSold + sellQuantity });
+        } else if (cropType === 'tomato') {
+            updateState({ tomatoSold: gameState.tomatoSold + sellQuantity });
+        }
+
+        updateCurrencyBar();
+    } else {
+        console.log(`Not enough ${cropType} to sell bulk`);
+    }
+}
+
 function buyPlot() {
+    const maxPlots = 81;
     const gameState = getState();
     const storeValues = getStoreValues();
     let plotCost = storeValues.plotCost;
@@ -99,7 +190,7 @@ function buyPlot() {
         plotCost = Math.ceil(plotCost * 1.05);
     }
 
-    if (gameState.coins >= plotCost && plots < 100) {
+    if (gameState.coins >= plotCost && plots < maxPlots) {
         updateState({
             coins: gameState.coins - plotCost,
             plots: gameState.plots + 1,
@@ -114,7 +205,8 @@ function buyPlot() {
         updateField();
     } else if (gameState.coins < plotCost) {
         console.log("Not enough coins to buy a plot");
-    } else if (plots >= 100) {
+    } else if (plots >= maxPlots) {
+        alert("Field is full, cannot buy more plots");
         console.log("Field is full, cannot buy more plots");
     }
 }
@@ -270,4 +362,5 @@ function sellTomato() {
 
 export { buySeed, buyWater, buyPlot, sellCrops, buyBulkSeeds, sellBulkCrops,
          buyWheatSeeds, buyCornSeeds, buyTomatoSeeds,
-         sellWheat, sellCorn, sellTomato };
+         sellWheat, sellCorn, sellTomato,
+         buyBulkSeedPack, sellBulkCropPack, buyBulkWaterRefill };
