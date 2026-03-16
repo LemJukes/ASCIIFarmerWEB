@@ -1,8 +1,9 @@
 // ./handlers/upgradeHandlers.js
 
-import { getState, updateState } from "../state.js";
+import { getState, updateState, incrementTotalClicks } from "../state.js";
 import { updateCurrencyBar } from "../ui/currency.js";
 import { getUpgradeValues, updateUpgradeValues, updateWaterUpgradeButton } from "../ui/upgrades.js";
+import { updateClicksDisplay } from "../ui/clicks.js";
 
 function buyWaterCapacityUpgrade() {
     console.log('Water Capacity Upgrade Purchased')
@@ -18,6 +19,8 @@ function buyWaterCapacityUpgrade() {
 
         updateState(gameState);
         updateCurrencyBar();
+        incrementTotalClicks();
+        updateClicksDisplay();
 
         // Disable the waterUpgradeCapButton
         document.getElementById('water-upgrade-cap-button').disabled = true;
@@ -64,7 +67,8 @@ function buyExpandedClickUpgradeMk1() {
         updateUpgradeValues(upgradeValues);
         console.log(`ExpandedClickMk1Enabled is now: ${upgradeValues.expandedClickMk1Enabled}`);
         console.log("The Expanded Click Mk.1 is NOT a smart tool and will not track inventory stock levels. Users are encouraged to maintain stock levels manually.");
-
+        incrementTotalClicks();
+        updateClicksDisplay();
     });
 
     // Append elements to the section
@@ -72,6 +76,8 @@ function buyExpandedClickUpgradeMk1() {
     clickUpgradesSection.appendChild(mk1Toggle);
 
     console.log('Expanded Click Upgrade Purchased');
+    incrementTotalClicks();
+    updateClicksDisplay();
     
     // Add Mk.2 upgrade button
     addNextExpandedClickButton();
@@ -113,6 +119,8 @@ function buyExpandedClickUpgradeMk2() {
             upgradeValues.expandedClickMk2Enabled = this.checked;
             updateUpgradeValues(upgradeValues);
             console.log(`ExpandedClickMk2Enabled is now: ${upgradeValues.expandedClickMk2Enabled}`);
+            incrementTotalClicks();
+            updateClicksDisplay();
         });
 
         // Append elements to the section
@@ -121,6 +129,8 @@ function buyExpandedClickUpgradeMk2() {
 
         console.log('Expanded Click Mk.2 Upgrade Purchased');
         updateCurrencyBar();
+        incrementTotalClicks();
+        updateClicksDisplay();
         
         // Add Mk.3 upgrade button
         addNextExpandedClickButton();
@@ -165,6 +175,8 @@ function buyExpandedClickUpgradeMk3() {
             upgradeValues.expandedClickMk3Enabled = this.checked;
             updateUpgradeValues(upgradeValues);
             console.log(`ExpandedClickMk3Enabled is now: ${upgradeValues.expandedClickMk3Enabled}`);
+            incrementTotalClicks();
+            updateClicksDisplay();
         });
 
         // Append elements to the section
@@ -173,6 +185,8 @@ function buyExpandedClickUpgradeMk3() {
 
         console.log('Expanded Click Mk.3 Upgrade Purchased');
         updateCurrencyBar();
+        incrementTotalClicks();
+        updateClicksDisplay();
     } else {
         alert('Not enough coins for this upgrade.');
     }

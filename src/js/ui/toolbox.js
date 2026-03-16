@@ -1,5 +1,6 @@
-import { getState, updateState } from '../state.js';
+import { getState, updateState, incrementTotalClicks } from '../state.js';
 import { TOOL_ORDER, TOOLS } from '../toolConfig.js';
+import { updateClicksDisplay } from '../ui/clicks.js';
 
 function getUnlockedSeedTypes(gameState) {
     const unlockedSeeds = ['wheat'];
@@ -105,6 +106,8 @@ function selectTool(toolName) {
 
     updateState({ selectedTool: toolName });
     updateToolboxDisplay();
+    incrementTotalClicks();
+    updateClicksDisplay();
     return true;
 }
 
@@ -122,6 +125,8 @@ function selectSeedType(seedType) {
 
     updateState({ selectedSeedType: seedType });
     updateToolboxDisplay();
+    incrementTotalClicks();
+    updateClicksDisplay();
     return true;
 }
 

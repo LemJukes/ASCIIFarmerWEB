@@ -354,6 +354,17 @@ main {
     z-index: 1000;
 }
 
+.clicks-display {
+    font: inherit;
+    position: fixed;
+    left: 12px;
+    bottom: 12px;
+    z-index: 1000;
+    border: 2px dashed black;
+    padding: 6px 10px;
+    background: white;
+}
+
 /* Media Queries for larger screens */
 @media screen and (min-width: 768px) {
     .currency-bar {

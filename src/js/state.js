@@ -36,6 +36,7 @@ const initialGameState = {
     tomatoSold: 0,            // Total tomatoes sold
     seedsBought: 0,           // Total number of seeds bought by the player
     waterRefillsPurchased: 0, // Total number of times the player has clicked the water refil button
+    totalClicksClicked: 0,    // Total number of successful button clicks
 
     // Upgrade Values
     // Water Upgrade Values:
@@ -107,9 +108,13 @@ function updateState(updates) {
     savePartialSnapshot({ gameState: getStateSnapshot() });
 }
 
+function incrementTotalClicks() {
+    updateState({ totalClicksClicked: gameState.totalClicksClicked + 1 });
+}
+
 function logGameState() {
     const gameState = getState();
     console.log('Game State:', gameState);
 }
 
-export { getState, getStateSnapshot, applyStateSnapshot, updateState, logGameState, gameState };
+export { getState, getStateSnapshot, applyStateSnapshot, updateState, logGameState, gameState, incrementTotalClicks };

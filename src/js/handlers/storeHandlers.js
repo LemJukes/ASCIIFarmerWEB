@@ -1,6 +1,6 @@
 // handlers/storeHandlers.js
 
-import { getState, updateState } from "../state.js";
+import { getState, updateState, incrementTotalClicks } from "../state.js";
 import { updateCurrencyBar } from "../ui/currency.js";
 import { updateField } from "../ui/field.js";
 import { getStoreValues, updateStoreValues } from "../ui/store.js";
@@ -12,6 +12,7 @@ import { trackAchievements,
          updateCoinsEarned,
          checkCropUnlocks,
         } from "./achievementHandlers.js";
+import { updateClicksDisplay } from "../ui/clicks.js";
 
 
 // Purchasing Handlers
@@ -25,6 +26,8 @@ function buySeed() {
         });
         updateSeedsBought(1);
         updateCurrencyBar();
+        incrementTotalClicks();
+        updateClicksDisplay();
     } else {
         console.log("Not enough coins to buy seeds");
     }
@@ -51,6 +54,8 @@ function buyBulkSeeds(event) {
         });
         updateSeedsBought(bulkQuantity); // Update seedsBought and check achievements
         updateCurrencyBar();
+        incrementTotalClicks();
+        updateClicksDisplay();
     } else {
         console.log("Not enough coins to buy bulk seeds");
     }
@@ -105,6 +110,8 @@ function buyWaterRefill({ amount, cost, gameState }) {
         // Track achievements and update the UI
         trackAchievements(gameState, achievements);
         updateCurrencyBar();
+        incrementTotalClicks();
+        updateClicksDisplay();
     } else {
         console.log("Not enough coins to buy water");
     }
@@ -134,6 +141,8 @@ function buyBulkSeedPack(cropType, quantity, totalCost) {
         });
         updateSeedsBought(packQuantity);
         updateCurrencyBar();
+        incrementTotalClicks();
+        updateClicksDisplay();
     } else {
         console.log(`Not enough coins to buy ${cropType} seed pack`);
     }
@@ -174,6 +183,8 @@ function sellBulkCropPack(cropType, quantity, payout) {
         }
 
         updateCurrencyBar();
+        incrementTotalClicks();
+        updateClicksDisplay();
     } else {
         console.log(`Not enough ${cropType} to sell bulk`);
     }
@@ -203,6 +214,8 @@ function buyPlot() {
         console.log("Updated plotCost:", storeValues.plotCost);
         updateCurrencyBar();
         updateField();
+        incrementTotalClicks();
+        updateClicksDisplay();
     } else if (gameState.coins < plotCost) {
         console.log("Not enough coins to buy a plot");
     } else if (plots >= maxPlots) {
@@ -224,6 +237,8 @@ function sellCrops() {
         updateCoinsEarned(1);
         updateCropsSold(1);
         updateCurrencyBar();  // Refresh the UI to reflect updated currency values
+        incrementTotalClicks();
+        updateClicksDisplay();
     } else {
         console.log("No crops available to sell");  // Log a message if no crops are available
     }
@@ -251,6 +266,8 @@ function sellBulkCrops(event) {
         updateCoinsEarned(bulkPrice)
         updateCropsSold(bulkQuantity);
         updateCurrencyBar();
+        incrementTotalClicks();
+        updateClicksDisplay();
     } else {
         console.log("Not enough crops to sell");
     }
@@ -268,6 +285,8 @@ function buyWheatSeeds() {
         });
         updateSeedsBought(1);
         updateCurrencyBar();
+        incrementTotalClicks();
+        updateClicksDisplay();
     } else {
         console.log("Not enough coins to buy wheat seeds");
     }
@@ -284,6 +303,8 @@ function buyCornSeeds() {
         });
         updateSeedsBought(1);
         updateCurrencyBar();
+        incrementTotalClicks();
+        updateClicksDisplay();
     } else {
         console.log("Not enough coins to buy corn seeds");
     }
@@ -300,6 +321,8 @@ function buyTomatoSeeds() {
         });
         updateSeedsBought(1);
         updateCurrencyBar();
+        incrementTotalClicks();
+        updateClicksDisplay();
     } else {
         console.log("Not enough coins to buy tomato seeds");
     }
@@ -319,6 +342,8 @@ function sellWheat() {
         updateCropsSold(1);
         updateState({ wheatSold: gameState.wheatSold + 1 });
         updateCurrencyBar();
+        incrementTotalClicks();
+        updateClicksDisplay();
     } else {
         console.log("No wheat available to sell");
     }
@@ -337,6 +362,8 @@ function sellCorn() {
         updateCropsSold(1);
         updateState({ cornSold: gameState.cornSold + 1 });
         updateCurrencyBar();
+        incrementTotalClicks();
+        updateClicksDisplay();
     } else {
         console.log("No corn available to sell");
     }
@@ -355,6 +382,8 @@ function sellTomato() {
         updateCropsSold(1);
         updateState({ tomatoSold: gameState.tomatoSold + 1 });
         updateCurrencyBar();
+        incrementTotalClicks();
+        updateClicksDisplay();
     } else {
         console.log("No tomatoes available to sell");
     }

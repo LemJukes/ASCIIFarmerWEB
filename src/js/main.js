@@ -6,6 +6,7 @@ import { initializeField, initializeFieldTitle, updateField } from './ui/field.j
 import { applyStoreValuesSnapshot, initializeStore, initializeStoreTitle } from './ui/store.js';
 import { applyUpgradeValuesSnapshot } from './ui/upgrades.js';
 import { initializeToolbox, initializeToolboxTitle, selectTool, selectSeedType } from './ui/toolbox.js';
+import { initializeClicksDisplay } from './ui/clicks.js';
 
 function initializeResetSaveButton() {
     const resetSaveButton = document.createElement('button');
@@ -110,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeStoreTitle();
     initializeStore();
     initializeResetSaveButton();
+    initializeClicksDisplay();
     initializeKeyboardShortcuts();
 
 });

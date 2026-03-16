@@ -1,8 +1,9 @@
-import { getState, updateState } from '../state.js';
+import { getState, updateState, incrementTotalClicks } from '../state.js';
 import { updateCurrencyBar } from '../ui/currency.js';
 import { getUpgradeValues } from '../ui/upgrades.js';
 import { getCropConfig, getGrowthSymbol } from '../cropConfig.js';
 import { playPlotBubbleForState, playAdjacentBubbleForState } from '../ui/sfx.js';
+import { updateClicksDisplay } from '../ui/clicks.js';
 import { TOOLS, WATERING_SYMBOLS, getRequiredToolForSymbol } from '../toolConfig.js';
 
 const GRID_WIDTH = 9;
@@ -152,7 +153,7 @@ function handlePlotClick(plot, plotIndex) {
             didChange = true;
 
             // Calculate the disabled time based on the number of plots
-            const baseTime = 1500;
+            const baseTime = 100;
             const initialDisableCoefficient = 1;
             const numPlots = document.getElementById('field').childElementCount;
             const coefficientIncrease = Math.floor(numPlots / 5) * 0.5;
@@ -175,6 +176,8 @@ function handlePlotClick(plot, plotIndex) {
     }
 
     playPlotBubbleForState(currentSymbol);
+    incrementTotalClicks();
+    updateClicksDisplay();
 
     // Update the game state with modified plot states
     updateState({ plotStates: gameState.plotStates });
@@ -429,7 +432,7 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
             didChange = true;
 
             const numPlots = document.getElementById('field').childElementCount;
-            const disabledTime =  1500 * Math.pow(1.5, Math.floor(numPlots / 3));
+            const disabledTime =  baseTime * Math.pow(1.5, Math.floor(numPlots / 3));
 
             setTimeout(() => {
                 plot.disabled = false;
