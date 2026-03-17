@@ -343,18 +343,16 @@ main {
 }
 
 #click-upgrades-section {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    align-content: flex-start;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    align-items: start;
+    justify-items: stretch;
     gap: 8px;
     width: 100%;
 }
 
 #click-upgrades-section > .upgrades-section-title {
-    width: 100%;
-    flex: 0 0 100%;
+    grid-column: 1 / -1;
     text-align: center;
     margin: 0 0 4px 0;
 }
@@ -368,12 +366,8 @@ main {
     border: 1px solid #000;
     background: #fff;
     padding: 4px 6px;
-    flex: 1 1 calc(50% - 8px);
-    width: calc(50% - 8px);
-    max-width: none;
+    width: 100%;
     min-height: 0;
-    height: fit-content;
-    align-self: flex-start;
 }
 
 .click-upgrade-group-title {
@@ -419,7 +413,6 @@ main {
 /* Media Queries for larger screens */
 @media screen and (max-width: 767px) {
     .click-upgrade-group {
-        flex: 1 1 100%;
         width: 100%;
     }
 }
