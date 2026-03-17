@@ -3,13 +3,13 @@ import { savePartialSnapshot } from "./persistence.js";
 
 const initialGameState = {
     // Player Currency Values
-    coins: 10000,
+    coins: 1,
     seeds: 1, // Generic seeds (kept for backward compatibility)
     crops: 0, // Generic crops (kept for backward compatibility)
     water: 10,
 
     // Crop-Specific Seeds
-    wheatSeeds: 5, // Start with some wheat seeds
+    wheatSeeds: 1, // Start with some wheat seeds
     cornSeeds: 0,
     tomatoSeeds: 0,
 

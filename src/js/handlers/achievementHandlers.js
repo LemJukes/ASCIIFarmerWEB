@@ -12,14 +12,14 @@ import {
 import { updateToolboxDisplay } from "../ui/toolbox.js";
 
 const achievementValues =  {
-    totalCoinsEarned: [1, 2, 3, 4],
-    wheatSold: [1, 2],
-    cornSold: [1, 2],
-    tomatoSold: [1, 2],
-    wheatSeedsBought: [1, 2],
-    cornSeedsBought: [1, 2],
-    tomatoSeedsBought: [1, 2],
-    waterRefillsPurchased: [1, 2],
+    totalCoinsEarned: [10, 50, 100, 500],
+    wheatSold: [10, 50],
+    cornSold: [10, 50],
+    tomatoSold: [10, 50],
+    wheatSeedsBought: [10, 50],
+    cornSeedsBought: [10, 50],
+    tomatoSeedsBought: [10, 50],
+    waterRefillsPurchased: [10, 50],
 }
 
 function getAchievementValues() {
