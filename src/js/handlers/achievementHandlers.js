@@ -19,7 +19,7 @@ const achievementValues =  {
     wheatSeedsBought: [1, 2],
     cornSeedsBought: [1, 2],
     tomatoSeedsBought: [1, 2],
-    waterRefillsPurchased: [1, 2, 3, 4, 5],
+    waterRefillsPurchased: [1, 2],
 }
 
 function getAchievementValues() {

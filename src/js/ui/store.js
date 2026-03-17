@@ -407,10 +407,17 @@ function addBulkWaterRefillButton(achievementValue, bonusTier) {
         return;
     }
 
-    const quantity = Math.max(20, Math.floor(achievementValue * 0.5));
-    const bonusWater = bonusTier * 2;
-    const refillAmount = quantity + bonusWater;
-    const scaledCost = Math.max(1, Math.ceil((quantity / 10) * storeValues.waterCost * (1 - Math.min(0.35, bonusTier * 0.03))));
+    const quantityByTier = {
+        1: 50,
+        2: 100,
+    };
+
+    const refillAmount = quantityByTier[bonusTier];
+    if (!refillAmount) {
+        return;
+    }
+
+    const scaledCost = Math.max(1, Math.ceil((refillAmount / storeValues.waterQuantity) * storeValues.waterCost));
 
     const buttonId = `bulk-water-refill-${achievementValue}`;
     if (document.getElementById(buttonId)) {
@@ -427,7 +434,7 @@ function addBulkWaterRefillButton(achievementValue, bonusTier) {
     const waterCost = document.createElement('span');
     waterCost.classList.add('item-price');
     waterCost.id = `${buttonId}-cost`;
-    waterCost.textContent = `${scaledCost} coins (+${bonusWater} bonus)`;
+    waterCost.textContent = `${scaledCost} coins`;
     buyWaterSection.appendChild(waterCost);
 }
 

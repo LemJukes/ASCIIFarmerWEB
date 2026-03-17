@@ -5,6 +5,7 @@ import { updateCurrencyBar } from "../ui/currency.js";
 import {
     getUpgradeValues,
     updateUpgradeValues,
+    updateWaterUpgradeButton,
     renderClickUpgradesSection,
 } from "../ui/upgrades.js";
 import { updateClicksDisplay } from "../ui/clicks.js";
@@ -37,21 +38,20 @@ function buyWaterCapacityUpgrade() {
     console.log('Water Capacity Upgrade Purchased')
     const gameState = getState();
     const upgradeValues = getUpgradeValues();
+    const currentWaterUpgradeCost = Math.max(0, Number.parseInt(upgradeValues.waterUpgradeCost, 10) || 0);
 
-    if (gameState.coins >= upgradeValues.waterUpgradeCost) {
+    if (gameState.coins >= currentWaterUpgradeCost) {
         gameState.waterCapacity += 10;
-        gameState.coins -= upgradeValues.waterUpgradeCost;
+        gameState.coins -= currentWaterUpgradeCost;
 
-        const newWaterUpgradeCost = Math.ceil(upgradeValues.waterUpgradeCost * 1.15);
-        updateUpgradeValues({ waterUpgradeCost: newWaterUpgradeCost + ' coins' });
+        const newWaterUpgradeCost = Math.ceil(currentWaterUpgradeCost * 1.15);
+        updateUpgradeValues({ waterUpgradeCost: newWaterUpgradeCost });
+        updateWaterUpgradeButton();
 
         updateState(gameState);
         updateCurrencyBar();
         incrementTotalClicks();
         updateClicksDisplay();
-
-        // Disable the waterUpgradeCapButton
-        document.getElementById('water-upgrade-cap-button').disabled = true;
     } else {
         alert('Not enough coins for this upgrade.');
     }

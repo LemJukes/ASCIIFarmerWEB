@@ -172,7 +172,8 @@ function addWaterUpgradeButton() {
     const upgradeWaterCapCost = document.createElement('span');
     upgradeWaterCapCost.classList.add('upgrade-price');
     upgradeWaterCapCost.id = 'water-upgrade-cap-cost';
-    upgradeWaterCapCost.textContent = upgradeValues.waterUpgradeCost + ' coins';
+    const waterUpgradeCost = Math.max(0, Number.parseInt(upgradeValues.waterUpgradeCost, 10) || 0);
+    upgradeWaterCapCost.textContent = `${waterUpgradeCost} coins`;
     waterUpgradesSection.appendChild(upgradeWaterCapCost);
 }
 
@@ -186,7 +187,8 @@ function updateWaterUpgradeButton() {
     }
 
     const { waterUpgradeCost } = getUpgradeValues();
-    upgradeWaterCapCost.textContent = waterUpgradeCost + ' coins';
+    const numericWaterUpgradeCost = Math.max(0, Number.parseInt(waterUpgradeCost, 10) || 0);
+    upgradeWaterCapCost.textContent = `${numericWaterUpgradeCost} coins`;
 }
 
 function initializeClickUpgradesSection() {
