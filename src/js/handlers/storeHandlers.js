@@ -24,7 +24,7 @@ function buySeed() {
             coins: gameState.coins - storeValues.seedCost,
             seeds: gameState.seeds + 1,
         });
-        updateSeedsBought(1);
+        updateSeedsBought('wheat', 1);
         updateCurrencyBar();
         incrementTotalClicks();
         updateClicksDisplay();
@@ -139,7 +139,7 @@ function buyBulkSeedPack(cropType, quantity, totalCost) {
             [seedKey]: gameState[seedKey] + packQuantity,
             totalCoinsSpent: gameState.totalCoinsSpent + packCost,
         });
-        updateSeedsBought(packQuantity);
+        updateSeedsBought(cropType, packQuantity);
         updateCurrencyBar();
         incrementTotalClicks();
         updateClicksDisplay();
@@ -172,15 +172,7 @@ function sellBulkCropPack(cropType, quantity, payout) {
         });
 
         updateCoinsEarned(sellPayout);
-        updateCropsSold(sellQuantity);
-
-        if (cropType === 'wheat') {
-            updateState({ wheatSold: gameState.wheatSold + sellQuantity });
-        } else if (cropType === 'corn') {
-            updateState({ cornSold: gameState.cornSold + sellQuantity });
-        } else if (cropType === 'tomato') {
-            updateState({ tomatoSold: gameState.tomatoSold + sellQuantity });
-        }
+        updateCropsSold(cropType, sellQuantity);
 
         updateCurrencyBar();
         incrementTotalClicks();
@@ -235,7 +227,7 @@ function sellCrops() {
             crops: gameState.crops - 1,
         });
         updateCoinsEarned(1);
-        updateCropsSold(1);
+        updateCropsSold('wheat', 1);
         updateCurrencyBar();  // Refresh the UI to reflect updated currency values
         incrementTotalClicks();
         updateClicksDisplay();
@@ -283,7 +275,7 @@ function buyWheatSeeds() {
             wheatSeeds: gameState.wheatSeeds + 1,
             totalCoinsSpent: gameState.totalCoinsSpent + storeValues.wheatSeedCost,
         });
-        updateSeedsBought(1);
+        updateSeedsBought('wheat', 1);
         updateCurrencyBar();
         incrementTotalClicks();
         updateClicksDisplay();
@@ -301,7 +293,7 @@ function buyCornSeeds() {
             cornSeeds: gameState.cornSeeds + 1,
             totalCoinsSpent: gameState.totalCoinsSpent + storeValues.cornSeedCost,
         });
-        updateSeedsBought(1);
+        updateSeedsBought('corn', 1);
         updateCurrencyBar();
         incrementTotalClicks();
         updateClicksDisplay();
@@ -319,7 +311,7 @@ function buyTomatoSeeds() {
             tomatoSeeds: gameState.tomatoSeeds + 1,
             totalCoinsSpent: gameState.totalCoinsSpent + storeValues.tomatoSeedCost,
         });
-        updateSeedsBought(1);
+        updateSeedsBought('tomato', 1);
         updateCurrencyBar();
         incrementTotalClicks();
         updateClicksDisplay();
@@ -339,8 +331,7 @@ function sellWheat() {
             crops: gameState.crops - 1, // Update generic crops count
         });
         updateCoinsEarned(storeValues.wheatPrice);
-        updateCropsSold(1);
-        updateState({ wheatSold: gameState.wheatSold + 1 });
+        updateCropsSold('wheat', 1);
         updateCurrencyBar();
         incrementTotalClicks();
         updateClicksDisplay();
@@ -359,8 +350,7 @@ function sellCorn() {
             crops: gameState.crops - 1,
         });
         updateCoinsEarned(storeValues.cornPrice);
-        updateCropsSold(1);
-        updateState({ cornSold: gameState.cornSold + 1 });
+        updateCropsSold('corn', 1);
         updateCurrencyBar();
         incrementTotalClicks();
         updateClicksDisplay();
@@ -379,8 +369,7 @@ function sellTomato() {
             crops: gameState.crops - 1,
         });
         updateCoinsEarned(storeValues.tomatoPrice);
-        updateCropsSold(1);
-        updateState({ tomatoSold: gameState.tomatoSold + 1 });
+        updateCropsSold('tomato', 1);
         updateCurrencyBar();
         incrementTotalClicks();
         updateClicksDisplay();

@@ -3,7 +3,7 @@ import { savePartialSnapshot } from "./persistence.js";
 
 const initialGameState = {
     // Player Currency Values
-    coins: 0,
+    coins: 10000,
     seeds: 1, // Generic seeds (kept for backward compatibility)
     crops: 0, // Generic crops (kept for backward compatibility)
     water: 10,
@@ -35,6 +35,9 @@ const initialGameState = {
     cornSold: 0,              // Total corn sold
     tomatoSold: 0,            // Total tomatoes sold
     seedsBought: 0,           // Total number of seeds bought by the player
+    wheatSeedsBought: 0,      // Total wheat seeds bought
+    cornSeedsBought: 0,       // Total corn seeds bought
+    tomatoSeedsBought: 0,     // Total tomato seeds bought
     waterRefillsPurchased: 0, // Total number of times the player has clicked the water refil button
     totalClicksClicked: 0,    // Total number of successful button clicks
 

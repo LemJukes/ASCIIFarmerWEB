@@ -1,7 +1,18 @@
 //src/js/ui/upgrades.js+
 
 import { savePartialSnapshot } from "../persistence.js";
-import { buyWaterCapacityUpgrade, buyExpandedClickUpgradeMk1, buyExpandedClickUpgradeMk2, buyExpandedClickUpgradeMk3 } from "../handlers/upgradeHandlers.js";
+import { incrementTotalClicks } from "../state.js";
+import { updateClicksDisplay } from "./clicks.js";
+import {
+    buyWaterCapacityUpgrade,
+    buyExpandedClickUpgradeMk1,
+    buyExpandedClickUpgradeMk2,
+    buyExpandedClickUpgradeMk3,
+    buyToolAutoChangerUpgrade,
+    buyToolAutoChangerChargePack100,
+    buyToolAutoChangerChargePack500,
+    buyToolAutoChangerChargePack1000,
+} from "../handlers/upgradeHandlers.js";
 
 const initialUpgradeValues = {
     waterUpgradeCost: 50,
@@ -23,6 +34,17 @@ const initialUpgradeValues = {
         expandedClickMk3Cost: 2000,
         expandedClickMk3Purchased: false,
         expandedClickMk3Enabled: false,
+
+    toolAutoChangerCost: 75,
+    toolAutoChangerPurchased: false,
+    toolAutoChangerEnabled: false,
+    toolAutoChangerCharges: 0,
+    toolAutoChangerChargePack100Cost: 25,
+    toolAutoChangerChargePack500Cost: 100,
+    toolAutoChangerChargePack1000Cost: 175,
+    toolAutoChangerChargePack100Unlocked: false,
+    toolAutoChangerChargePack500Unlocked: false,
+    toolAutoChangerChargePack1000Unlocked: false,
 }
 
 const upgradeValues = { ...initialUpgradeValues };
@@ -95,8 +117,15 @@ function initializeUpgrades() {
 }
 
 function initializeWaterUpgradesSection() {
+    let waterUpgradesSection = document.getElementById('water-upgrades-section');
+
+    if (waterUpgradesSection) {
+        addWaterUpgradeButton();
+        return;
+    }
+
     // Max Water Capacity Upgrades Section
-    const waterUpgradesSection = document.createElement('section');
+    waterUpgradesSection = document.createElement('section');
     waterUpgradesSection.classList.add('upgrades-section');
     waterUpgradesSection.id = 'water-upgrades-section';
     waterUpgradesSection.setAttribute('aria-label', 'Maximum Water Capacity Upgrades Section');
@@ -124,6 +153,10 @@ function addWaterUpgradeButton() {
 
     if (!waterUpgradesSection) {
         console.error('Water Upgrades Section not found in the DOM');
+        return;
+    }
+
+    if (document.getElementById('water-upgrade-cap-button') || document.getElementById('water-upgrade-cap-cost')) {
         return;
     }
 
@@ -169,8 +202,29 @@ function initializeClickUpgradesSection() {
         const expandedClickUpgradesTitle = document.createElement('h3');
         expandedClickUpgradesTitle.classList.add('upgrades-section-title');
         expandedClickUpgradesTitle.id = 'expanded-click-upgrades-title';
-        expandedClickUpgradesTitle.textContent = 'Expanded Click Upgrades';
+        expandedClickUpgradesTitle.textContent = 'Click Upgrades';
         expandedClickUpgradesSection.appendChild(expandedClickUpgradesTitle);
+
+        const expandedClickGroup = document.createElement('section');
+        expandedClickGroup.classList.add('click-upgrade-group');
+        expandedClickGroup.id = 'expanded-click-upgrade-group';
+
+        const expandedClickGroupTitle = document.createElement('h4');
+        expandedClickGroupTitle.classList.add('click-upgrade-group-title');
+        expandedClickGroupTitle.textContent = 'Expanded Click';
+        expandedClickGroup.appendChild(expandedClickGroupTitle);
+
+        const toolAutoChangerGroup = document.createElement('section');
+        toolAutoChangerGroup.classList.add('click-upgrade-group');
+        toolAutoChangerGroup.id = 'tool-auto-changer-upgrade-group';
+
+        const toolAutoChangerGroupTitle = document.createElement('h4');
+        toolAutoChangerGroupTitle.classList.add('click-upgrade-group-title');
+        toolAutoChangerGroupTitle.textContent = 'Tool Auto-Changer';
+        toolAutoChangerGroup.appendChild(toolAutoChangerGroupTitle);
+
+        expandedClickUpgradesSection.appendChild(expandedClickGroup);
+        expandedClickUpgradesSection.appendChild(toolAutoChangerGroup);
 
         // Add the Upgrades section to the store or main window
         const mainDiv = document.getElementById('upgrades-container'); // Assuming 'main' is the main container
@@ -182,27 +236,35 @@ function initializeClickUpgradesSection() {
         }
     }
 
+    renderClickUpgradesSection();
+}
+
+function renderClickUpgradesSection() {
     addExpandedClickUpgradeButton();
+    addToolAutoChangerControls();
 }
 
 function addExpandedClickUpgradeButton() {
-    const expandedClickUpgradesSection = document.getElementById('click-upgrades-section');
+    const expandedClickUpgradesSection = document.getElementById('expanded-click-upgrade-group');
 
     if (!expandedClickUpgradesSection) {
-        console.error('Click Upgrades Section not found in the DOM');
+        console.error('Expanded Click Upgrades Group not found in the DOM');
         return;
     }
 
+    const existingRows = expandedClickUpgradesSection.querySelectorAll('.click-upgrade-row');
+    existingRows.forEach((row) => row.remove());
+
     const ensureMkToggle = (level, enabledKey) => {
         const toggleId = `expanded-click-mk${level}-toggle-checkbox`;
-        if (document.getElementById(toggleId)) {
-            return;
-        }
+        const row = document.createElement('div');
+        row.classList.add('click-upgrade-row');
+        row.id = `expanded-click-row-${level}`;
 
         const label = document.createElement('label');
         label.classList.add('expanded-click-label');
         label.id = `expanded-click-mk${level}-toggle-label`;
-        label.textContent = `Mk. ${level} - `;
+        label.textContent = `Mk. ${level}`;
         label.htmlFor = toggleId;
 
         const toggle = document.createElement('input');
@@ -212,10 +274,13 @@ function addExpandedClickUpgradeButton() {
         toggle.checked = Boolean(upgradeValues[enabledKey]);
         toggle.addEventListener('change', function() {
             updateUpgradeValues({ [enabledKey]: this.checked });
+            incrementTotalClicks();
+            updateClicksDisplay();
         });
 
-        expandedClickUpgradesSection.appendChild(label);
-        expandedClickUpgradesSection.appendChild(toggle);
+        row.appendChild(label);
+        row.appendChild(toggle);
+        expandedClickUpgradesSection.appendChild(row);
     };
 
     if (upgradeValues.expandedClickMk1Purchased) {
@@ -262,18 +327,138 @@ function addExpandedClickUpgradeButton() {
         return;
     }
 
+    const buyRow = document.createElement('div');
+    buyRow.classList.add('click-upgrade-row');
+
     const expandedClickUpgradeBuyButton = document.createElement('button');
     expandedClickUpgradeBuyButton.classList.add('upgrade-button');
     expandedClickUpgradeBuyButton.id = `expanded-click-upgrade-mk${nextLevel}-buy-button`;
     expandedClickUpgradeBuyButton.textContent = `Unlock Mk.${nextLevel}`;
     expandedClickUpgradeBuyButton.addEventListener('click', nextHandler);
-    expandedClickUpgradesSection.appendChild(expandedClickUpgradeBuyButton);
+    buyRow.appendChild(expandedClickUpgradeBuyButton);
 
     const expandedClickUpgradeCost = document.createElement('span');
     expandedClickUpgradeCost.classList.add('upgrade-price');
     expandedClickUpgradeCost.id = nextCostId;
     expandedClickUpgradeCost.textContent = `${nextCost} coins`;
-    expandedClickUpgradesSection.appendChild(expandedClickUpgradeCost);
+    buyRow.appendChild(expandedClickUpgradeCost);
+
+    expandedClickUpgradesSection.appendChild(buyRow);
+}
+
+function addToolAutoChangerControls() {
+    const clickUpgradesSection = document.getElementById('tool-auto-changer-upgrade-group');
+
+    if (!clickUpgradesSection) {
+        console.error('Tool Auto-Changer Upgrades Group not found in the DOM');
+        return;
+    }
+
+    const existingRows = clickUpgradesSection.querySelectorAll('.click-upgrade-row');
+    existingRows.forEach((row) => row.remove());
+
+    const currentUpgradeValues = getUpgradeValues();
+
+    if (!currentUpgradeValues.toolAutoChangerPurchased) {
+        const buyRow = document.createElement('div');
+        buyRow.classList.add('click-upgrade-row');
+
+        const buyButton = document.createElement('button');
+        buyButton.classList.add('upgrade-button');
+        buyButton.id = 'tool-auto-changer-buy-button';
+        buyButton.textContent = 'Unlock Tool Auto-Changer';
+        buyButton.addEventListener('click', buyToolAutoChangerUpgrade);
+        buyRow.appendChild(buyButton);
+
+        const buyCost = document.createElement('span');
+        buyCost.classList.add('upgrade-price');
+        buyCost.id = 'tool-auto-changer-buy-cost';
+        buyCost.textContent = `${currentUpgradeValues.toolAutoChangerCost} coins`;
+        buyRow.appendChild(buyCost);
+        clickUpgradesSection.appendChild(buyRow);
+        return;
+    }
+
+    const toggleRow = document.createElement('div');
+    toggleRow.classList.add('click-upgrade-row');
+
+    const toggleLabel = document.createElement('label');
+    toggleLabel.classList.add('expanded-click-label');
+    toggleLabel.id = 'tool-auto-changer-toggle-label';
+    toggleLabel.textContent = 'Enabled';
+    toggleLabel.htmlFor = 'tool-auto-changer-toggle-checkbox';
+
+    const toggle = document.createElement('input');
+    toggle.classList.add('expanded-click-checkbox');
+    toggle.type = 'checkbox';
+    toggle.id = 'tool-auto-changer-toggle-checkbox';
+    toggle.checked = Boolean(currentUpgradeValues.toolAutoChangerEnabled);
+    toggle.addEventListener('change', function() {
+        updateUpgradeValues({ toolAutoChangerEnabled: this.checked });
+        incrementTotalClicks();
+        updateClicksDisplay();
+    });
+
+    const chargeDisplay = document.createElement('span');
+    chargeDisplay.classList.add('upgrade-price');
+    chargeDisplay.id = 'tool-auto-changer-charge-display';
+    chargeDisplay.textContent = `Charges: ${currentUpgradeValues.toolAutoChangerCharges}`;
+
+    toggleRow.appendChild(toggleLabel);
+    toggleRow.appendChild(toggle);
+    toggleRow.appendChild(chargeDisplay);
+    clickUpgradesSection.appendChild(toggleRow);
+
+    const chargePacks = [
+        {
+            amount: 100,
+            buttonId: 'tool-auto-changer-charge-pack-100-button',
+            costId: 'tool-auto-changer-charge-pack-100-cost',
+            unlocked: currentUpgradeValues.toolAutoChangerChargePack100Unlocked,
+            cost: currentUpgradeValues.toolAutoChangerChargePack100Cost,
+            handler: buyToolAutoChangerChargePack100,
+        },
+        {
+            amount: 500,
+            buttonId: 'tool-auto-changer-charge-pack-500-button',
+            costId: 'tool-auto-changer-charge-pack-500-cost',
+            unlocked: currentUpgradeValues.toolAutoChangerChargePack500Unlocked,
+            cost: currentUpgradeValues.toolAutoChangerChargePack500Cost,
+            handler: buyToolAutoChangerChargePack500,
+        },
+        {
+            amount: 1000,
+            buttonId: 'tool-auto-changer-charge-pack-1000-button',
+            costId: 'tool-auto-changer-charge-pack-1000-cost',
+            unlocked: currentUpgradeValues.toolAutoChangerChargePack1000Unlocked,
+            cost: currentUpgradeValues.toolAutoChangerChargePack1000Cost,
+            handler: buyToolAutoChangerChargePack1000,
+        },
+    ];
+
+    chargePacks.forEach(({ amount, buttonId, costId, unlocked, cost, handler }) => {
+        if (!unlocked) {
+            return;
+        }
+
+        const packRow = document.createElement('div');
+        packRow.classList.add('click-upgrade-row');
+
+        const packButton = document.createElement('button');
+        packButton.classList.add('upgrade-button');
+        packButton.id = buttonId;
+        packButton.textContent = `Buy ${amount}x Charges`;
+        packButton.addEventListener('click', handler);
+        packRow.appendChild(packButton);
+
+        const packCost = document.createElement('span');
+        packCost.classList.add('upgrade-price');
+        packCost.id = costId;
+        packCost.textContent = `${cost} coins`;
+        packRow.appendChild(packCost);
+
+        clickUpgradesSection.appendChild(packRow);
+    });
 }
 
 /*
@@ -303,7 +488,9 @@ export { getUpgradeValues,
          addWaterUpgradeButton,
          updateWaterUpgradeButton,
          initializeClickUpgradesSection,
+         renderClickUpgradesSection,
          addExpandedClickUpgradeButton,
+         addToolAutoChangerControls,
          //updateExpandedClickUpgradeButton,
 }
 

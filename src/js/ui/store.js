@@ -309,91 +309,96 @@ function initializeStore() {
     }
 }
 
-function addBulkSeedButton(achievementValue, bonusTier) {
-    const gameState = getState();
-    const quantity = Math.max(5, Math.floor(achievementValue * 0.1));
-    const discountMultiplier = Math.max(0.55, 0.9 - bonusTier * 0.03);
+function addBulkSeedButton(cropType, achievementValue, bonusTier) {
+    const quantityByTier = {
+        1: 5,
+        2: 10,
+    };
+    const discountByTier = {
+        1: 0.95,
+        2: 0.85,
+    };
+    const quantity = quantityByTier[bonusTier];
+    const discountMultiplier = discountByTier[bonusTier];
 
-    const seedSections = [
-        { crop: 'wheat', sectionId: 'buyWheatSeedsSection', seedCost: storeValues.wheatSeedCost, unlocked: true },
-        { crop: 'corn', sectionId: 'buyCornSeedsSection', seedCost: storeValues.cornSeedCost, unlocked: gameState.cornUnlocked },
-        { crop: 'tomato', sectionId: 'buyTomatoSeedsSection', seedCost: storeValues.tomatoSeedCost, unlocked: gameState.tomatoUnlocked },
-    ];
+    if (!quantity || !discountMultiplier) {
+        return;
+    }
 
-    seedSections.forEach(({ crop, sectionId, seedCost, unlocked }) => {
-        if (!unlocked) {
-            return;
-        }
+    const seedSectionMap = {
+        wheat: { sectionId: 'buyWheatSeedsSection', seedCost: storeValues.wheatSeedCost },
+        corn: { sectionId: 'buyCornSeedsSection', seedCost: storeValues.cornSeedCost },
+        tomato: { sectionId: 'buyTomatoSeedsSection', seedCost: storeValues.tomatoSeedCost },
+    };
 
-        const section = document.getElementById(sectionId);
-        if (!section) {
-            return;
-        }
+    const { sectionId, seedCost } = seedSectionMap[cropType] ?? {};
+    const section = document.getElementById(sectionId);
+    if (!section) return;
 
-        const buttonId = `${crop}-bulk-seed-${achievementValue}`;
-        if (document.getElementById(buttonId)) {
-            return;
-        }
+    const buttonId = `${cropType}-bulk-seed-${quantity}`;
+    if (document.getElementById(buttonId)) return;
 
-        const totalCost = Math.max(1, Math.ceil(quantity * seedCost * discountMultiplier));
+    const totalCost = Math.max(1, Math.ceil(quantity * seedCost * discountMultiplier));
 
-        const bulkButton = document.createElement('button');
-        bulkButton.classList.add('store-button');
-        bulkButton.id = buttonId;
-        bulkButton.textContent = `${quantity}x`;
-        bulkButton.addEventListener('click', () => buyBulkSeedPack(crop, quantity, totalCost));
-        section.appendChild(bulkButton);
+    const bulkButton = document.createElement('button');
+    bulkButton.classList.add('store-button');
+    bulkButton.id = buttonId;
+    bulkButton.textContent = `${quantity}x`;
+    bulkButton.addEventListener('click', () => buyBulkSeedPack(cropType, quantity, totalCost));
+    section.appendChild(bulkButton);
 
-        const bulkCost = document.createElement('span');
-        bulkCost.classList.add('item-price');
-        bulkCost.id = `${buttonId}-cost`;
-        bulkCost.textContent = `${totalCost} coins`;
-        section.appendChild(bulkCost);
-    });
+    const bulkCost = document.createElement('span');
+    bulkCost.classList.add('item-price');
+    bulkCost.id = `${buttonId}-cost`;
+    bulkCost.textContent = `${totalCost} coins`;
+    section.appendChild(bulkCost);
 }
 
-function addBulkCropSaleButton(achievementValue, bonusTier) {
-    const gameState = getState();
-    const quantity = Math.max(5, Math.floor(achievementValue * 0.1));
-    const bonusPercent = Math.min(50, 5 + bonusTier * 5);
+function addBulkCropSaleButton(cropType, achievementValue, bonusTier) {
+    const quantityByTier = {
+        1: 5,
+        2: 10,
+    };
+    const bonusPercentByTier = {
+        1: 10,
+        2: 25,
+    };
+    const quantity = quantityByTier[bonusTier];
+    const bonusPercent = bonusPercentByTier[bonusTier];
+
+    if (!quantity || !bonusPercent) {
+        return;
+    }
+
     const multiplier = 1 + bonusPercent / 100;
 
-    const cropSections = [
-        { crop: 'wheat', sectionId: 'sellWheatSection', cropPrice: storeValues.wheatPrice, unlocked: true },
-        { crop: 'corn', sectionId: 'sellCornSection', cropPrice: storeValues.cornPrice, unlocked: gameState.cornUnlocked },
-        { crop: 'tomato', sectionId: 'sellTomatoSection', cropPrice: storeValues.tomatoPrice, unlocked: gameState.tomatoUnlocked },
-    ];
+    const cropSectionMap = {
+        wheat: { sectionId: 'sellWheatSection', cropPrice: storeValues.wheatPrice },
+        corn: { sectionId: 'sellCornSection', cropPrice: storeValues.cornPrice },
+        tomato: { sectionId: 'sellTomatoSection', cropPrice: storeValues.tomatoPrice },
+    };
 
-    cropSections.forEach(({ crop, sectionId, cropPrice, unlocked }) => {
-        if (!unlocked) {
-            return;
-        }
+    const { sectionId, cropPrice } = cropSectionMap[cropType] ?? {};
+    const section = document.getElementById(sectionId);
+    if (!section) return;
 
-        const section = document.getElementById(sectionId);
-        if (!section) {
-            return;
-        }
+    const buttonId = `${cropType}-bulk-sale-${quantity}`;
+    if (document.getElementById(buttonId)) return;
 
-        const buttonId = `${crop}-bulk-sale-${achievementValue}`;
-        if (document.getElementById(buttonId)) {
-            return;
-        }
+    const payout = Math.max(1, Math.floor(quantity * cropPrice * multiplier));
 
-        const payout = Math.max(1, Math.floor(quantity * cropPrice * multiplier));
+    const bulkButton = document.createElement('button');
+    bulkButton.classList.add('store-button');
+    bulkButton.id = buttonId;
+    bulkButton.textContent = `${quantity}x`;
+    bulkButton.addEventListener('click', () => sellBulkCropPack(cropType, quantity, payout));
+    section.appendChild(bulkButton);
 
-        const bulkButton = document.createElement('button');
-        bulkButton.classList.add('store-button');
-        bulkButton.id = buttonId;
-        bulkButton.textContent = `${quantity}x`;
-        bulkButton.addEventListener('click', () => sellBulkCropPack(crop, quantity, payout));
-        section.appendChild(bulkButton);
-
-        const bulkValue = document.createElement('span');
-        bulkValue.classList.add('item-price');
-        bulkValue.id = `${buttonId}-value`;
-        bulkValue.textContent = `${payout} coins (+${bonusPercent}%)`;
-        section.appendChild(bulkValue);
-    });
+    const bulkValue = document.createElement('span');
+    bulkValue.classList.add('item-price');
+    bulkValue.id = `${buttonId}-value`;
+    bulkValue.textContent = `${payout} coins (+${bonusPercent}%)`;
+    section.appendChild(bulkValue);
 }
 
 function addBulkWaterRefillButton(achievementValue, bonusTier) {

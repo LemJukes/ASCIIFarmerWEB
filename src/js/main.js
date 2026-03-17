@@ -7,6 +7,7 @@ import { applyStoreValuesSnapshot, initializeStore, initializeStoreTitle } from 
 import { applyUpgradeValuesSnapshot } from './ui/upgrades.js';
 import { initializeToolbox, initializeToolboxTitle, selectTool, selectSeedType } from './ui/toolbox.js';
 import { initializeClicksDisplay } from './ui/clicks.js';
+import { trackAchievements } from './handlers/achievementHandlers.js';
 
 function initializeResetSaveButton() {
     const resetSaveButton = document.createElement('button');
@@ -113,5 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeResetSaveButton();
     initializeClicksDisplay();
     initializeKeyboardShortcuts();
+    trackAchievements();
 
 });

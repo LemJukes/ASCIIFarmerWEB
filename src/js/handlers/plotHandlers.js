@@ -1,12 +1,14 @@
 import { getState, updateState, incrementTotalClicks } from '../state.js';
 import { updateCurrencyBar } from '../ui/currency.js';
-import { getUpgradeValues } from '../ui/upgrades.js';
+import { getUpgradeValues, updateUpgradeValues, renderClickUpgradesSection } from '../ui/upgrades.js';
 import { getCropConfig, getGrowthSymbol } from '../cropConfig.js';
 import { playPlotBubbleForState, playAdjacentBubbleForState } from '../ui/sfx.js';
 import { updateClicksDisplay } from '../ui/clicks.js';
-import { TOOLS, WATERING_SYMBOLS, getRequiredToolForSymbol } from '../toolConfig.js';
+import { updateToolboxDisplay } from '../ui/toolbox.js';
+import { TOOLS, WATERING_SYMBOLS, HARVEST_SYMBOLS, getRequiredToolForSymbol } from '../toolConfig.js';
 
 const GRID_WIDTH = 9;
+const OUT_OF_CHARGES_MESSAGE = 'Auto-Changer is out of charges. Buy more charges in Upgrades.';
 
 function getSelectedTool(gameState) {
     return gameState.selectedTool || TOOLS.PLOW;
@@ -52,18 +54,92 @@ function getSeedInventoryKey(seedType) {
     return 'wheatSeeds';
 }
 
-function handlePlotClick(plot, plotIndex) {
-    const gameState = getState();
-    const plotState = gameState.plotStates[plotIndex]; // Get the plot state object
-    const currentSymbol = plotState.symbol;
-    const selectedTool = getSelectedTool(gameState);
-    const requiredTool = getRequiredToolForSymbol(currentSymbol);
-    let didChange = false;
+function getPlotDisabledTime() {
+    const baseTime = 100;
+    const initialDisableCoefficient = 1;
+    const numPlots = document.getElementById('field').childElementCount;
+    const coefficientIncrease = Math.floor(numPlots / 5) * 0.5;
+    const plotDisableCoefficient = initialDisableCoefficient + coefficientIncrease;
+    return baseTime * plotDisableCoefficient;
+}
 
-    if (requiredTool && selectedTool !== requiredTool) {
-        alert(getWrongToolMessage(currentSymbol));
+function getAutoChangerRequiredTool(currentSymbol) {
+    const requiredTool = getRequiredToolForSymbol(currentSymbol);
+
+    if (requiredTool) {
+        return requiredTool;
+    }
+
+    if (HARVEST_SYMBOLS.includes(currentSymbol)) {
+        return TOOLS.SCYTHE;
+    }
+
+    return null;
+}
+
+function resolveToolSelection(currentSymbol, showFailureAlert) {
+    const gameState = getState();
+    const selectedTool = getSelectedTool(gameState);
+    const requiredTool = getAutoChangerRequiredTool(currentSymbol);
+
+    if (!requiredTool || selectedTool === requiredTool) {
+        return {
+            allowed: true,
+            gameState,
+            selectedTool,
+        };
+    }
+
+    const upgradeValues = getUpgradeValues();
+    const canAutoChange = upgradeValues.toolAutoChangerPurchased && upgradeValues.toolAutoChangerEnabled;
+
+    if (!canAutoChange) {
+        if (showFailureAlert) {
+            alert(getWrongToolMessage(currentSymbol));
+        }
+
+        return {
+            allowed: false,
+            gameState,
+            selectedTool,
+        };
+    }
+
+    if (upgradeValues.toolAutoChangerCharges < 1) {
+        if (showFailureAlert) {
+            alert(OUT_OF_CHARGES_MESSAGE);
+        }
+
+        return {
+            allowed: false,
+            gameState,
+            selectedTool,
+        };
+    }
+
+    updateUpgradeValues({ toolAutoChangerCharges: upgradeValues.toolAutoChangerCharges - 1 });
+    updateState({ selectedTool: requiredTool });
+    updateToolboxDisplay();
+    renderClickUpgradesSection();
+
+    return {
+        allowed: true,
+        gameState: { ...gameState, selectedTool: requiredTool },
+        selectedTool: requiredTool,
+    };
+}
+
+function handlePlotClick(plot, plotIndex) {
+    const toolSelection = resolveToolSelection(getState().plotStates[plotIndex].symbol, true);
+    if (!toolSelection.allowed) {
         return;
     }
+
+    const gameState = toolSelection.gameState;
+    const plotState = gameState.plotStates[plotIndex]; // Get the plot state object
+    const currentSymbol = plotState.symbol;
+    const selectedTool = toolSelection.selectedTool;
+    let didChange = false;
 
     switch (currentSymbol) {
         case '~': // Untilled
@@ -152,13 +228,7 @@ function handlePlotClick(plot, plotIndex) {
             plot.disabled = true;
             didChange = true;
 
-            // Calculate the disabled time based on the number of plots
-            const baseTime = 100;
-            const initialDisableCoefficient = 1;
-            const numPlots = document.getElementById('field').childElementCount;
-            const coefficientIncrease = Math.floor(numPlots / 5) * 0.5;
-            const plotDisableCoefficient = initialDisableCoefficient + coefficientIncrease;
-            const disabledTime = baseTime * plotDisableCoefficient;
+            const disabledTime = getPlotDisabledTime();
 
             // Re-enable the button after the calculated disabled time
             setTimeout(() => {
@@ -342,16 +412,16 @@ function affectAdjacentPlotsMk3(index) {
 
 // Function to handle click on adjacent plots
 function handleAdjacentPlotClickMk1(plot, plotIndex) {
-    const gameState = getState();
-    const plotState = gameState.plotStates[plotIndex];
-    const currentSymbol = plotState.symbol;
-    const selectedTool = getSelectedTool(gameState);
-    const requiredTool = getRequiredToolForSymbol(currentSymbol);
-    let didChange = false;
-
-    if (requiredTool && selectedTool !== requiredTool) {
+    const toolSelection = resolveToolSelection(getState().plotStates[plotIndex].symbol, false);
+    if (!toolSelection.allowed) {
         return;
     }
+
+    const gameState = toolSelection.gameState;
+    const plotState = gameState.plotStates[plotIndex];
+    const currentSymbol = plotState.symbol;
+    const selectedTool = toolSelection.selectedTool;
+    let didChange = false;
 
     switch (currentSymbol) {
         case '~': // Untilled
@@ -431,8 +501,7 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
             plot.disabled = true;
             didChange = true;
 
-            const numPlots = document.getElementById('field').childElementCount;
-            const disabledTime =  baseTime * Math.pow(1.5, Math.floor(numPlots / 3));
+            const disabledTime = getPlotDisabledTime();
 
             setTimeout(() => {
                 plot.disabled = false;
@@ -448,6 +517,8 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
     }
 
     playAdjacentBubbleForState(currentSymbol);
+    incrementTotalClicks();
+    updateClicksDisplay();
 
     // Update the game state with modified plot states
     updateState({ plotStates: gameState.plotStates });
