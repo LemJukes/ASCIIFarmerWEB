@@ -50,10 +50,13 @@ header {
 
 header pre {
     margin: 0;
+    padding: 0.15em 0 0.25em;
+    display: block;
     max-width: 100%;
     font-size: clamp(0.31rem, 1.5vw, 1rem);
     line-height: 1;
     overflow-x: auto;
+    overflow-y: hidden;
 }
 
 

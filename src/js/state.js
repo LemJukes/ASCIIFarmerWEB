@@ -25,8 +25,8 @@ const initialGameState = {
 
     // Crop Unlock Tracking
     totalCoinsSpent: 0,   // Total coins spent (for unlocking crops)
-    cornUnlocked: false,  // Corn unlocks at 50 coins spent
-    tomatoUnlocked: false, // Tomato unlocks at 100 coins spent
+    cornUnlocked: false,  // Corn unlock threshold is defined in achievementValues.totalCoinsSpent[0]
+    tomatoUnlocked: false, // Tomato unlock threshold is defined in achievementValues.totalCoinsSpent[1]
 
     // Game Progress Information
     totalCoinsEarned: 0,      // Total number of coins the player has earned throughout the game
