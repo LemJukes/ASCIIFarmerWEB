@@ -1,6 +1,5 @@
-// ./handlers/achievementHandlers.js
-
-import { getState, updateState } from "../state.js"
+import { getState, updateState } from "../state.js";
+import { progressionConfig, getAchievementValues as getProgressionAchievementValues } from "../../configs/progressionConfig.js";
 import { addBulkSeedButton, addBulkCropSaleButton, addBulkWaterRefillButton } from "../ui/store.js";
 import {
     initializeUpgradesTitle,
@@ -11,145 +10,33 @@ import {
 } from "../ui/upgrades.js";
 import { updateToolboxDisplay } from "../ui/toolbox.js";
 
-const achievementValues =  {
-    totalCoinsSpent: [50, 100, 250, 500, 1000],
-    totalCoinsEarned: [10, 50, 100, 500],
-    wheatSold: [10, 50],
-    cornSold: [10, 50],
-    tomatoSold: [10, 50],
-    wheatSeedsBought: [10, 50],
-    cornSeedsBought: [10, 50],
-    tomatoSeedsBought: [10, 50],
-    waterRefillsPurchased: [3, 15],
-}
+const cropTypes = ["wheat", "corn", "tomato"];
 
 function getAchievementValues() {
-    return { ...achievementValues}
+    return getProgressionAchievementValues();
 }
 
 function announceAchievementUnlock(message) {
     alert(message);
 }
 
-function unlockAchievement(gameState, achievementId, message) {
+function unlockAchievement(achievementId, message) {
+    const gameState = getState();
     if (gameState.achievementsUnlocked.includes(achievementId)) {
         return false;
     }
 
-    gameState.achievementsUnlocked.push(achievementId);
+    updateState({
+        achievementsUnlocked: [...gameState.achievementsUnlocked, achievementId],
+    });
+
     announceAchievementUnlock(message);
     return true;
 }
 
-function trackAchievements() {
-    const gameState = getState();
-    const [, , expandedClickMk1UnlockThreshold, expandedClickMk2UnlockThreshold, expandedClickMk3UnlockThreshold] = achievementValues.totalCoinsSpent;
-
-    // Check for crop unlocks based on total coins spent
-    checkCropUnlocks();
-
-    if (gameState.waterRefillsPurchased >= achievementValues.waterRefillsPurchased[0]) {
-        ensureUpgradesContainer();
-        initializeWaterUpgradesSection();
-    }
-
-    if (gameState.totalCoinsEarned >= achievementValues.totalCoinsEarned[0]) {
-        ensureUpgradesContainer();
-        initializeClickUpgradesSection();
-    }
-
-    if (gameState.totalCoinsEarned >= achievementValues.totalCoinsEarned[1]) {
-        updateUpgradeValues({ toolAutoChangerChargePack100Unlocked: true });
-    }
-
-    if (gameState.totalCoinsEarned >= achievementValues.totalCoinsEarned[2]) {
-        updateUpgradeValues({ toolAutoChangerChargePack500Unlocked: true });
-    }
-
-    if (gameState.totalCoinsEarned >= achievementValues.totalCoinsEarned[3]) {
-        updateUpgradeValues({ toolAutoChangerChargePack1000Unlocked: true });
-    }
-
-    if (gameState.totalCoinsSpent >= expandedClickMk1UnlockThreshold) {
-        updateUpgradeValues({ expandedClickMk1Unlocked: true });
-        ensureUpgradesContainer();
-        initializeClickUpgradesSection();
-    }
-
-    if (gameState.totalCoinsSpent >= expandedClickMk2UnlockThreshold) {
-        updateUpgradeValues({ expandedClickMk2Unlocked: true });
-    }
-
-    if (gameState.totalCoinsSpent >= expandedClickMk3UnlockThreshold) {
-        updateUpgradeValues({ expandedClickMk3Unlocked: true });
-    }
-
-    for (const [key, achievements] of Object.entries(achievementValues)) {
-        for (const achievement of achievements) {
-            if (gameState[key] >= achievement) {
-                const achievementId = `${key}-${achievement}`;
-                const isNewUnlock = unlockAchievement(gameState, achievementId, `Achievement unlocked: ${key} - ${achievement}`);
-                if (!isNewUnlock) {
-                    continue;
-                }
-
-                // Achievement Upgrade Unlock Logic
-
-                // Water Upgrade Unlock
-                if (key === 'waterRefillsPurchased' && achievement === achievementValues.waterRefillsPurchased[0]) {
-                    const upgradesTitle = document.getElementById('upgrades-container-title');
-                    const upgradesContainer = document.getElementById('upgrades-container');
-
-                    if (!upgradesTitle) {
-                        initializeUpgradesTitle();
-                    }
-
-                    if (!upgradesContainer) {
-                        initializeUpgrades();
-                    }
-
-                    initializeWaterUpgradesSection();
-                }
-
-                // Expanded Click Unlock
-                if (key === 'totalCoinsEarned' && achievement === achievementValues.totalCoinsEarned[0]) {
-                    ensureUpgradesContainer();
-                    initializeClickUpgradesSection();
-                }
-
-                if (key === 'totalCoinsEarned' && achievement === achievementValues.totalCoinsEarned[1]) {
-                    updateUpgradeValues({ toolAutoChangerChargePack100Unlocked: true });
-                    ensureUpgradesContainer();
-                    initializeClickUpgradesSection();
-                }
-
-                if (key === 'totalCoinsEarned' && achievement === achievementValues.totalCoinsEarned[2]) {
-                    updateUpgradeValues({ toolAutoChangerChargePack500Unlocked: true });
-                    ensureUpgradesContainer();
-                    initializeClickUpgradesSection();
-                }
-
-                if (key === 'totalCoinsEarned' && achievement === achievementValues.totalCoinsEarned[3]) {
-                    updateUpgradeValues({ toolAutoChangerChargePack1000Unlocked: true });
-                    ensureUpgradesContainer();
-                    initializeClickUpgradesSection();
-                }
-
-                checkWaterRefillsAchievementsAndEnableButton();
-
-            }
-            
-        }
-    }
-
-    checkSeedsBoughtAchievements();
-    checkCropsSoldAchievements();
-    checkWaterRefillPurchaseAchievements();
-}
-
 function ensureUpgradesContainer() {
-    const upgradesTitle = document.getElementById('upgrades-container-title');
-    const upgradesContainer = document.getElementById('upgrades-container');
+    const upgradesTitle = document.getElementById("upgrades-container-title");
+    const upgradesContainer = document.getElementById("upgrades-container");
 
     if (!upgradesTitle) {
         initializeUpgradesTitle();
@@ -160,28 +47,127 @@ function ensureUpgradesContainer() {
     }
 }
 
-// Achievement Bulk Unlock Logic
+function applyUpgradeUnlocks(gameState) {
+    const upgradeUnlocks = progressionConfig.unlocks;
+    const upgradeUpdates = {};
+
+    if (gameState.waterRefillsPurchased >= upgradeUnlocks.upgradeSections.waterUpgradesByWaterRefills) {
+        ensureUpgradesContainer();
+        initializeWaterUpgradesSection();
+    }
+
+    const shouldRenderClickUpgrades =
+        gameState.totalCoinsEarned >= upgradeUnlocks.upgradeSections.clickUpgradesByCoinsEarned ||
+        gameState.totalCoinsSpent >= upgradeUnlocks.expandedClickByCoinsSpent.mk1;
+
+    if (shouldRenderClickUpgrades) {
+        ensureUpgradesContainer();
+        initializeClickUpgradesSection();
+    }
+
+    if (gameState.totalCoinsEarned >= upgradeUnlocks.toolAutoChangerChargePacksByCoinsEarned.pack100) {
+        upgradeUpdates.toolAutoChangerChargePack100Unlocked = true;
+    }
+
+    if (gameState.totalCoinsEarned >= upgradeUnlocks.toolAutoChangerChargePacksByCoinsEarned.pack500) {
+        upgradeUpdates.toolAutoChangerChargePack500Unlocked = true;
+    }
+
+    if (gameState.totalCoinsEarned >= upgradeUnlocks.toolAutoChangerChargePacksByCoinsEarned.pack1000) {
+        upgradeUpdates.toolAutoChangerChargePack1000Unlocked = true;
+    }
+
+    if (gameState.totalCoinsSpent >= upgradeUnlocks.expandedClickByCoinsSpent.mk1) {
+        upgradeUpdates.expandedClickMk1Unlocked = true;
+    }
+
+    if (gameState.totalCoinsSpent >= upgradeUnlocks.expandedClickByCoinsSpent.mk2) {
+        upgradeUpdates.expandedClickMk2Unlocked = true;
+    }
+
+    if (gameState.totalCoinsSpent >= upgradeUnlocks.expandedClickByCoinsSpent.mk3) {
+        upgradeUpdates.expandedClickMk3Unlocked = true;
+    }
+
+    if (Object.keys(upgradeUpdates).length > 0) {
+        updateUpgradeValues(upgradeUpdates);
+
+        if (shouldRenderClickUpgrades || upgradeUpdates.expandedClickMk1Unlocked) {
+            initializeClickUpgradesSection();
+        }
+    }
+}
+
+function checkGeneralAchievementMilestones(gameState) {
+    const achievementValues = getAchievementValues();
+
+    achievementValues.totalCoinsSpent.forEach((threshold) => {
+        if (gameState.totalCoinsSpent >= threshold) {
+            unlockAchievement(
+                `totalCoinsSpent-${threshold}`,
+                `Achievement unlocked: Coins Spent - ${threshold}`,
+            );
+        }
+    });
+
+    achievementValues.totalCoinsEarned.forEach((threshold) => {
+        if (gameState.totalCoinsEarned >= threshold) {
+            unlockAchievement(
+                `totalCoinsEarned-${threshold}`,
+                `Achievement unlocked: Coins Earned - ${threshold}`,
+            );
+        }
+    });
+
+    achievementValues.waterRefillsPurchased.forEach((threshold) => {
+        if (gameState.waterRefillsPurchased >= threshold) {
+            unlockAchievement(
+                `waterRefillsPurchased-${threshold}`,
+                `Achievement unlocked: Water Refills Purchased - ${threshold}`,
+            );
+        }
+    });
+}
+
+function trackAchievements() {
+    const gameState = getState();
+
+    checkCropUnlocks(gameState);
+    applyUpgradeUnlocks(gameState);
+    checkGeneralAchievementMilestones(gameState);
+    checkSeedsBoughtAchievements(gameState);
+    checkCropsSoldAchievements(gameState);
+    checkWaterRefillPurchaseAchievements(gameState);
+    checkWaterRefillsAchievementsAndEnableButton(gameState);
+}
 
 function updateSeedsBought(cropType, amount) {
     const gameState = getState();
     const seedsKey = `${cropType}SeedsBought`;
+
     updateState({
         seedsBought: gameState.seedsBought + amount,
         [seedsKey]: gameState[seedsKey] + amount,
     });
-    checkSeedsBoughtAchievements();
+
+    trackAchievements();
 }
 
-function checkSeedsBoughtAchievements() {
-    const gameState = getState();
+function checkSeedsBoughtAchievements(currentState) {
+    const gameState = currentState ?? getState();
+    const seedThresholds = progressionConfig.achievements.seedsBought;
 
-    ['wheat', 'corn', 'tomato'].forEach(cropType => {
+    cropTypes.forEach((cropType) => {
         const key = `${cropType}SeedsBought`;
-        achievementValues[key].forEach((achievement, index) => {
-            if (gameState[key] >= achievement) {
-                const achievementId = `${key}-${achievement}`;
-                unlockAchievement(gameState, achievementId, `${cropType} Seeds Bought Achievement unlocked: ${achievement}`);
-                addBulkSeedButton(cropType, achievement, index + 1);
+        const thresholds = seedThresholds[cropType] || [];
+
+        thresholds.forEach((threshold, index) => {
+            if (gameState[key] >= threshold) {
+                unlockAchievement(
+                    `${key}-${threshold}`,
+                    `${cropType} seeds bought achievement unlocked: ${threshold}`,
+                );
+                addBulkSeedButton(cropType, threshold, index + 1);
             }
         });
     });
@@ -190,40 +176,47 @@ function checkSeedsBoughtAchievements() {
 function updateCropsSold(cropType, amount) {
     const gameState = getState();
     const cropSoldKey = `${cropType}Sold`;
+
     updateState({
         cropsSold: gameState.cropsSold + amount,
         [cropSoldKey]: gameState[cropSoldKey] + amount,
     });
-    checkCropsSoldAchievements();
+
+    trackAchievements();
 }
 
-function checkCropsSoldAchievements() {
-    const gameState = getState();
+function checkCropsSoldAchievements(currentState) {
+    const gameState = currentState ?? getState();
+    const cropThresholds = progressionConfig.achievements.cropsSold;
 
-    ['wheat', 'corn', 'tomato'].forEach(cropType => {
+    cropTypes.forEach((cropType) => {
         const key = `${cropType}Sold`;
-        achievementValues[key].forEach((achievement, index) => {
-            if (gameState[key] >= achievement) {
-                const achievementId = `${key}-${achievement}`;
-                unlockAchievement(gameState, achievementId, `${cropType} Sold Achievement unlocked: ${achievement}`);
-                addBulkCropSaleButton(cropType, achievement, index + 1);
+        const thresholds = cropThresholds[cropType] || [];
+
+        thresholds.forEach((threshold, index) => {
+            if (gameState[key] >= threshold) {
+                unlockAchievement(
+                    `${key}-${threshold}`,
+                    `${cropType} sold achievement unlocked: ${threshold}`,
+                );
+                addBulkCropSaleButton(cropType, threshold, index + 1);
             }
         });
     });
 }
 
-function checkWaterRefillPurchaseAchievements() {
-    const gameState = getState();
+function checkWaterRefillPurchaseAchievements(currentState) {
+    const gameState = currentState ?? getState();
+    const thresholds = progressionConfig.achievements.waterRefillsPurchased;
     const achievedWaterAchievements = [];
 
-    achievementValues.waterRefillsPurchased.forEach((achievement, index) => {
-        if (gameState.waterRefillsPurchased >= achievement) {
-            const achievementId = `waterRefillsPurchased-${achievement}`;
-            if (unlockAchievement(gameState, achievementId, `Water Refill Achievement unlocked: ${achievement}`)) {
-                achievedWaterAchievements.push(achievement);
+    thresholds.forEach((threshold, index) => {
+        if (gameState.waterRefillsPurchased >= threshold) {
+            if (unlockAchievement(`waterRefillsPurchased-${threshold}`, `Water refill achievement unlocked: ${threshold}`)) {
+                achievedWaterAchievements.push(threshold);
             }
 
-            addBulkWaterRefillButton(achievement, index + 1);
+            addBulkWaterRefillButton(threshold, index + 1);
         }
     });
 
@@ -234,105 +227,86 @@ function updateCoinsEarned(amount) {
     const gameState = getState();
     const newCoinsEarned = gameState.totalCoinsEarned + amount;
     updateState({ totalCoinsEarned: newCoinsEarned });
-    //checkTotalCoinsEarnedAchievements goes here
+    trackAchievements();
 }
 
-//function to be built: checkTotalCoinsEarnedAchievements
+function checkCropUnlocks(currentState) {
+    const gameState = currentState ?? getState();
+    const cropUnlocks = progressionConfig.unlocks.cropsByTotalCoinsEarned;
 
-// Check and unlock corn and tomato based on total coins spent
-function checkCropUnlocks() {
-    const gameState = getState();
-    const [cornUnlockThreshold, tomatoUnlockThreshold] = achievementValues.totalCoinsSpent;
-    
-    // Unlock corn when total coins spent reaches the configured threshold
-    if (!gameState.cornUnlocked && gameState.totalCoinsSpent >= cornUnlockThreshold) {
+    if (!gameState.cornUnlocked && gameState.totalCoinsEarned >= cropUnlocks.corn) {
         updateState({ cornUnlocked: true });
-        announceAchievementUnlock('Corn unlocked! You can now buy corn seeds.');
+        announceAchievementUnlock("Corn unlocked! You can now buy corn seeds.");
         showCornInStore();
         showCornInCurrency();
         updateToolboxDisplay();
-        checkSeedsBoughtAchievements();
-        checkCropsSoldAchievements();
     }
-    
-    // Unlock tomato when total coins spent reaches the configured threshold
-    if (!gameState.tomatoUnlocked && gameState.totalCoinsSpent >= tomatoUnlockThreshold) {
+
+    if (!gameState.tomatoUnlocked && gameState.totalCoinsEarned >= cropUnlocks.tomato) {
         updateState({ tomatoUnlocked: true });
-        announceAchievementUnlock('Tomato unlocked! You can now buy tomato seeds.');
+        announceAchievementUnlock("Tomato unlocked! You can now buy tomato seeds.");
         showTomatoInStore();
         showTomatoInCurrency();
         updateToolboxDisplay();
-        checkSeedsBoughtAchievements();
-        checkCropsSoldAchievements();
     }
 }
 
-// Helper function to show corn sections in store
 function showCornInStore() {
-    const cornSeedSection = document.getElementById('buyCornSeedsSection');
-    const cornSellSection = document.getElementById('sellCornSection');
-    if (cornSeedSection) cornSeedSection.style.display = 'flex';
-    if (cornSellSection) cornSellSection.style.display = 'flex';
+    const cornSeedSection = document.getElementById("buyCornSeedsSection");
+    const cornSellSection = document.getElementById("sellCornSection");
+    if (cornSeedSection) cornSeedSection.style.display = "flex";
+    if (cornSellSection) cornSellSection.style.display = "flex";
 }
 
-// Helper function to show tomato sections in store
 function showTomatoInStore() {
-    const tomatoSeedSection = document.getElementById('buyTomatoSeedsSection');
-    const tomatoSellSection = document.getElementById('sellTomatoSection');
-    if (tomatoSeedSection) tomatoSeedSection.style.display = 'flex';
-    if (tomatoSellSection) tomatoSellSection.style.display = 'flex';
+    const tomatoSeedSection = document.getElementById("buyTomatoSeedsSection");
+    const tomatoSellSection = document.getElementById("sellTomatoSection");
+    if (tomatoSeedSection) tomatoSeedSection.style.display = "flex";
+    if (tomatoSellSection) tomatoSellSection.style.display = "flex";
 }
 
-// Helper function to show corn in currency bar
 function showCornInCurrency() {
-    const cornSeeds = document.getElementById('corn-seeds-item');
-    const cornCrops = document.getElementById('corn-item');
-    if (cornSeeds) cornSeeds.style.display = 'flex';
-    if (cornCrops) cornCrops.style.display = 'flex';
+    const cornSeeds = document.getElementById("corn-seeds-item");
+    const cornCrops = document.getElementById("corn-item");
+    if (cornSeeds) cornSeeds.style.display = "flex";
+    if (cornCrops) cornCrops.style.display = "flex";
 }
 
-// Helper function to show tomato in currency bar
 function showTomatoInCurrency() {
-    const tomatoSeeds = document.getElementById('tomato-seeds-item');
-    const tomatoCrops = document.getElementById('tomato-item');
-    if (tomatoSeeds) tomatoSeeds.style.display = 'flex';
-    if (tomatoCrops) tomatoCrops.style.display = 'flex';
+    const tomatoSeeds = document.getElementById("tomato-seeds-item");
+    const tomatoCrops = document.getElementById("tomato-item");
+    if (tomatoSeeds) tomatoSeeds.style.display = "flex";
+    if (tomatoCrops) tomatoCrops.style.display = "flex";
 }
 
+function checkWaterRefillsAchievementsAndEnableButton(currentState) {
+    const gameState = currentState ?? getState();
+    const thresholds = progressionConfig.achievements.waterRefillsPurchased;
 
-function checkWaterRefillsAchievementsAndEnableButton() {
-    const gameState = getState();
-    const achievementValues = getAchievementValues(); // Returns the achievement values
-
-    //console.log('GameState waterRefillsPurchased:', gameState.waterRefillsPurchased);
-    //console.log('Achievement values:', achievementValues.WaterRefillsPurchased);
-
-    achievementValues.waterRefillsPurchased.forEach(achievement => {
-        //console.log('Checking achievement:', achievement);
-        if (gameState.waterRefillsPurchased === achievement) {
-            const waterUpgradeCapButton = document.getElementById('water-upgrade-cap-button');
-            if (!waterUpgradeCapButton) {
-                return;
-            }
-            //console.log('Achievement matched:', achievement);
-            if (waterUpgradeCapButton.disabled) {
-                waterUpgradeCapButton.disabled = false;
-                //console.log('Water Upgrade Cap Button enabled due to achievement unlocked.');
-            } else {
-                //console.log('Water Upgrade Cap Button is already enabled.');
-            }
+    thresholds.forEach((threshold) => {
+        if (gameState.waterRefillsPurchased < threshold) {
+            return;
         }
-        
+
+        const waterUpgradeCapButton = document.getElementById("water-upgrade-cap-button");
+        if (!waterUpgradeCapButton) {
+            return;
+        }
+
+        if (waterUpgradeCapButton.disabled) {
+            waterUpgradeCapButton.disabled = false;
+        }
     });
 }
 
-export { trackAchievements, 
-         getAchievementValues, 
-         updateSeedsBought, 
-         checkSeedsBoughtAchievements, 
-         updateCropsSold, 
-         checkCropsSoldAchievements, 
-         checkWaterRefillPurchaseAchievements,
-         updateCoinsEarned,
-         checkCropUnlocks,
-        }
+export {
+    trackAchievements,
+    getAchievementValues,
+    updateSeedsBought,
+    checkSeedsBoughtAchievements,
+    updateCropsSold,
+    checkCropsSoldAchievements,
+    checkWaterRefillPurchaseAchievements,
+    updateCoinsEarned,
+    checkCropUnlocks,
+};

@@ -3,7 +3,7 @@ import { savePartialSnapshot } from "./persistence.js";
 
 const initialGameState = {
     // Player Currency Values
-    coins: 10000,
+    coins: 1,
     seeds: 1, // Generic seeds (kept for backward compatibility)
     crops: 0, // Generic crops (kept for backward compatibility)
     water: 10,
@@ -14,18 +14,18 @@ const initialGameState = {
     tomatoSeeds: 0,
 
     // Crop-Specific Inventory
-    wheat: 1000,
-    corn: 1000,
-    tomato: 1000,
+    wheat: 0,
+    corn: 0,
+    tomato: 0,
 
     // Field Information
-    plots: 81,
+    plots: 1,
     plotDisableCoefficient: 1.15, // Coefficient used to calculate plot disable time
     plotStates: [], // Array to store plot state objects: {symbol, cropType, waterCount}
 
     // Crop Unlock Tracking
-    cornUnlocked: false,  // Corn unlock threshold is defined in achievementValues.totalCoinsSpent[0]
-    tomatoUnlocked: false, // Tomato unlock threshold is defined in achievementValues.totalCoinsSpent[1]
+    cornUnlocked: false,  // Corn unlock threshold is defined in progressionConfig.unlocks.cropsByTotalCoinsEarned.corn
+    tomatoUnlocked: false, // Tomato unlock threshold is defined in progressionConfig.unlocks.cropsByTotalCoinsEarned.tomato
 
     // Game Progress Information
     totalCoinsSpent: 0,       // Total coins spent on seeds, upgrades, and other purchases

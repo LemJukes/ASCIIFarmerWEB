@@ -1,5 +1,5 @@
 import { getState, updateState, incrementTotalClicks } from '../state.js';
-import { TOOL_ORDER, TOOLS } from '../toolConfig.js';
+import { TOOL_ORDER, TOOLS } from '../../configs/toolConfig.js';
 import { updateClicksDisplay } from '../ui/clicks.js';
 
 function getUnlockedSeedTypes(gameState) {

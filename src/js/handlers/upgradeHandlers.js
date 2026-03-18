@@ -9,6 +9,7 @@ import {
     renderClickUpgradesSection,
 } from "../ui/upgrades.js";
 import { updateClicksDisplay } from "../ui/clicks.js";
+import { progressionConfig } from "../../configs/progressionConfig.js";
 
 function finalizeClickUpgradeInteraction() {
     renderClickUpgradesSection();
@@ -44,11 +45,11 @@ function buyWaterCapacityUpgrade() {
     const currentWaterUpgradeCost = Math.max(0, Number.parseInt(upgradeValues.waterUpgradeCost, 10) || 0);
 
     if (gameState.coins >= currentWaterUpgradeCost) {
-        gameState.waterCapacity += 10;
+        gameState.waterCapacity += progressionConfig.upgradesEconomy.waterCapacity.capacityIncrease;
         gameState.coins -= currentWaterUpgradeCost;
         gameState.totalCoinsSpent += currentWaterUpgradeCost;
 
-        const newWaterUpgradeCost = Math.ceil(currentWaterUpgradeCost * 1.15);
+        const newWaterUpgradeCost = Math.ceil(currentWaterUpgradeCost * progressionConfig.upgradesEconomy.waterCapacity.scalingMultiplier);
         updateUpgradeValues({ waterUpgradeCost: newWaterUpgradeCost });
         updateWaterUpgradeButton();
 

@@ -3,6 +3,7 @@
 import { savePartialSnapshot } from "../persistence.js";
 import { incrementTotalClicks } from "../state.js";
 import { updateClicksDisplay } from "./clicks.js";
+import { progressionConfig } from "../../configs/progressionConfig.js";
 import {
     buyWaterCapacityUpgrade,
     buyExpandedClickUpgradeMk1,
@@ -14,11 +15,13 @@ import {
     buyToolAutoChangerChargePack1000,
 } from "../handlers/upgradeHandlers.js";
 
+const { upgradesEconomy } = progressionConfig;
+
 const initialUpgradeValues = {
-    waterUpgradeCost: 50,
+    waterUpgradeCost: upgradesEconomy.waterCapacity.baseCost,
     
     //Epanded Click Values
-    expandedClickUpgradeCost: 100,
+    expandedClickUpgradeCost: upgradesEconomy.expandedClick.mk1Cost,
     expandedClickUpgradeLVL: 1,
     expandedClickMk1Unlocked: false,
     expandedClickMk2Unlocked: false,
@@ -29,22 +32,22 @@ const initialUpgradeValues = {
         expandedClickMk1Enabled: false,   // Flag indicating whether the expanded click upgrade is enabled
         
         //Mk2 Values
-        expandedClickMk2Cost: 500,
+        expandedClickMk2Cost: upgradesEconomy.expandedClick.mk2Cost,
         expandedClickMk2Purchased: false,
         expandedClickMk2Enabled: false,
         
         //Mk3 Values
-        expandedClickMk3Cost: 2000,
+        expandedClickMk3Cost: upgradesEconomy.expandedClick.mk3Cost,
         expandedClickMk3Purchased: false,
         expandedClickMk3Enabled: false,
 
-    toolAutoChangerCost: 75,
+    toolAutoChangerCost: upgradesEconomy.toolAutoChanger.baseCost,
     toolAutoChangerPurchased: false,
     toolAutoChangerEnabled: false,
     toolAutoChangerCharges: 0,
-    toolAutoChangerChargePack100Cost: 25,
-    toolAutoChangerChargePack500Cost: 100,
-    toolAutoChangerChargePack1000Cost: 175,
+    toolAutoChangerChargePack100Cost: upgradesEconomy.toolAutoChanger.chargePackCosts.pack100,
+    toolAutoChangerChargePack500Cost: upgradesEconomy.toolAutoChanger.chargePackCosts.pack500,
+    toolAutoChangerChargePack1000Cost: upgradesEconomy.toolAutoChanger.chargePackCosts.pack1000,
     toolAutoChangerChargePack100Unlocked: false,
     toolAutoChangerChargePack500Unlocked: false,
     toolAutoChangerChargePack1000Unlocked: false,

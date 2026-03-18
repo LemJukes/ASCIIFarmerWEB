@@ -6,13 +6,12 @@ import { updateField } from "../ui/field.js";
 import { getStoreValues, updateStoreValues } from "../ui/store.js";
 import { updateWaterRefillsPurchased } from "./upgradeHandlers.js";
 import { trackAchievements, 
-         getAchievementValues, 
          updateSeedsBought, 
          updateCropsSold, 
          updateCoinsEarned,
-         checkCropUnlocks,
         } from "./achievementHandlers.js";
 import { updateClicksDisplay } from "../ui/clicks.js";
+import { progressionConfig } from "../../configs/progressionConfig.js";
 
 
 // Purchasing Handlers
@@ -85,7 +84,6 @@ function buyBulkWaterRefill(amount, cost) {
 function buyWaterRefill({ amount, cost, gameState }) {
     const refillAmount = Math.max(1, Number(amount) || 1);
     const refillCost = Math.max(0, Number(cost) || 0);
-    const achievements = getAchievementValues();
 
     // Check if the player's water is already at capacity
     if (gameState.water >= gameState.waterCapacity) {
@@ -108,7 +106,7 @@ function buyWaterRefill({ amount, cost, gameState }) {
         updateWaterRefillsPurchased();
 
         // Track achievements and update the UI
-        trackAchievements(gameState, achievements);
+        trackAchievements();
         updateCurrencyBar();
         incrementTotalClicks();
         updateClicksDisplay();
@@ -189,8 +187,8 @@ function buyPlot() {
     let plotCost = storeValues.plotCost;
     const plots = gameState.plots;
 
-    if (plots >= 5) {
-        plotCost = Math.ceil(plotCost * 1.05);
+    if (plots >= progressionConfig.storeEconomy.plot.scalingStartPlotCount) {
+        plotCost = Math.ceil(plotCost * progressionConfig.storeEconomy.plot.scalingMultiplier);
     }
 
     if (gameState.coins >= plotCost && plots < maxPlots) {
@@ -206,6 +204,7 @@ function buyPlot() {
         console.log("Updated plotCost:", storeValues.plotCost);
         updateCurrencyBar();
         updateField();
+        trackAchievements();
         incrementTotalClicks();
         updateClicksDisplay();
     } else if (gameState.coins < plotCost) {

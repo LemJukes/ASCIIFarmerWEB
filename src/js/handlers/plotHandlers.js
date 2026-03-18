@@ -1,11 +1,11 @@
 import { getState, updateState, incrementTotalClicks } from '../state.js';
 import { updateCurrencyBar } from '../ui/currency.js';
 import { getUpgradeValues, updateUpgradeValues, renderClickUpgradesSection } from '../ui/upgrades.js';
-import { getCropConfig, getGrowthSymbol } from '../cropConfig.js';
+import { getCropConfig, getGrowthSymbol } from '../../configs/cropConfig.js';
 import { playPlotBubbleForState, playAdjacentBubbleForState } from '../ui/sfx.js';
 import { updateClicksDisplay } from '../ui/clicks.js';
 import { updateToolboxDisplay } from '../ui/toolbox.js';
-import { TOOLS, WATERING_SYMBOLS, HARVEST_SYMBOLS, getRequiredToolForSymbol } from '../toolConfig.js';
+import { TOOLS, WATERING_SYMBOLS, HARVEST_SYMBOLS, getRequiredToolForSymbol } from '../../configs/toolConfig.js';
 
 const GRID_WIDTH = 9;
 const OUT_OF_CHARGES_MESSAGE = 'Auto-Changer is out of charges. Buy more charges in Upgrades.';

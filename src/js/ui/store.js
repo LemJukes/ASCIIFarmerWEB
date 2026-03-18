@@ -1,5 +1,8 @@
 // ./ui/store.js.
 import { savePartialSnapshot } from "../persistence.js";
+import { progressionConfig } from "../../configs/progressionConfig.js";
+
+const { storeEconomy, bulkTiers } = progressionConfig;
 
 const initialStoreValues = {
     // Items for Sale Values
@@ -9,16 +12,16 @@ const initialStoreValues = {
     seedBulkCostCoefficient: .9,
     
     // Crop-Specific Seed Costs
-    wheatSeedCost: 1,
-    cornSeedCost: 3,
-    tomatoSeedCost: 5,
+    wheatSeedCost: storeEconomy.seedCosts.wheat,
+    cornSeedCost: storeEconomy.seedCosts.corn,
+    tomatoSeedCost: storeEconomy.seedCosts.tomato,
     
     // Water Purchase Variables
-    waterCost: 1,
-    waterQuantity: 10,
+    waterCost: storeEconomy.water.cost,
+    waterQuantity: storeEconomy.water.quantity,
     
     //Plot Purchase Variables
-    plotCost: 10,
+    plotCost: storeEconomy.plot.baseCost,
     
     // Player Sellable Item Values
     // Crop Sale Variables (generic - kept for compatibility)
@@ -27,9 +30,9 @@ const initialStoreValues = {
     cropBulkPriceCoefficient: 1.2,
     
     // Crop-Specific Sale Prices
-    wheatPrice: 2,
-    cornPrice: 5,
-    tomatoPrice: 8,
+    wheatPrice: storeEconomy.sellPrices.wheat,
+    cornPrice: storeEconomy.sellPrices.corn,
+    tomatoPrice: storeEconomy.sellPrices.tomato,
 }
 
 const storeValues = { ...initialStoreValues };
@@ -310,16 +313,9 @@ function initializeStore() {
 }
 
 function addBulkSeedButton(cropType, achievementValue, bonusTier) {
-    const quantityByTier = {
-        1: 5,
-        2: 10,
-    };
-    const discountByTier = {
-        1: 0.95,
-        2: 0.85,
-    };
-    const quantity = quantityByTier[bonusTier];
-    const discountMultiplier = discountByTier[bonusTier];
+    const tierConfig = bulkTiers.seedPacks[bonusTier - 1];
+    const quantity = tierConfig?.quantity;
+    const discountMultiplier = tierConfig?.discountMultiplier;
 
     if (!quantity || !discountMultiplier) {
         return;
@@ -355,16 +351,9 @@ function addBulkSeedButton(cropType, achievementValue, bonusTier) {
 }
 
 function addBulkCropSaleButton(cropType, achievementValue, bonusTier) {
-    const quantityByTier = {
-        1: 5,
-        2: 10,
-    };
-    const bonusPercentByTier = {
-        1: 10,
-        2: 25,
-    };
-    const quantity = quantityByTier[bonusTier];
-    const bonusPercent = bonusPercentByTier[bonusTier];
+    const tierConfig = bulkTiers.cropSales[bonusTier - 1];
+    const quantity = tierConfig?.quantity;
+    const bonusPercent = tierConfig?.bonusPercent;
 
     if (!quantity || !bonusPercent) {
         return;
@@ -407,17 +396,14 @@ function addBulkWaterRefillButton(achievementValue, bonusTier) {
         return;
     }
 
-    const quantityByTier = {
-        1: 50,
-        2: 100,
-    };
-
-    const refillAmount = quantityByTier[bonusTier];
+    const tierConfig = bulkTiers.waterRefills[bonusTier - 1];
+    const refillAmount = tierConfig?.quantity;
+    const costMultiplier = tierConfig?.costMultiplier;
     if (!refillAmount) {
         return;
     }
 
-    const scaledCost = Math.max(1, Math.ceil((refillAmount / storeValues.waterQuantity) * storeValues.waterCost));
+    const scaledCost = Math.max(1, Math.ceil((refillAmount / storeValues.waterQuantity) * storeValues.waterCost * (costMultiplier || 1)));
 
     const buttonId = `bulk-water-refill-${achievementValue}`;
     if (document.getElementById(buttonId)) {
