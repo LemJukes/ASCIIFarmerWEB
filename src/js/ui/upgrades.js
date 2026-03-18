@@ -20,6 +20,9 @@ const initialUpgradeValues = {
     //Epanded Click Values
     expandedClickUpgradeCost: 100,
     expandedClickUpgradeLVL: 1,
+    expandedClickMk1Unlocked: false,
+    expandedClickMk2Unlocked: false,
+    expandedClickMk3Unlocked: false,
 
         //Mk1 Values
         expandedClickMk1Purchased: false, // Flag indicating whether the expanded click upgrade has been purchased
@@ -254,6 +257,17 @@ function addExpandedClickUpgradeButton() {
         return;
     }
 
+    const shouldShowExpandedClickSection =
+        upgradeValues.expandedClickMk1Unlocked ||
+        upgradeValues.expandedClickMk1Purchased ||
+        upgradeValues.expandedClickMk2Purchased ||
+        upgradeValues.expandedClickMk3Purchased;
+
+    expandedClickUpgradesSection.style.display = shouldShowExpandedClickSection ? 'flex' : 'none';
+    if (!shouldShowExpandedClickSection) {
+        return;
+    }
+
     const existingRows = expandedClickUpgradesSection.querySelectorAll('.click-upgrade-row');
     existingRows.forEach((row) => row.remove());
 
@@ -308,17 +322,17 @@ function addExpandedClickUpgradeButton() {
     let nextCostId = null;
     let nextHandler = null;
 
-    if (!upgradeValues.expandedClickMk1Purchased) {
+    if (!upgradeValues.expandedClickMk1Purchased && upgradeValues.expandedClickMk1Unlocked) {
         nextLevel = 1;
         nextCost = upgradeValues.expandedClickUpgradeCost;
         nextCostId = 'expanded-click-upgrade-cost';
         nextHandler = buyExpandedClickUpgradeMk1;
-    } else if (!upgradeValues.expandedClickMk2Purchased) {
+    } else if (upgradeValues.expandedClickMk1Purchased && !upgradeValues.expandedClickMk2Purchased && upgradeValues.expandedClickMk2Unlocked) {
         nextLevel = 2;
         nextCost = upgradeValues.expandedClickMk2Cost;
         nextCostId = 'expanded-click-upgrade-mk2-cost';
         nextHandler = buyExpandedClickUpgradeMk2;
-    } else if (!upgradeValues.expandedClickMk3Purchased) {
+    } else if (upgradeValues.expandedClickMk2Purchased && !upgradeValues.expandedClickMk3Purchased && upgradeValues.expandedClickMk3Unlocked) {
         nextLevel = 3;
         nextCost = upgradeValues.expandedClickMk3Cost;
         nextCostId = 'expanded-click-upgrade-mk3-cost';

@@ -26,7 +26,10 @@ function buyToolAutoChangerChargePack(amount, cost) {
         return;
     }
 
-    updateState({ coins: gameState.coins - cost });
+    updateState({
+        coins: gameState.coins - cost,
+        totalCoinsSpent: gameState.totalCoinsSpent + cost,
+    });
     updateUpgradeValues({
         toolAutoChangerCharges: upgradeValues.toolAutoChangerCharges + amount,
     });
@@ -43,6 +46,7 @@ function buyWaterCapacityUpgrade() {
     if (gameState.coins >= currentWaterUpgradeCost) {
         gameState.waterCapacity += 10;
         gameState.coins -= currentWaterUpgradeCost;
+        gameState.totalCoinsSpent += currentWaterUpgradeCost;
 
         const newWaterUpgradeCost = Math.ceil(currentWaterUpgradeCost * 1.15);
         updateUpgradeValues({ waterUpgradeCost: newWaterUpgradeCost });
@@ -65,22 +69,42 @@ function updateWaterRefillsPurchased() {
 }
 
 function buyExpandedClickUpgradeMk1() {
+    const gameState = getState();
     const upgradeValues = getUpgradeValues();
-    upgradeValues.expandedClickUpgradeLVL++;
-    upgradeValues.expandedClickMk1Purchased = true;
-    updateUpgradeValues(upgradeValues);
-    console.log(`ExpandedClickMk1Purchased is now: ${upgradeValues.expandedClickMk1Purchased}`);
 
-    console.log('Expanded Click Upgrade Purchased');
-    finalizeClickUpgradeInteraction();
+    if (!upgradeValues.expandedClickMk1Unlocked) {
+        alert('Expanded Click Mk.1 is still locked.');
+        return;
+    }
+
+    if (gameState.coins >= upgradeValues.expandedClickUpgradeCost) {
+        gameState.coins -= upgradeValues.expandedClickUpgradeCost;
+        gameState.totalCoinsSpent += upgradeValues.expandedClickUpgradeCost;
+        upgradeValues.expandedClickUpgradeLVL++;
+        upgradeValues.expandedClickMk1Purchased = true;
+        updateState(gameState);
+        updateUpgradeValues(upgradeValues);
+        console.log(`ExpandedClickMk1Purchased is now: ${upgradeValues.expandedClickMk1Purchased}`);
+
+        console.log('Expanded Click Upgrade Purchased');
+        finalizeClickUpgradeInteraction();
+    } else {
+        alert('Not enough coins for this upgrade.');
+    }
 }
 
 function buyExpandedClickUpgradeMk2() {
     const gameState = getState();
     const upgradeValues = getUpgradeValues();
+
+    if (!upgradeValues.expandedClickMk2Unlocked) {
+        alert('Expanded Click Mk.2 is still locked.');
+        return;
+    }
     
     if (gameState.coins >= upgradeValues.expandedClickMk2Cost) {
         gameState.coins -= upgradeValues.expandedClickMk2Cost;
+        gameState.totalCoinsSpent += upgradeValues.expandedClickMk2Cost;
         upgradeValues.expandedClickUpgradeLVL++;
         upgradeValues.expandedClickMk2Purchased = true;
         updateState(gameState);
@@ -97,9 +121,15 @@ function buyExpandedClickUpgradeMk2() {
 function buyExpandedClickUpgradeMk3() {
     const gameState = getState();
     const upgradeValues = getUpgradeValues();
+
+    if (!upgradeValues.expandedClickMk3Unlocked) {
+        alert('Expanded Click Mk.3 is still locked.');
+        return;
+    }
     
     if (gameState.coins >= upgradeValues.expandedClickMk3Cost) {
         gameState.coins -= upgradeValues.expandedClickMk3Cost;
+        gameState.totalCoinsSpent += upgradeValues.expandedClickMk3Cost;
         upgradeValues.expandedClickUpgradeLVL++;
         upgradeValues.expandedClickMk3Purchased = true;
         updateState(gameState);
@@ -122,7 +152,10 @@ function buyToolAutoChangerUpgrade() {
         return;
     }
 
-    updateState({ coins: gameState.coins - upgradeValues.toolAutoChangerCost });
+    updateState({
+        coins: gameState.coins - upgradeValues.toolAutoChangerCost,
+        totalCoinsSpent: gameState.totalCoinsSpent + upgradeValues.toolAutoChangerCost,
+    });
     updateUpgradeValues({ toolAutoChangerPurchased: true });
     finalizeClickUpgradeInteraction();
 }

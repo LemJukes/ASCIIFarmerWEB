@@ -12,7 +12,7 @@ import {
 import { updateToolboxDisplay } from "../ui/toolbox.js";
 
 const achievementValues =  {
-    totalCoinsSpent: [50, 100],
+    totalCoinsSpent: [50, 100, 250, 500, 1000],
     totalCoinsEarned: [10, 50, 100, 500],
     wheatSold: [10, 50],
     cornSold: [10, 50],
@@ -20,7 +20,7 @@ const achievementValues =  {
     wheatSeedsBought: [10, 50],
     cornSeedsBought: [10, 50],
     tomatoSeedsBought: [10, 50],
-    waterRefillsPurchased: [10, 50],
+    waterRefillsPurchased: [3, 15],
 }
 
 function getAchievementValues() {
@@ -43,6 +43,7 @@ function unlockAchievement(gameState, achievementId, message) {
 
 function trackAchievements() {
     const gameState = getState();
+    const [, , expandedClickMk1UnlockThreshold, expandedClickMk2UnlockThreshold, expandedClickMk3UnlockThreshold] = achievementValues.totalCoinsSpent;
 
     // Check for crop unlocks based on total coins spent
     checkCropUnlocks();
@@ -67,6 +68,20 @@ function trackAchievements() {
 
     if (gameState.totalCoinsEarned >= achievementValues.totalCoinsEarned[3]) {
         updateUpgradeValues({ toolAutoChangerChargePack1000Unlocked: true });
+    }
+
+    if (gameState.totalCoinsSpent >= expandedClickMk1UnlockThreshold) {
+        updateUpgradeValues({ expandedClickMk1Unlocked: true });
+        ensureUpgradesContainer();
+        initializeClickUpgradesSection();
+    }
+
+    if (gameState.totalCoinsSpent >= expandedClickMk2UnlockThreshold) {
+        updateUpgradeValues({ expandedClickMk2Unlocked: true });
+    }
+
+    if (gameState.totalCoinsSpent >= expandedClickMk3UnlockThreshold) {
+        updateUpgradeValues({ expandedClickMk3Unlocked: true });
     }
 
     for (const [key, achievements] of Object.entries(achievementValues)) {

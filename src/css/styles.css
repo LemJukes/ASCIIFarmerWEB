@@ -446,3 +446,179 @@ main {
         padding: 0 20px;
     }
 }
+
+/* ── Dark Mode ─────────────────────────────────────────────────────────────── */
+
+.dark-mode-toggle {
+    font-size: 2em;
+}
+
+/* Smooth crossfade for all elements that change color in dark mode */
+body,
+.currency-bar,
+.currency-item span,
+.toolbox-container,
+.toolbox-selected-tool,
+.toolbox-selected-seed,
+.field-container,
+.store-container,
+.item-title,
+.item-price,
+.upgrades-container,
+.upgrades-section-title,
+.click-upgrade-group,
+.click-upgrade-group-title,
+.clicks-display {
+    transition: background 5s ease, color 5s ease, border-color 5s ease;
+}
+
+/* OS-level dark preference. body:not(.light) means the user hasn't explicitly
+   overridden back to light, so we respect the OS setting. */
+@media (prefers-color-scheme: dark) {
+    body:not(.light) {
+        background: #000;
+        color: #fff;
+    }
+
+    body:not(.light) .currency-bar {
+        border-color: #fff;
+    }
+
+    body:not(.light) .currency-item span {
+        background: #000;
+        border-color: #fff;
+        color: #fff;
+    }
+
+    body:not(.light) .toolbox-container {
+        border-color: #fff;
+    }
+
+    body:not(.light) .toolbox-selected-tool,
+    body:not(.light) .toolbox-selected-seed {
+        background: #000;
+        border-color: #fff;
+        color: #fff;
+    }
+
+    body:not(.light) .field-container {
+        border-color: #fff;
+    }
+
+    body:not(.light) .store-container {
+        border-color: #fff;
+    }
+
+    body:not(.light) .item-title {
+        background: #000;
+        border-color: #fff;
+        color: #fff;
+    }
+
+    body:not(.light) .item-price {
+        background: #000;
+        border-color: #fff;
+        color: #fff;
+    }
+
+    body:not(.light) .upgrades-container {
+        border-color: #fff;
+    }
+
+    body:not(.light) .upgrades-section-title {
+        color: #fff;
+    }
+
+    body:not(.light) .click-upgrade-group {
+        background: #000;
+        border-color: #fff;
+        color: #fff;
+    }
+
+    body:not(.light) .click-upgrade-group-title {
+        border-bottom-color: #fff;
+    }
+
+    body:not(.light) .clicks-display {
+        background: #000;
+        border-color: #fff;
+        color: #fff;
+    }
+}
+
+/* body.dark — user explicitly chose dark (active even when OS is light) */
+body.dark {
+    background: #000;
+    color: #fff;
+}
+
+body.dark .currency-bar {
+    border-color: #fff;
+}
+
+body.dark .currency-item span {
+    background: #000;
+    border-color: #fff;
+    color: #fff;
+}
+
+body.dark .toolbox-container {
+    border-color: #fff;
+}
+
+body.dark .toolbox-selected-tool,
+body.dark .toolbox-selected-seed {
+    background: #000;
+    border-color: #fff;
+    color: #fff;
+}
+
+body.dark .field-container {
+    border-color: #fff;
+}
+
+body.dark .store-container {
+    border-color: #fff;
+}
+
+body.dark .item-title {
+    background: #000;
+    border-color: #fff;
+    color: #fff;
+}
+
+body.dark .item-price {
+    background: #000;
+    border-color: #fff;
+    color: #fff;
+}
+
+body.dark .upgrades-container {
+    border-color: #fff;
+}
+
+body.dark .upgrades-section-title {
+    color: #fff;
+}
+
+body.dark .click-upgrade-group {
+    background: #000;
+    border-color: #fff;
+    color: #fff;
+}
+
+body.dark .click-upgrade-group-title {
+    border-bottom-color: #fff;
+}
+
+body.dark .clicks-display {
+    background: #000;
+    border-color: #fff;
+    color: #fff;
+}
+
+/* body.light — user explicitly chose light (overrides OS dark preference) */
+body.light {
+    background: #fff;
+    color: #000;
+}
