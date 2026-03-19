@@ -27,6 +27,9 @@ const progressionConfig = {
             mk1: 240,
             mk2: 700,
             mk3: 2000,
+            mk4: 6000,
+            mk5: 18000,
+            mk6: 54000,
         },
         toolAutoChangerChargePacksByCoinsEarned: {
             pack100: 90,
@@ -53,18 +56,27 @@ const progressionConfig = {
             baseCost: 10,
             scalingStartPlotCount: 9,
             scalingMultiplier: 1.06,
+            fallowTime: {
+                minPlotCount: 3,
+                maxPlotCount: 81,
+                minDurationMs: 250,
+                maxDurationMs: 30000,
+            },
         },
     },
     upgradesEconomy: {
         waterCapacity: {
             baseCost: 35,
-            scalingMultiplier: 1.2,
+            scalingMultiplier: 1.06,
             capacityIncrease: 10,
         },
         expandedClick: {
             mk1Cost: 140,
             mk2Cost: 600,
             mk3Cost: 1800,
+            mk4Cost: 5400,
+            mk5Cost: 16200,
+            mk6Cost: 48600,
         },
         toolAutoChanger: {
             baseCost: 90,

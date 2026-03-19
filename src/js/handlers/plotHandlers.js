@@ -2,6 +2,7 @@ import { getState, updateState, incrementTotalClicks } from '../state.js';
 import { updateCurrencyBar } from '../ui/currency.js';
 import { getUpgradeValues, updateUpgradeValues, renderClickUpgradesSection } from '../ui/upgrades.js';
 import { getCropConfig, getGrowthSymbol } from '../../configs/cropConfig.js';
+import { progressionConfig } from '../../configs/progressionConfig.js';
 import { playPlotBubbleForState, playAdjacentBubbleForState } from '../ui/sfx.js';
 import { updateClicksDisplay } from '../ui/clicks.js';
 import { updateToolboxDisplay } from '../ui/toolbox.js';
@@ -9,6 +10,31 @@ import { TOOLS, WATERING_SYMBOLS, HARVEST_SYMBOLS, getRequiredToolForSymbol } fr
 
 const GRID_WIDTH = 9;
 const OUT_OF_CHARGES_MESSAGE = 'Auto-Changer is out of charges. Buy more charges in Upgrades.';
+const EXPANDED_CLICK_LEVEL_DELAY_MS = 100;
+const EXPANDED_CLICK_PATTERNS = {
+    1: [[0, -1], [0, 1]],
+    2: [[-1, 0], [1, 0]],
+    3: [[-1, -1], [-1, 1], [1, -1], [1, 1]],
+    4: createSquareRingOffsets(2),
+    5: createSquareRingOffsets(3),
+    6: createSquareRingOffsets(4),
+};
+
+function createSquareRingOffsets(radius) {
+    const offsets = [];
+
+    for (let rowOffset = -radius; rowOffset <= radius; rowOffset++) {
+        for (let colOffset = -radius; colOffset <= radius; colOffset++) {
+            if (Math.max(Math.abs(rowOffset), Math.abs(colOffset)) !== radius) {
+                continue;
+            }
+
+            offsets.push([rowOffset, colOffset]);
+        }
+    }
+
+    return offsets;
+}
 
 function getSelectedTool(gameState) {
     return gameState.selectedTool || TOOLS.PLOW;
@@ -55,12 +81,21 @@ function getSeedInventoryKey(seedType) {
 }
 
 function getPlotDisabledTime() {
-    const baseTime = 100;
-    const initialDisableCoefficient = 1;
-    const numPlots = document.getElementById('field').childElementCount;
-    const coefficientIncrease = Math.floor(numPlots / 5) * 0.5;
-    const plotDisableCoefficient = initialDisableCoefficient + coefficientIncrease;
-    return baseTime * plotDisableCoefficient;
+    const { fallowTime } = progressionConfig.storeEconomy.plot;
+    const ownedPlots = getState().plots;
+    const clampedPlots = Math.min(
+        fallowTime.maxPlotCount,
+        Math.max(fallowTime.minPlotCount, ownedPlots)
+    );
+
+    if (clampedPlots === fallowTime.minPlotCount) {
+        return fallowTime.minDurationMs;
+    }
+
+    const plotRange = fallowTime.maxPlotCount - fallowTime.minPlotCount;
+    const progress = (clampedPlots - fallowTime.minPlotCount) / plotRange;
+
+    return fallowTime.minDurationMs + ((fallowTime.maxDurationMs - fallowTime.minDurationMs) * progress);
 }
 
 function getAutoChangerRequiredTool(currentSymbol) {
@@ -252,162 +287,104 @@ function handlePlotClick(plot, plotIndex) {
     // Update the game state with modified plot states
     updateState({ plotStates: gameState.plotStates });
 
-    // Apply expanded click effect if the upgrade has been purchased and enabled
+    // Apply expanded click effects in tier order, with a short delay between tiers when multiple are enabled.
     const upgradeValues = getUpgradeValues();
+    const expandedClickActivations = [];
 
     if (upgradeValues.expandedClickMk1Purchased && upgradeValues.expandedClickMk1Enabled) {
-        affectAdjacentPlotsMk1(plotIndex);
-    }
-    
-    if (upgradeValues.expandedClickMk2Purchased && upgradeValues.expandedClickMk2Enabled) {
-        affectAdjacentPlotsMk2(plotIndex);
-    }
-    
-    if (upgradeValues.expandedClickMk3Purchased && upgradeValues.expandedClickMk3Enabled) {
-        affectAdjacentPlotsMk3(plotIndex);
+        expandedClickActivations.push(() => affectAdjacentPlotsMk1(plotIndex));
     }
 
-    updateCurrencyBar(); // Update the currency display after any changes
+    if (upgradeValues.expandedClickMk2Purchased && upgradeValues.expandedClickMk2Enabled) {
+        expandedClickActivations.push(() => affectAdjacentPlotsMk2(plotIndex));
+    }
+
+    if (upgradeValues.expandedClickMk3Purchased && upgradeValues.expandedClickMk3Enabled) {
+        expandedClickActivations.push(() => affectAdjacentPlotsMk3(plotIndex));
+    }
+
+    if (upgradeValues.expandedClickMk4Purchased && upgradeValues.expandedClickMk4Enabled) {
+        expandedClickActivations.push(() => affectAdjacentPlotsMk4(plotIndex));
+    }
+
+    if (upgradeValues.expandedClickMk5Purchased && upgradeValues.expandedClickMk5Enabled) {
+        expandedClickActivations.push(() => affectAdjacentPlotsMk5(plotIndex));
+    }
+
+    if (upgradeValues.expandedClickMk6Purchased && upgradeValues.expandedClickMk6Enabled) {
+        expandedClickActivations.push(() => affectAdjacentPlotsMk6(plotIndex));
+    }
+
+    if (expandedClickActivations.length <= 1) {
+        expandedClickActivations.forEach((activateLevel) => activateLevel());
+        updateCurrencyBar();
+        return;
+    }
+
+    expandedClickActivations.forEach((activateLevel, levelIndex) => {
+        setTimeout(() => {
+            activateLevel();
+
+            if (levelIndex === expandedClickActivations.length - 1) {
+                updateCurrencyBar();
+            }
+        }, levelIndex * EXPANDED_CLICK_LEVEL_DELAY_MS);
+    });
+}
+
+function applyExpandedClickPattern(index, offsets) {
+    const field = document.getElementById('field');
+    const plots = Array.from(field.children);
+    const originRow = Math.floor(index / GRID_WIDTH);
+    const originCol = index % GRID_WIDTH;
+
+    offsets.forEach(([rowOffset, colOffset]) => {
+        const targetRow = originRow + rowOffset;
+        const targetCol = originCol + colOffset;
+
+        if (targetRow < 0 || targetRow >= GRID_WIDTH || targetCol < 0 || targetCol >= GRID_WIDTH) {
+            return;
+        }
+
+        const targetIndex = (targetRow * GRID_WIDTH) + targetCol;
+        const targetPlot = plots[targetIndex];
+
+        if (!targetPlot || targetPlot.disabled) {
+            return;
+        }
+
+        handleAdjacentPlotClickMk1(targetPlot, targetIndex);
+    });
 }
 
 // Function to affect adjacent plots if expanded click is enabled
 function affectAdjacentPlotsMk1(index) {
-    const field = document.getElementById('field');
-    const plots = Array.from(field.children);
-
-    // Affect the left plot if it exists and is not on the left edge
-    if (index % GRID_WIDTH !== 0 && plots[index - 1]) {
-        const leftPlot = plots[index - 1];
-        const leftIndex = index - 1;
-        if (!leftPlot.disabled) {
-            handleAdjacentPlotClickMk1(leftPlot, leftIndex);
-        }
-    }
-
-    // Affect the right plot if it exists and is not on the right edge
-    if (index % GRID_WIDTH !== GRID_WIDTH - 1 && plots[index + 1]) {
-        const rightPlot = plots[index + 1];
-        const rightIndex = index + 1;
-        if (!rightPlot.disabled) {
-            handleAdjacentPlotClickMk1(rightPlot, rightIndex);
-        }
-    }
+    applyExpandedClickPattern(index, EXPANDED_CLICK_PATTERNS[1]);
 }
 
-// Function to affect adjacent plots in cross pattern (Mk.2) - up, down, left, right
+// Function to affect adjacent plots in vertical pattern (Mk.2) - up and down only
 function affectAdjacentPlotsMk2(index) {
-    const field = document.getElementById('field');
-    const plots = Array.from(field.children);
-    const totalPlots = plots.length;
-
-    // Affect the left plot if it exists and is not on the left edge
-    if (index % GRID_WIDTH !== 0 && plots[index - 1]) {
-        const leftPlot = plots[index - 1];
-        const leftIndex = index - 1;
-        if (!leftPlot.disabled) {
-            handleAdjacentPlotClickMk1(leftPlot, leftIndex);
-        }
-    }
-
-    // Affect the right plot if it exists and is not on the right edge
-    if (index % GRID_WIDTH !== GRID_WIDTH - 1 && plots[index + 1]) {
-        const rightPlot = plots[index + 1];
-        const rightIndex = index + 1;
-        if (!rightPlot.disabled) {
-            handleAdjacentPlotClickMk1(rightPlot, rightIndex);
-        }
-    }
-
-    // Affect the plot above if it exists
-    if (index >= GRID_WIDTH && plots[index - GRID_WIDTH]) {
-        const topPlot = plots[index - GRID_WIDTH];
-        const topIndex = index - GRID_WIDTH;
-        if (!topPlot.disabled) {
-            handleAdjacentPlotClickMk1(topPlot, topIndex);
-        }
-    }
-
-    // Affect the plot below if it exists
-    if (index + GRID_WIDTH < totalPlots && plots[index + GRID_WIDTH]) {
-        const bottomPlot = plots[index + GRID_WIDTH];
-        const bottomIndex = index + GRID_WIDTH;
-        if (!bottomPlot.disabled) {
-            handleAdjacentPlotClickMk1(bottomPlot, bottomIndex);
-        }
-    }
+    applyExpandedClickPattern(index, EXPANDED_CLICK_PATTERNS[2]);
 }
 
-// Function to affect adjacent plots in 3x3 grid (Mk.3) - all 8 surrounding plots
+// Function to affect adjacent plots diagonally (Mk.3) - the 4 corner plots only
 function affectAdjacentPlotsMk3(index) {
-    const field = document.getElementById('field');
-    const plots = Array.from(field.children);
-    const totalPlots = plots.length;
-    const isLeftEdge = index % GRID_WIDTH === 0;
-    const isRightEdge = index % GRID_WIDTH === GRID_WIDTH - 1;
+    applyExpandedClickPattern(index, EXPANDED_CLICK_PATTERNS[3]);
+}
 
-    // Top-left
-    if (index >= GRID_WIDTH && !isLeftEdge && plots[index - GRID_WIDTH - 1]) {
-        const plot = plots[index - GRID_WIDTH - 1];
-        if (!plot.disabled) {
-            handleAdjacentPlotClickMk1(plot, index - GRID_WIDTH - 1);
-        }
-    }
+// Function to affect adjacent plots in the 5x5 ring (Mk.4)
+function affectAdjacentPlotsMk4(index) {
+    applyExpandedClickPattern(index, EXPANDED_CLICK_PATTERNS[4]);
+}
 
-    // Top
-    if (index >= GRID_WIDTH && plots[index - GRID_WIDTH]) {
-        const plot = plots[index - GRID_WIDTH];
-        if (!plot.disabled) {
-            handleAdjacentPlotClickMk1(plot, index - GRID_WIDTH);
-        }
-    }
+// Function to affect adjacent plots in the 7x7 ring (Mk.5)
+function affectAdjacentPlotsMk5(index) {
+    applyExpandedClickPattern(index, EXPANDED_CLICK_PATTERNS[5]);
+}
 
-    // Top-right
-    if (index >= GRID_WIDTH && !isRightEdge && plots[index - GRID_WIDTH + 1]) {
-        const plot = plots[index - GRID_WIDTH + 1];
-        if (!plot.disabled) {
-            handleAdjacentPlotClickMk1(plot, index - GRID_WIDTH + 1);
-        }
-    }
-
-    // Left
-    if (!isLeftEdge && plots[index - 1]) {
-        const plot = plots[index - 1];
-        if (!plot.disabled) {
-            handleAdjacentPlotClickMk1(plot, index - 1);
-        }
-    }
-
-    // Right
-    if (!isRightEdge && plots[index + 1]) {
-        const plot = plots[index + 1];
-        if (!plot.disabled) {
-            handleAdjacentPlotClickMk1(plot, index + 1);
-        }
-    }
-
-    // Bottom-left
-    if (index + GRID_WIDTH < totalPlots && !isLeftEdge && plots[index + GRID_WIDTH - 1]) {
-        const plot = plots[index + GRID_WIDTH - 1];
-        if (!plot.disabled) {
-            handleAdjacentPlotClickMk1(plot, index + GRID_WIDTH - 1);
-        }
-    }
-
-    // Bottom
-    if (index + GRID_WIDTH < totalPlots && plots[index + GRID_WIDTH]) {
-        const plot = plots[index + GRID_WIDTH];
-        if (!plot.disabled) {
-            handleAdjacentPlotClickMk1(plot, index + GRID_WIDTH);
-        }
-    }
-
-    // Bottom-right
-    if (index + GRID_WIDTH < totalPlots && !isRightEdge && plots[index + GRID_WIDTH + 1]) {
-        const plot = plots[index + GRID_WIDTH + 1];
-        if (!plot.disabled) {
-            handleAdjacentPlotClickMk1(plot, index + GRID_WIDTH + 1);
-        }
-    }
+// Function to affect adjacent plots in the 9x9 ring (Mk.6)
+function affectAdjacentPlotsMk6(index) {
+    applyExpandedClickPattern(index, EXPANDED_CLICK_PATTERNS[6]);
 }
 
 // Function to handle click on adjacent plots

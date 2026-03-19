@@ -89,6 +89,18 @@ function applyUpgradeUnlocks(gameState) {
         upgradeUpdates.expandedClickMk3Unlocked = true;
     }
 
+    if (gameState.totalCoinsSpent >= upgradeUnlocks.expandedClickByCoinsSpent.mk4) {
+        upgradeUpdates.expandedClickMk4Unlocked = true;
+    }
+
+    if (gameState.totalCoinsSpent >= upgradeUnlocks.expandedClickByCoinsSpent.mk5) {
+        upgradeUpdates.expandedClickMk5Unlocked = true;
+    }
+
+    if (gameState.totalCoinsSpent >= upgradeUnlocks.expandedClickByCoinsSpent.mk6) {
+        upgradeUpdates.expandedClickMk6Unlocked = true;
+    }
+
     if (Object.keys(upgradeUpdates).length > 0) {
         updateUpgradeValues(upgradeUpdates);
 

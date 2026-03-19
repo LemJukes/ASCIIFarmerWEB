@@ -3,7 +3,7 @@ import { savePartialSnapshot } from "./persistence.js";
 
 const initialGameState = {
     // Player Currency Values
-    coins: 1,
+    coins: 1000000,
     seeds: 1, // Generic seeds (kept for backward compatibility)
     crops: 0, // Generic crops (kept for backward compatibility)
     water: 10,
@@ -19,7 +19,7 @@ const initialGameState = {
     tomato: 0,
 
     // Field Information
-    plots: 1,
+    plots: 81,
     plotDisableCoefficient: 1.15, // Coefficient used to calculate plot disable time
     plotStates: [], // Array to store plot state objects: {symbol, cropType, waterCount}
 
@@ -28,18 +28,18 @@ const initialGameState = {
     tomatoUnlocked: false, // Tomato unlock threshold is defined in progressionConfig.unlocks.cropsByTotalCoinsEarned.tomato
 
     // Game Progress Information
-    totalCoinsSpent: 0,       // Total coins spent on seeds, upgrades, and other purchases
-    totalCoinsEarned: 0,      // Total number of coins the player has earned throughout the game
-    cropsSold: 0,             // Total number of crops sold by the player (all types combined)
-    wheatSold: 0,             // Total wheat sold
-    cornSold: 0,              // Total corn sold
-    tomatoSold: 0,            // Total tomatoes sold
-    seedsBought: 0,           // Total number of seeds bought by the player
-    wheatSeedsBought: 0,      // Total wheat seeds bought
-    cornSeedsBought: 0,       // Total corn seeds bought
-    tomatoSeedsBought: 0,     // Total tomato seeds bought
-    waterRefillsPurchased: 0, // Total number of times the player has clicked the water refil button
-    totalClicksClicked: 0,    // Total number of successful button clicks
+    totalCoinsSpent: 100000,       // Total coins spent on seeds, upgrades, and other purchases
+    totalCoinsEarned: 10000,      // Total number of coins the player has earned throughout the game
+    cropsSold: 10000,             // Total number of crops sold by the player (all types combined)
+    wheatSold: 10000,             // Total wheat sold
+    cornSold: 10000,              // Total corn sold
+    tomatoSold: 10000,            // Total tomatoes sold
+    seedsBought: 10000,           // Total number of seeds bought by the player
+    wheatSeedsBought: 10000,      // Total wheat seeds bought
+    cornSeedsBought: 10000,       // Total corn seeds bought
+    tomatoSeedsBought: 10000,     // Total tomato seeds bought
+    waterRefillsPurchased: 10000, // Total number of times the player has clicked the water refil button
+    totalClicksClicked: 10000,    // Total number of successful button clicks
 
     // Upgrade Values
     // Water Upgrade Values:

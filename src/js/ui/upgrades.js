@@ -9,6 +9,9 @@ import {
     buyExpandedClickUpgradeMk1,
     buyExpandedClickUpgradeMk2,
     buyExpandedClickUpgradeMk3,
+    buyExpandedClickUpgradeMk4,
+    buyExpandedClickUpgradeMk5,
+    buyExpandedClickUpgradeMk6,
     buyToolAutoChangerUpgrade,
     buyToolAutoChangerChargePack100,
     buyToolAutoChangerChargePack500,
@@ -16,6 +19,62 @@ import {
 } from "../handlers/upgradeHandlers.js";
 
 const { upgradesEconomy } = progressionConfig;
+const expandedClickUpgradeDefinitions = [
+    {
+        level: 1,
+        unlockedKey: 'expandedClickMk1Unlocked',
+        purchasedKey: 'expandedClickMk1Purchased',
+        enabledKey: 'expandedClickMk1Enabled',
+        costKey: 'expandedClickUpgradeCost',
+        costId: 'expanded-click-upgrade-mk1-cost',
+        handler: buyExpandedClickUpgradeMk1,
+    },
+    {
+        level: 2,
+        unlockedKey: 'expandedClickMk2Unlocked',
+        purchasedKey: 'expandedClickMk2Purchased',
+        enabledKey: 'expandedClickMk2Enabled',
+        costKey: 'expandedClickMk2Cost',
+        costId: 'expanded-click-upgrade-mk2-cost',
+        handler: buyExpandedClickUpgradeMk2,
+    },
+    {
+        level: 3,
+        unlockedKey: 'expandedClickMk3Unlocked',
+        purchasedKey: 'expandedClickMk3Purchased',
+        enabledKey: 'expandedClickMk3Enabled',
+        costKey: 'expandedClickMk3Cost',
+        costId: 'expanded-click-upgrade-mk3-cost',
+        handler: buyExpandedClickUpgradeMk3,
+    },
+    {
+        level: 4,
+        unlockedKey: 'expandedClickMk4Unlocked',
+        purchasedKey: 'expandedClickMk4Purchased',
+        enabledKey: 'expandedClickMk4Enabled',
+        costKey: 'expandedClickMk4Cost',
+        costId: 'expanded-click-upgrade-mk4-cost',
+        handler: buyExpandedClickUpgradeMk4,
+    },
+    {
+        level: 5,
+        unlockedKey: 'expandedClickMk5Unlocked',
+        purchasedKey: 'expandedClickMk5Purchased',
+        enabledKey: 'expandedClickMk5Enabled',
+        costKey: 'expandedClickMk5Cost',
+        costId: 'expanded-click-upgrade-mk5-cost',
+        handler: buyExpandedClickUpgradeMk5,
+    },
+    {
+        level: 6,
+        unlockedKey: 'expandedClickMk6Unlocked',
+        purchasedKey: 'expandedClickMk6Purchased',
+        enabledKey: 'expandedClickMk6Enabled',
+        costKey: 'expandedClickMk6Cost',
+        costId: 'expanded-click-upgrade-mk6-cost',
+        handler: buyExpandedClickUpgradeMk6,
+    },
+];
 
 const initialUpgradeValues = {
     waterUpgradeCost: upgradesEconomy.waterCapacity.baseCost,
@@ -26,6 +85,9 @@ const initialUpgradeValues = {
     expandedClickMk1Unlocked: false,
     expandedClickMk2Unlocked: false,
     expandedClickMk3Unlocked: false,
+    expandedClickMk4Unlocked: false,
+    expandedClickMk5Unlocked: false,
+    expandedClickMk6Unlocked: false,
 
         //Mk1 Values
         expandedClickMk1Purchased: false, // Flag indicating whether the expanded click upgrade has been purchased
@@ -40,6 +102,21 @@ const initialUpgradeValues = {
         expandedClickMk3Cost: upgradesEconomy.expandedClick.mk3Cost,
         expandedClickMk3Purchased: false,
         expandedClickMk3Enabled: false,
+
+        //Mk4 Values
+        expandedClickMk4Cost: upgradesEconomy.expandedClick.mk4Cost,
+        expandedClickMk4Purchased: false,
+        expandedClickMk4Enabled: false,
+
+        //Mk5 Values
+        expandedClickMk5Cost: upgradesEconomy.expandedClick.mk5Cost,
+        expandedClickMk5Purchased: false,
+        expandedClickMk5Enabled: false,
+
+        //Mk6 Values
+        expandedClickMk6Cost: upgradesEconomy.expandedClick.mk6Cost,
+        expandedClickMk6Purchased: false,
+        expandedClickMk6Enabled: false,
 
     toolAutoChangerCost: upgradesEconomy.toolAutoChanger.baseCost,
     toolAutoChangerPurchased: false,
@@ -261,10 +338,9 @@ function addExpandedClickUpgradeButton() {
     }
 
     const shouldShowExpandedClickSection =
-        upgradeValues.expandedClickMk1Unlocked ||
-        upgradeValues.expandedClickMk1Purchased ||
-        upgradeValues.expandedClickMk2Purchased ||
-        upgradeValues.expandedClickMk3Purchased;
+        expandedClickUpgradeDefinitions.some(({ unlockedKey, purchasedKey }) =>
+            upgradeValues[unlockedKey] || upgradeValues[purchasedKey]
+        );
 
     expandedClickUpgradesSection.style.display = shouldShowExpandedClickSection ? 'flex' : 'none';
     if (!shouldShowExpandedClickSection) {
@@ -302,47 +378,28 @@ function addExpandedClickUpgradeButton() {
         expandedClickUpgradesSection.appendChild(row);
     };
 
-    if (upgradeValues.expandedClickMk1Purchased) {
-        ensureMkToggle(1, 'expandedClickMk1Enabled');
-    }
-
-    if (upgradeValues.expandedClickMk2Purchased) {
-        ensureMkToggle(2, 'expandedClickMk2Enabled');
-    }
-
-    if (upgradeValues.expandedClickMk3Purchased) {
-        ensureMkToggle(3, 'expandedClickMk3Enabled');
-    }
+    expandedClickUpgradeDefinitions.forEach(({ level, purchasedKey, enabledKey }) => {
+        if (upgradeValues[purchasedKey]) {
+            ensureMkToggle(level, enabledKey);
+        }
+    });
 
     const existingBuyButtons = expandedClickUpgradesSection.querySelectorAll('[id^="expanded-click-upgrade-mk"][id$="-buy-button"]');
     existingBuyButtons.forEach((button) => button.remove());
 
-    const existingCostElements = expandedClickUpgradesSection.querySelectorAll('#expanded-click-upgrade-cost, #expanded-click-upgrade-mk2-cost, #expanded-click-upgrade-mk3-cost');
+    const existingCostElements = expandedClickUpgradesSection.querySelectorAll('[id^="expanded-click-upgrade-mk"][id$="-cost"]');
     existingCostElements.forEach((costElement) => costElement.remove());
 
-    let nextLevel = null;
-    let nextCost = null;
-    let nextCostId = null;
-    let nextHandler = null;
+    const nextUpgrade = expandedClickUpgradeDefinitions.find((definition, index) => {
+        const previousDefinition = expandedClickUpgradeDefinitions[index - 1];
+        const hasPreviousTier = !previousDefinition || upgradeValues[previousDefinition.purchasedKey];
 
-    if (!upgradeValues.expandedClickMk1Purchased && upgradeValues.expandedClickMk1Unlocked) {
-        nextLevel = 1;
-        nextCost = upgradeValues.expandedClickUpgradeCost;
-        nextCostId = 'expanded-click-upgrade-cost';
-        nextHandler = buyExpandedClickUpgradeMk1;
-    } else if (upgradeValues.expandedClickMk1Purchased && !upgradeValues.expandedClickMk2Purchased && upgradeValues.expandedClickMk2Unlocked) {
-        nextLevel = 2;
-        nextCost = upgradeValues.expandedClickMk2Cost;
-        nextCostId = 'expanded-click-upgrade-mk2-cost';
-        nextHandler = buyExpandedClickUpgradeMk2;
-    } else if (upgradeValues.expandedClickMk2Purchased && !upgradeValues.expandedClickMk3Purchased && upgradeValues.expandedClickMk3Unlocked) {
-        nextLevel = 3;
-        nextCost = upgradeValues.expandedClickMk3Cost;
-        nextCostId = 'expanded-click-upgrade-mk3-cost';
-        nextHandler = buyExpandedClickUpgradeMk3;
-    }
+        return hasPreviousTier &&
+            !upgradeValues[definition.purchasedKey] &&
+            upgradeValues[definition.unlockedKey];
+    });
 
-    if (!nextLevel || !nextHandler) {
+    if (!nextUpgrade) {
         return;
     }
 
@@ -351,15 +408,15 @@ function addExpandedClickUpgradeButton() {
 
     const expandedClickUpgradeBuyButton = document.createElement('button');
     expandedClickUpgradeBuyButton.classList.add('upgrade-button');
-    expandedClickUpgradeBuyButton.id = `expanded-click-upgrade-mk${nextLevel}-buy-button`;
-    expandedClickUpgradeBuyButton.textContent = `Unlock Mk.${nextLevel}`;
-    expandedClickUpgradeBuyButton.addEventListener('click', nextHandler);
+    expandedClickUpgradeBuyButton.id = `expanded-click-upgrade-mk${nextUpgrade.level}-buy-button`;
+    expandedClickUpgradeBuyButton.textContent = `Unlock Mk.${nextUpgrade.level}`;
+    expandedClickUpgradeBuyButton.addEventListener('click', nextUpgrade.handler);
     buyRow.appendChild(expandedClickUpgradeBuyButton);
 
     const expandedClickUpgradeCost = document.createElement('span');
     expandedClickUpgradeCost.classList.add('upgrade-price');
-    expandedClickUpgradeCost.id = nextCostId;
-    expandedClickUpgradeCost.textContent = `${nextCost} coins`;
+    expandedClickUpgradeCost.id = nextUpgrade.costId;
+    expandedClickUpgradeCost.textContent = `${upgradeValues[nextUpgrade.costKey]} coins`;
     buyRow.appendChild(expandedClickUpgradeCost);
 
     expandedClickUpgradesSection.appendChild(buyRow);

@@ -69,79 +69,57 @@ function updateWaterRefillsPurchased() {
     updateState({ waterRefillsPurchased: gameState.waterRefillsPurchased });
 }
 
-function buyExpandedClickUpgradeMk1() {
+function buyExpandedClickUpgrade(level) {
     const gameState = getState();
     const upgradeValues = getUpgradeValues();
+    const unlockedKey = `expandedClickMk${level}Unlocked`;
+    const purchasedKey = `expandedClickMk${level}Purchased`;
+    const costKey = level === 1 ? 'expandedClickUpgradeCost' : `expandedClickMk${level}Cost`;
+    const upgradeCost = upgradeValues[costKey];
 
-    if (!upgradeValues.expandedClickMk1Unlocked) {
-        alert('Expanded Click Mk.1 is still locked.');
+    if (!upgradeValues[unlockedKey]) {
+        alert(`Expanded Click Mk.${level} is still locked.`);
         return;
     }
 
-    if (gameState.coins >= upgradeValues.expandedClickUpgradeCost) {
-        gameState.coins -= upgradeValues.expandedClickUpgradeCost;
-        gameState.totalCoinsSpent += upgradeValues.expandedClickUpgradeCost;
+    if (gameState.coins >= upgradeCost) {
+        gameState.coins -= upgradeCost;
+        gameState.totalCoinsSpent += upgradeCost;
         upgradeValues.expandedClickUpgradeLVL++;
-        upgradeValues.expandedClickMk1Purchased = true;
+        upgradeValues[purchasedKey] = true;
         updateState(gameState);
         updateUpgradeValues(upgradeValues);
-        console.log(`ExpandedClickMk1Purchased is now: ${upgradeValues.expandedClickMk1Purchased}`);
+        console.log(`${purchasedKey} is now: ${upgradeValues[purchasedKey]}`);
 
-        console.log('Expanded Click Upgrade Purchased');
+        console.log(`Expanded Click Mk.${level} Upgrade Purchased`);
         finalizeClickUpgradeInteraction();
     } else {
         alert('Not enough coins for this upgrade.');
     }
+}
+
+function buyExpandedClickUpgradeMk1() {
+    buyExpandedClickUpgrade(1);
 }
 
 function buyExpandedClickUpgradeMk2() {
-    const gameState = getState();
-    const upgradeValues = getUpgradeValues();
-
-    if (!upgradeValues.expandedClickMk2Unlocked) {
-        alert('Expanded Click Mk.2 is still locked.');
-        return;
-    }
-    
-    if (gameState.coins >= upgradeValues.expandedClickMk2Cost) {
-        gameState.coins -= upgradeValues.expandedClickMk2Cost;
-        gameState.totalCoinsSpent += upgradeValues.expandedClickMk2Cost;
-        upgradeValues.expandedClickUpgradeLVL++;
-        upgradeValues.expandedClickMk2Purchased = true;
-        updateState(gameState);
-        updateUpgradeValues(upgradeValues);
-        console.log(`ExpandedClickMk2Purchased is now: ${upgradeValues.expandedClickMk2Purchased}`);
-
-        console.log('Expanded Click Mk.2 Upgrade Purchased');
-        finalizeClickUpgradeInteraction();
-    } else {
-        alert('Not enough coins for this upgrade.');
-    }
+    buyExpandedClickUpgrade(2);
 }
 
 function buyExpandedClickUpgradeMk3() {
-    const gameState = getState();
-    const upgradeValues = getUpgradeValues();
+    buyExpandedClickUpgrade(3);
+}
 
-    if (!upgradeValues.expandedClickMk3Unlocked) {
-        alert('Expanded Click Mk.3 is still locked.');
-        return;
-    }
-    
-    if (gameState.coins >= upgradeValues.expandedClickMk3Cost) {
-        gameState.coins -= upgradeValues.expandedClickMk3Cost;
-        gameState.totalCoinsSpent += upgradeValues.expandedClickMk3Cost;
-        upgradeValues.expandedClickUpgradeLVL++;
-        upgradeValues.expandedClickMk3Purchased = true;
-        updateState(gameState);
-        updateUpgradeValues(upgradeValues);
-        console.log(`ExpandedClickMk3Purchased is now: ${upgradeValues.expandedClickMk3Purchased}`);
+function buyExpandedClickUpgradeMk4() {
+    buyExpandedClickUpgrade(4);
+}
 
-        console.log('Expanded Click Mk.3 Upgrade Purchased');
-        finalizeClickUpgradeInteraction();
-    } else {
-        alert('Not enough coins for this upgrade.');
-    }
+function buyExpandedClickUpgradeMk5() {
+    buyExpandedClickUpgrade(5);
+}
+
+function buyExpandedClickUpgradeMk6() {
+    buyExpandedClickUpgrade(6);
 }
 
 function buyToolAutoChangerUpgrade() {
@@ -183,6 +161,9 @@ export {
     buyExpandedClickUpgradeMk1,
     buyExpandedClickUpgradeMk2,
     buyExpandedClickUpgradeMk3,
+    buyExpandedClickUpgradeMk4,
+    buyExpandedClickUpgradeMk5,
+    buyExpandedClickUpgradeMk6,
     buyToolAutoChangerUpgrade,
     buyToolAutoChangerChargePack100,
     buyToolAutoChangerChargePack500,
