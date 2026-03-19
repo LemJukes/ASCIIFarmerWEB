@@ -1,6 +1,7 @@
 import { getState, updateState } from "../state.js";
 import { progressionConfig, getAchievementValues as getProgressionAchievementValues } from "../../configs/progressionConfig.js";
 import { addBulkSeedButton, addBulkCropSaleButton, addBulkWaterRefillButton } from "../ui/store.js";
+import { wrapInMacWindow } from "../ui/macWindow.js";
 import {
     initializeUpgradesTitle,
     initializeUpgrades,
@@ -35,15 +36,28 @@ function unlockAchievement(achievementId, message) {
 }
 
 function ensureUpgradesContainer() {
-    const upgradesTitle = document.getElementById("upgrades-container-title");
-    const upgradesContainer = document.getElementById("upgrades-container");
+    // Once wrapped in a mac-window the title element is removed from the DOM —
+    // check for the wrapper directly to avoid re-creating a dangling title on
+    // every subsequent trackAchievements() call.
+    if (document.getElementById("mac-window-upgrades-container")) {
+        return;
+    }
+
+    let upgradesTitle = document.getElementById("upgrades-container-title");
+    let upgradesContainer = document.getElementById("upgrades-container");
 
     if (!upgradesTitle) {
         initializeUpgradesTitle();
+        upgradesTitle = document.getElementById("upgrades-container-title");
     }
 
     if (!upgradesContainer) {
         initializeUpgrades();
+        upgradesContainer = document.getElementById("upgrades-container");
+    }
+
+    if (upgradesTitle && upgradesContainer) {
+        wrapInMacWindow(upgradesTitle, upgradesContainer);
     }
 }
 

@@ -1,6 +1,7 @@
 // main.js
 import { initializeCurrencyBarTitle, initializeCurrencyBar } from './ui/currency.js'
 import { clearSnapshot, loadSnapshot } from './persistence.js';
+import { wrapSectionsInMacWindows } from './ui/macWindow.js';
 import { applyStateSnapshot } from './state.js';
 import { initializeField, initializeFieldTitle, updateField } from './ui/field.js';
 import { applyStoreValuesSnapshot, initializeStore, initializeStoreTitle } from './ui/store.js';
@@ -115,5 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeClicksDisplay();
     initializeKeyboardShortcuts();
     trackAchievements();
+    wrapSectionsInMacWindows();
 
 });
