@@ -80,9 +80,45 @@ function getSeedInventoryKey(seedType) {
     return 'wheatSeeds';
 }
 
-function getPlotDisabledTime() {
+function getActiveFieldContext() {
+    const gameState = getState();
+    const activeField = gameState.fields?.[gameState.activeFieldId];
+
+    if (!activeField || !Array.isArray(activeField.plotStates)) {
+        return null;
+    }
+
+    return {
+        gameState,
+        activeField,
+        activeFieldId: gameState.activeFieldId,
+        plotStates: activeField.plotStates,
+    };
+}
+
+function commitActiveFieldPlotStates(gameState, activeFieldId, plotStates, updatedPlots) {
+    const existingField = gameState.fields?.[activeFieldId];
+    if (!existingField) {
+        return;
+    }
+
+    const nextField = {
+        ...existingField,
+        plots: Number(updatedPlots) || existingField.plots,
+        plotStates,
+    };
+
+    updateState({
+        fields: {
+            ...gameState.fields,
+            [activeFieldId]: nextField,
+        },
+    });
+}
+
+function getPlotDisabledTime(activeFieldPlots) {
     const { fallowTime } = progressionConfig.storeEconomy.plot;
-    const ownedPlots = getState().plots;
+    const ownedPlots = Number(activeFieldPlots) || getState().plots;
     const clampedPlots = Math.min(
         fallowTime.maxPlotCount,
         Math.max(fallowTime.minPlotCount, ownedPlots)
@@ -165,13 +201,34 @@ function resolveToolSelection(currentSymbol, showFailureAlert) {
 }
 
 function handlePlotClick(plot, plotIndex) {
-    const toolSelection = resolveToolSelection(getState().plotStates[plotIndex].symbol, true);
+    const initialContext = getActiveFieldContext();
+    if (!initialContext) {
+        return;
+    }
+
+    const initialPlot = initialContext.plotStates[plotIndex];
+    if (!initialPlot) {
+        return;
+    }
+
+    const toolSelection = resolveToolSelection(initialPlot.symbol, true);
     if (!toolSelection.allowed) {
         return;
     }
 
     const gameState = toolSelection.gameState;
-    const plotState = gameState.plotStates[plotIndex]; // Get the plot state object
+    const activeFieldId = gameState.activeFieldId;
+    const activeField = gameState.fields?.[activeFieldId];
+    if (!activeField || !Array.isArray(activeField.plotStates)) {
+        return;
+    }
+
+    const plotStates = activeField.plotStates;
+    const plotState = plotStates[plotIndex];
+    if (!plotState) {
+        return;
+    }
+
     const currentSymbol = plotState.symbol;
     const selectedTool = toolSelection.selectedTool;
     let didChange = false;
@@ -180,6 +237,8 @@ function handlePlotClick(plot, plotIndex) {
         case '~': // Untilled
             // Tilling the plot requires no cost
             plotState.symbol = '=';
+            plotState.disabledUntil = 0;
+            plotState.lastUpdatedAt = Date.now();
             plot.textContent = '=';
             didChange = true;
             break;
@@ -198,6 +257,8 @@ function handlePlotClick(plot, plotIndex) {
             plotState.symbol = '.';
             plotState.cropType = selectedSeedType;
             plotState.waterCount = 0;
+            plotState.disabledUntil = 0;
+            plotState.lastUpdatedAt = Date.now();
             plot.textContent = '.';
             didChange = true;
             break;
@@ -225,6 +286,9 @@ function handlePlotClick(plot, plotIndex) {
                     plotState.symbol = getGrowthSymbol(plotState.waterCount - 1);
                     plot.textContent = plotState.symbol;
                 }
+
+                plotState.disabledUntil = 0;
+                plotState.lastUpdatedAt = Date.now();
 
                 didChange = true;
             } else {
@@ -259,16 +323,13 @@ function handlePlotClick(plot, plotIndex) {
             plotState.symbol = '~';
             plotState.cropType = null;
             plotState.waterCount = 0;
+            plotState.lastUpdatedAt = Date.now();
             plot.textContent = '~';
-            plot.disabled = true;
             didChange = true;
 
-            const disabledTime = getPlotDisabledTime();
-
-            // Re-enable the button after the calculated disabled time
-            setTimeout(() => {
-                plot.disabled = false;
-            }, disabledTime);
+            const disabledTime = getPlotDisabledTime(activeField.plots);
+            plotState.disabledUntil = Date.now() + disabledTime;
+            plot.disabled = true;
             break;
             
         default:
@@ -285,7 +346,7 @@ function handlePlotClick(plot, plotIndex) {
     updateClicksDisplay();
 
     // Update the game state with modified plot states
-    updateState({ plotStates: gameState.plotStates });
+    commitActiveFieldPlotStates(gameState, activeFieldId, plotStates, activeField.plots);
 
     // Apply expanded click effects in tier order, with a short delay between tiers when multiple are enabled.
     const upgradeValues = getUpgradeValues();
@@ -389,13 +450,34 @@ function affectAdjacentPlotsMk6(index) {
 
 // Function to handle click on adjacent plots
 function handleAdjacentPlotClickMk1(plot, plotIndex) {
-    const toolSelection = resolveToolSelection(getState().plotStates[plotIndex].symbol, false);
+    const initialContext = getActiveFieldContext();
+    if (!initialContext) {
+        return;
+    }
+
+    const initialPlot = initialContext.plotStates[plotIndex];
+    if (!initialPlot) {
+        return;
+    }
+
+    const toolSelection = resolveToolSelection(initialPlot.symbol, false);
     if (!toolSelection.allowed) {
         return;
     }
 
     const gameState = toolSelection.gameState;
-    const plotState = gameState.plotStates[plotIndex];
+    const activeFieldId = gameState.activeFieldId;
+    const activeField = gameState.fields?.[activeFieldId];
+    if (!activeField || !Array.isArray(activeField.plotStates)) {
+        return;
+    }
+
+    const plotStates = activeField.plotStates;
+    const plotState = plotStates[plotIndex];
+    if (!plotState) {
+        return;
+    }
+
     const currentSymbol = plotState.symbol;
     const selectedTool = toolSelection.selectedTool;
     let didChange = false;
@@ -403,6 +485,8 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
     switch (currentSymbol) {
         case '~': // Untilled
             plotState.symbol = '=';
+            plotState.disabledUntil = 0;
+            plotState.lastUpdatedAt = Date.now();
             plot.textContent = '=';
             didChange = true;
             break;
@@ -420,6 +504,8 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
             plotState.symbol = '.';
             plotState.cropType = selectedSeedType;
             plotState.waterCount = 0;
+            plotState.disabledUntil = 0;
+            plotState.lastUpdatedAt = Date.now();
             plot.textContent = '.';
             didChange = true;
             break;
@@ -446,6 +532,9 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
                     plotState.symbol = getGrowthSymbol(plotState.waterCount - 1);
                     plot.textContent = plotState.symbol;
                 }
+
+                plotState.disabledUntil = 0;
+                plotState.lastUpdatedAt = Date.now();
 
                 didChange = true;
             }
@@ -474,15 +563,13 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
             plotState.symbol = '~';
             plotState.cropType = null;
             plotState.waterCount = 0;
+            plotState.lastUpdatedAt = Date.now();
             plot.textContent = '~';
-            plot.disabled = true;
             didChange = true;
 
-            const disabledTime = getPlotDisabledTime();
-
-            setTimeout(() => {
-                plot.disabled = false;
-            }, disabledTime);
+            const disabledTime = getPlotDisabledTime(activeField.plots);
+            plotState.disabledUntil = Date.now() + disabledTime;
+            plot.disabled = true;
             break;
             
         default:
@@ -498,7 +585,7 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
     updateClicksDisplay();
 
     // Update the game state with modified plot states
-    updateState({ plotStates: gameState.plotStates });
+    commitActiveFieldPlotStates(gameState, activeFieldId, plotStates, activeField.plots);
     updateCurrencyBar();
 }
 

@@ -184,23 +184,56 @@ function buyPlot() {
     const maxPlots = 81;
     const gameState = getState();
     const storeValues = getStoreValues();
+    const activeFieldId = gameState.activeFieldId;
+    const activeField = gameState.fields?.[activeFieldId];
+
+    if (!activeField) {
+        console.log("No active field found");
+        return;
+    }
+
     let plotCost = storeValues.plotCost;
-    const plots = gameState.plots;
+    const plots = Number(activeField.plots) || 1;
 
     if (plots >= progressionConfig.storeEconomy.plot.scalingStartPlotCount) {
         plotCost = Math.ceil(plotCost * progressionConfig.storeEconomy.plot.scalingMultiplier);
     }
 
     if (gameState.coins >= plotCost && plots < maxPlots) {
+        const nextPlotStates = Array.isArray(activeField.plotStates)
+            ? [...activeField.plotStates]
+            : [];
+
+        nextPlotStates.push({
+            symbol: '~',
+            cropType: null,
+            waterCount: 0,
+            disabledUntil: 0,
+            lastUpdatedAt: Date.now(),
+        });
+
+        const updatedFields = {
+            ...gameState.fields,
+            [activeFieldId]: {
+                ...activeField,
+                plots: plots + 1,
+                plotStates: nextPlotStates,
+            },
+        };
+
         updateState({
             coins: gameState.coins - plotCost,
-            plots: gameState.plots + 1,
+            fields: updatedFields,
             totalCoinsSpent: gameState.totalCoinsSpent + plotCost,
         });
         storeValues.plotCost = plotCost;
         updateStoreValues({
             plotCost: storeValues.plotCost 
         });
+        const plotCostLabel = document.getElementById('plot-cost');
+        if (plotCostLabel) {
+            plotCostLabel.textContent = `${storeValues.plotCost} coin(s)`;
+        }
         console.log("Updated plotCost:", storeValues.plotCost);
         updateCurrencyBar();
         updateField();
@@ -213,6 +246,76 @@ function buyPlot() {
         alert("Field is full, cannot buy more plots");
         console.log("Field is full, cannot buy more plots");
     }
+}
+
+function buyNewField() {
+    const gameState = getState();
+    const purchaseConfig = progressionConfig.storeEconomy.fieldPurchase;
+
+    if (!gameState.fieldStoreUnlocked) {
+        console.log("Field purchase is still locked");
+        return;
+    }
+
+    const fieldCost = Math.max(1, Number(gameState.nextFieldCost) || purchaseConfig.baseCost);
+    if (gameState.coins < fieldCost) {
+        console.log("Not enough coins to buy a new field");
+        return;
+    }
+
+    const newFieldNumber = Math.max(2, Number(gameState.nextFieldNumber) || 2);
+    const newFieldId = `field-${newFieldNumber}`;
+
+    if (gameState.fields?.[newFieldId]) {
+        console.log("Field already exists");
+        return;
+    }
+
+    const updatedFields = {
+        ...gameState.fields,
+        [newFieldId]: {
+            id: newFieldId,
+            name: `Field ${newFieldNumber}`,
+            plots: 1,
+            plotStates: [{
+                symbol: '~',
+                cropType: null,
+                waterCount: 0,
+                disabledUntil: 0,
+                lastUpdatedAt: Date.now(),
+            }],
+        },
+    };
+
+    const ownedFieldIds = Array.isArray(gameState.ownedFieldIds)
+        ? [...gameState.ownedFieldIds, newFieldId]
+        : [newFieldId];
+
+    ownedFieldIds.sort((a, b) => {
+        const first = Number(String(a).replace('field-', '')) || 0;
+        const second = Number(String(b).replace('field-', '')) || 0;
+        return first - second;
+    });
+
+    updateState({
+        coins: gameState.coins - fieldCost,
+        totalCoinsSpent: gameState.totalCoinsSpent + fieldCost,
+        fields: updatedFields,
+        ownedFieldIds,
+        nextFieldNumber: newFieldNumber + 1,
+        nextFieldCost: fieldCost + purchaseConfig.costIncreasePerField,
+    });
+
+    const fieldCostLabel = document.getElementById('buy-field-cost');
+    if (fieldCostLabel) {
+        fieldCostLabel.textContent = `${fieldCost + purchaseConfig.costIncreasePerField} coins`;
+    }
+
+    updateCurrencyBar();
+    updateField();
+    trackAchievements();
+    incrementTotalClicks();
+    updateClicksDisplay();
 }
 
 // Sale Handlers
@@ -380,4 +483,5 @@ function sellTomato() {
 export { buySeed, buyWater, buyPlot, sellCrops, buyBulkSeeds, sellBulkCrops,
          buyWheatSeeds, buyCornSeeds, buyTomatoSeeds,
          sellWheat, sellCorn, sellTomato,
-         buyBulkSeedPack, sellBulkCropPack, buyBulkWaterRefill };
+         buyBulkSeedPack, sellBulkCropPack, buyBulkWaterRefill,
+         buyNewField };

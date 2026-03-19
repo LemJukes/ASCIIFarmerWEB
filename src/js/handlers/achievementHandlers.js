@@ -159,12 +159,36 @@ function trackAchievements() {
     const gameState = getState();
 
     checkCropUnlocks(gameState);
+    checkFieldStoreUnlock(gameState);
     applyUpgradeUnlocks(gameState);
     checkGeneralAchievementMilestones(gameState);
     checkSeedsBoughtAchievements(gameState);
     checkCropsSoldAchievements(gameState);
     checkWaterRefillPurchaseAchievements(gameState);
     checkWaterRefillsAchievementsAndEnableButton(gameState);
+}
+
+function checkFieldStoreUnlock(currentState) {
+    const gameState = currentState ?? getState();
+    const fieldUnlocks = progressionConfig.unlocks.fieldsBySpendAndFirstFieldPlots;
+    const firstField = gameState.fields?.['field-1'];
+    const firstFieldPlots = Number(firstField?.plots) || 0;
+
+    if (gameState.fieldStoreUnlocked) {
+        showFieldPurchaseInStore();
+        return;
+    }
+
+    const reachedSpentThreshold = gameState.totalCoinsSpent >= fieldUnlocks.coinsSpent;
+    const reachedPlotThreshold = firstFieldPlots >= fieldUnlocks.firstFieldRequiredPlots;
+
+    if (!reachedSpentThreshold || !reachedPlotThreshold) {
+        return;
+    }
+
+    updateState({ fieldStoreUnlocked: true });
+    announceAchievementUnlock('Field Expansion unlocked! You can now buy additional fields.');
+    showFieldPurchaseInStore();
 }
 
 function updateSeedsBought(cropType, amount) {
@@ -305,6 +329,13 @@ function showTomatoInCurrency() {
     if (tomatoCrops) tomatoCrops.style.display = "flex";
 }
 
+function showFieldPurchaseInStore() {
+    const fieldPurchaseSection = document.getElementById('buyFieldSection');
+    if (fieldPurchaseSection) {
+        fieldPurchaseSection.style.display = 'flex';
+    }
+}
+
 function checkWaterRefillsAchievementsAndEnableButton(currentState) {
     const gameState = currentState ?? getState();
     const thresholds = progressionConfig.achievements.waterRefillsPurchased;
@@ -335,4 +366,5 @@ export {
     checkWaterRefillPurchaseAchievements,
     updateCoinsEarned,
     checkCropUnlocks,
+    checkFieldStoreUnlock,
 };

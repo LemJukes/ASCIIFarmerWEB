@@ -1,5 +1,169 @@
 //state.js
 import { savePartialSnapshot } from "./persistence.js";
+import { progressionConfig } from "../configs/progressionConfig.js";
+
+const DEFAULT_FIELD_ID = 'field-1';
+
+function normalizePlotState(plot) {
+    return {
+        symbol: plot?.symbol ?? '~',
+        cropType: plot?.cropType ?? null,
+        waterCount: Number(plot?.waterCount) || 0,
+        disabledUntil: Number(plot?.disabledUntil) || 0,
+        lastUpdatedAt: Number(plot?.lastUpdatedAt) || Date.now(),
+    };
+}
+
+function createDefaultField({ id, name, plots }) {
+    return {
+        id,
+        name,
+        plots,
+        plotStates: Array.from({ length: plots }, () => normalizePlotState(null)),
+    };
+}
+
+function normalizeField(field, fallback = {}) {
+    const normalizedPlots = Math.max(1, Number(field?.plots) || Number(fallback.plots) || 1);
+    const basePlotStates = Array.isArray(field?.plotStates) ? field.plotStates : (Array.isArray(fallback.plotStates) ? fallback.plotStates : []);
+    const normalizedPlotStates = [];
+
+    for (let i = 0; i < normalizedPlots; i++) {
+        normalizedPlotStates.push(normalizePlotState(basePlotStates[i]));
+    }
+
+    return {
+        id: field?.id || fallback.id,
+        name: field?.name || fallback.name || 'Field',
+        plots: normalizedPlots,
+        plotStates: normalizedPlotStates,
+    };
+}
+
+function getFieldNameById(fieldId) {
+    const match = String(fieldId || '').match(/field-(\d+)/i);
+    if (!match) {
+        return 'Field';
+    }
+
+    return `Field ${Number(match[1])}`;
+}
+
+function ensureFieldsStateShape(sourceState) {
+    const fields = sourceState?.fields && typeof sourceState.fields === 'object'
+        ? sourceState.fields
+        : {};
+
+    const hasAnyFields = Object.keys(fields).length > 0;
+    const fallbackField = createDefaultField({
+        id: DEFAULT_FIELD_ID,
+        name: 'Field 1',
+        plots: Math.max(1, Number(sourceState?.plots) || 81),
+    });
+
+    if (!hasAnyFields) {
+        const legacyPlotStates = Array.isArray(sourceState?.plotStates)
+            ? sourceState.plotStates
+            : fallbackField.plotStates;
+
+        fields[DEFAULT_FIELD_ID] = normalizeField({
+            id: DEFAULT_FIELD_ID,
+            name: 'Field 1',
+            plots: Math.max(1, Number(sourceState?.plots) || 81),
+            plotStates: legacyPlotStates,
+        }, fallbackField);
+    }
+
+    const ownedFieldIds = Array.isArray(sourceState?.ownedFieldIds)
+        ? sourceState.ownedFieldIds.filter((fieldId) => typeof fieldId === 'string' && fields[fieldId])
+        : [];
+
+    if (!ownedFieldIds.length) {
+        ownedFieldIds.push(...Object.keys(fields));
+    }
+
+    ownedFieldIds.sort((a, b) => {
+        const first = Number(String(a).replace('field-', '')) || 0;
+        const second = Number(String(b).replace('field-', '')) || 0;
+        return first - second;
+    });
+
+    const activeFieldId = fields[sourceState?.activeFieldId]
+        ? sourceState.activeFieldId
+        : ownedFieldIds[0] || DEFAULT_FIELD_ID;
+
+    for (const fieldId of ownedFieldIds) {
+        fields[fieldId] = normalizeField(fields[fieldId], {
+            id: fieldId,
+            name: getFieldNameById(fieldId),
+            plots: fieldId === DEFAULT_FIELD_ID ? 81 : 1,
+            plotStates: [],
+        });
+    }
+
+    const fieldNumbers = ownedFieldIds
+        .map((fieldId) => Number(String(fieldId).replace('field-', '')) || 0)
+        .filter((num) => num > 0);
+
+    const computedNextFieldNumber = (fieldNumbers.length ? Math.max(...fieldNumbers) : 1) + 1;
+
+    return {
+        fields,
+        ownedFieldIds,
+        activeFieldId,
+        nextFieldNumber: Math.max(computedNextFieldNumber, Number(sourceState?.nextFieldNumber) || computedNextFieldNumber),
+    };
+}
+
+function reconcileFieldPlotTimers(fields) {
+    const now = Date.now();
+
+    Object.values(fields).forEach((field) => {
+        if (!field || !Array.isArray(field.plotStates)) {
+            return;
+        }
+
+        field.plotStates = field.plotStates.map((plot) => {
+            const normalizedPlot = normalizePlotState(plot);
+            if (normalizedPlot.disabledUntil > 0 && normalizedPlot.disabledUntil <= now) {
+                normalizedPlot.disabledUntil = 0;
+            }
+
+            normalizedPlot.lastUpdatedAt = now;
+            return normalizedPlot;
+        });
+    });
+}
+
+function getActiveFieldFromState(stateLike) {
+    const fieldId = stateLike.activeFieldId;
+    return stateLike.fields[fieldId] || stateLike.fields[DEFAULT_FIELD_ID];
+}
+
+function syncLegacyActiveField(stateLike) {
+    const activeField = getActiveFieldFromState(stateLike);
+    stateLike.plots = activeField?.plots || 0;
+    stateLike.plotStates = Array.isArray(activeField?.plotStates)
+        ? activeField.plotStates.map((plot) => normalizePlotState(plot))
+        : [];
+}
+
+function buildFieldStateSnapshot(fields) {
+    const snapshot = {};
+
+    Object.entries(fields).forEach(([fieldId, field]) => {
+        snapshot[fieldId] = {
+            id: field.id,
+            name: field.name,
+            plots: field.plots,
+            plotStates: Array.isArray(field.plotStates)
+                ? field.plotStates.map((plot) => normalizePlotState(plot))
+                : [],
+        };
+    });
+
+    return snapshot;
+}
 
 const initialGameState = {
     // Player Currency Values
@@ -21,7 +185,15 @@ const initialGameState = {
     // Field Information
     plots: 81,
     plotDisableCoefficient: 1.15, // Coefficient used to calculate plot disable time
-    plotStates: [], // Array to store plot state objects: {symbol, cropType, waterCount}
+    plotStates: [], // Backward-compatible mirror of active field plot states
+    fields: {
+        [DEFAULT_FIELD_ID]: createDefaultField({ id: DEFAULT_FIELD_ID, name: 'Field 1', plots: 81 }),
+    },
+    ownedFieldIds: [DEFAULT_FIELD_ID],
+    activeFieldId: DEFAULT_FIELD_ID,
+    nextFieldNumber: 2,
+    fieldStoreUnlocked: false,
+    nextFieldCost: progressionConfig.storeEconomy.fieldPurchase.baseCost,
 
     // Crop Unlock Tracking
     cornUnlocked: false,  // Corn unlock threshold is defined in progressionConfig.unlocks.cropsByTotalCoinsEarned.corn
@@ -60,14 +232,16 @@ function getState() {
 }
 
 function getStateSnapshot() {
+    const fieldsShape = ensureFieldsStateShape(gameState);
+
     return {
         ...gameState,
+        fields: buildFieldStateSnapshot(fieldsShape.fields),
+        ownedFieldIds: [...fieldsShape.ownedFieldIds],
+        activeFieldId: fieldsShape.activeFieldId,
+        nextFieldNumber: fieldsShape.nextFieldNumber,
         plotStates: Array.isArray(gameState.plotStates)
-            ? gameState.plotStates.map(plot => ({
-                symbol: plot?.symbol ?? '~',
-                cropType: plot?.cropType ?? null,
-                waterCount: Number(plot?.waterCount) || 0,
-            }))
+            ? gameState.plotStates.map(plot => normalizePlotState(plot))
             : [],
         achievementsUnlocked: Array.isArray(gameState.achievementsUnlocked)
             ? [...gameState.achievementsUnlocked]
@@ -80,7 +254,11 @@ function applyStateSnapshot(snapshot) {
         return;
     }
 
-    const merged = { ...initialGameState };
+    const merged = {
+        ...initialGameState,
+        fields: buildFieldStateSnapshot(initialGameState.fields),
+        ownedFieldIds: [...initialGameState.ownedFieldIds],
+    };
 
     for (const key of Object.keys(initialGameState)) {
         if (Object.prototype.hasOwnProperty.call(snapshot, key)) {
@@ -88,12 +266,11 @@ function applyStateSnapshot(snapshot) {
         }
     }
 
+    const fieldsShape = ensureFieldsStateShape(merged);
+    reconcileFieldPlotTimers(fieldsShape.fields);
+
     const normalizedPlotStates = Array.isArray(merged.plotStates)
-        ? merged.plotStates.map(plot => ({
-            symbol: plot?.symbol ?? '~',
-            cropType: plot?.cropType ?? null,
-            waterCount: Number(plot?.waterCount) || 0,
-        }))
+        ? merged.plotStates.map(plot => normalizePlotState(plot))
         : [];
 
     const normalizedAchievements = Array.isArray(merged.achievementsUnlocked)
@@ -101,14 +278,48 @@ function applyStateSnapshot(snapshot) {
         : [];
 
     Object.assign(gameState, merged, {
+        fields: fieldsShape.fields,
+        ownedFieldIds: fieldsShape.ownedFieldIds,
+        activeFieldId: fieldsShape.activeFieldId,
+        nextFieldNumber: fieldsShape.nextFieldNumber,
         plotStates: normalizedPlotStates,
         achievementsUnlocked: normalizedAchievements,
     });
+
+    if (!Number(gameState.nextFieldCost) || gameState.nextFieldCost < 1) {
+        gameState.nextFieldCost = progressionConfig.storeEconomy.fieldPurchase.baseCost;
+    }
+
+    syncLegacyActiveField(gameState);
 }
 
 function updateState(updates) {
     Object.assign(gameState, updates);
+    const fieldsShape = ensureFieldsStateShape(gameState);
+    gameState.fields = fieldsShape.fields;
+    gameState.ownedFieldIds = fieldsShape.ownedFieldIds;
+    gameState.activeFieldId = fieldsShape.activeFieldId;
+    gameState.nextFieldNumber = fieldsShape.nextFieldNumber;
+
+    reconcileFieldPlotTimers(gameState.fields);
+    syncLegacyActiveField(gameState);
+
     savePartialSnapshot({ gameState: getStateSnapshot() });
+}
+
+function getActiveField() {
+    return getActiveFieldFromState(gameState);
+}
+
+function reconcileAllFieldsProgress() {
+    const fieldsShape = ensureFieldsStateShape(gameState);
+    gameState.fields = fieldsShape.fields;
+    gameState.ownedFieldIds = fieldsShape.ownedFieldIds;
+    gameState.activeFieldId = fieldsShape.activeFieldId;
+    gameState.nextFieldNumber = fieldsShape.nextFieldNumber;
+
+    reconcileFieldPlotTimers(gameState.fields);
+    syncLegacyActiveField(gameState);
 }
 
 function incrementTotalClicks() {
@@ -120,4 +331,14 @@ function logGameState() {
     console.log('Game State:', gameState);
 }
 
-export { getState, getStateSnapshot, applyStateSnapshot, updateState, logGameState, gameState, incrementTotalClicks };
+export {
+    getState,
+    getStateSnapshot,
+    applyStateSnapshot,
+    updateState,
+    logGameState,
+    gameState,
+    incrementTotalClicks,
+    getActiveField,
+    reconcileAllFieldsProgress,
+};

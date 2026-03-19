@@ -19,6 +19,10 @@ const progressionConfig = {
             corn: 60,
             tomato: 220,
         },
+        fieldsBySpendAndFirstFieldPlots: {
+            coinsSpent: 100000,
+            firstFieldRequiredPlots: 81,
+        },
         upgradeSections: {
             waterUpgradesByWaterRefills: 4,
             clickUpgradesByCoinsEarned: 20,
@@ -62,6 +66,10 @@ const progressionConfig = {
                 minDurationMs: 250,
                 maxDurationMs: 30000,
             },
+        },
+        fieldPurchase: {
+            baseCost: 1000,
+            costIncreasePerField: 1000,
         },
     },
     upgradesEconomy: {

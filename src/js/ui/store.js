@@ -69,7 +69,7 @@ import { getState, } from "../state.js";
 import { buySeed, buyWater, buyPlot, sellCrops, buyBulkSeeds, sellBulkCrops, 
          buyWheatSeeds, buyCornSeeds, buyTomatoSeeds,
          sellWheat, sellCorn, sellTomato,
-         buyBulkSeedPack, sellBulkCropPack, buyBulkWaterRefill } from "../handlers/storeHandlers.js";
+         buyBulkSeedPack, sellBulkCropPack, buyBulkWaterRefill, buyNewField } from "../handlers/storeHandlers.js";
 
 function initializeStoreTitle() {
     // Store Title as a Button
@@ -297,6 +297,27 @@ function initializeStore() {
         buyPlotCost.setAttribute('id', 'plot-cost');
         buyPlotCost.textContent = `${getStoreValues().plotCost} coin(s)`;
         buyPlotSection.appendChild(buyPlotCost);
+
+    // Additional Field Purchasing (unlockable)
+        const buyFieldSection = document.createElement('section');
+        buyFieldSection.classList.add('item-title');
+        buyFieldSection.id = 'buyFieldSection';
+        buyFieldSection.textContent = 'Buy New Field';
+        buyFieldSection.setAttribute('aria-label', 'Buy New Field Title');
+        buyFieldSection.style.display = gameState.fieldStoreUnlocked ? 'flex' : 'none';
+        fieldExpansionSection.appendChild(buyFieldSection);
+
+        const buyFieldButton = document.createElement('button');
+        buyFieldButton.classList.add('store-button');
+        buyFieldButton.textContent = '1x';
+        buyFieldButton.onclick = buyNewField;
+        buyFieldSection.appendChild(buyFieldButton);
+
+        const buyFieldCost = document.createElement('span');
+        buyFieldCost.classList.add('item-price');
+        buyFieldCost.id = 'buy-field-cost';
+        buyFieldCost.textContent = `${Math.max(1, Number(gameState.nextFieldCost) || storeEconomy.fieldPurchase.baseCost)} coins`;
+        buyFieldSection.appendChild(buyFieldCost);
 
     // Append sections to store
     buyItemsTitle.appendChild(buyItemsSection);

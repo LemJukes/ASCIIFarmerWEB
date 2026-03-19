@@ -2,8 +2,8 @@
 import { initializeCurrencyBarTitle, initializeCurrencyBar } from './ui/currency.js'
 import { clearSnapshot, loadSnapshot } from './persistence.js';
 import { wrapSectionsInMacWindows } from './ui/macWindow.js';
-import { applyStateSnapshot } from './state.js';
-import { initializeField, initializeFieldTitle, updateField } from './ui/field.js';
+import { applyStateSnapshot, reconcileAllFieldsProgress } from './state.js';
+import { initializeField, initializeFieldTitle, updateField, refreshFieldTitlebarControl } from './ui/field.js';
 import { applyStoreValuesSnapshot, initializeStore, initializeStoreTitle } from './ui/store.js';
 import { applyUpgradeValuesSnapshot } from './ui/upgrades.js';
 import { initializeToolbox, initializeToolboxTitle, selectTool, selectSeedType } from './ui/toolbox.js';
@@ -103,6 +103,8 @@ document.addEventListener('DOMContentLoaded', () => {
         applyUpgradeValuesSnapshot(snapshot.upgradeValues);
     }
 
+    reconcileAllFieldsProgress();
+
     initializeCurrencyBarTitle();
     initializeCurrencyBar();
     initializeToolboxTitle();
@@ -117,5 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeKeyboardShortcuts();
     trackAchievements();
     wrapSectionsInMacWindows();
+    refreshFieldTitlebarControl();
 
 });
