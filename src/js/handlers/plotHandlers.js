@@ -6,6 +6,7 @@ import { progressionConfig } from '../../configs/progressionConfig.js';
 import { playPlotBubbleForState, playAdjacentBubbleForState } from '../ui/sfx.js';
 import { updateClicksDisplay } from '../ui/clicks.js';
 import { updateToolboxDisplay } from '../ui/toolbox.js';
+import { showNotification } from '../ui/macNotifications.js';
 import { TOOLS, WATERING_SYMBOLS, HARVEST_SYMBOLS, getRequiredToolForSymbol } from '../../configs/toolConfig.js';
 
 const GRID_WIDTH = 9;
@@ -166,7 +167,7 @@ function resolveToolSelection(currentSymbol, showFailureAlert) {
 
     if (!canAutoChange) {
         if (showFailureAlert) {
-            alert(getWrongToolMessage(currentSymbol));
+            showNotification(getWrongToolMessage(currentSymbol), 'Tool Required');
         }
 
         return {
@@ -178,7 +179,7 @@ function resolveToolSelection(currentSymbol, showFailureAlert) {
 
     if (upgradeValues.toolAutoChangerCharges < 1) {
         if (showFailureAlert) {
-            alert(OUT_OF_CHARGES_MESSAGE);
+            showNotification(OUT_OF_CHARGES_MESSAGE, 'Upgrades');
         }
 
         return {
@@ -248,7 +249,7 @@ function handlePlotClick(plot, plotIndex) {
             const selectedSeedInventoryKey = getSeedInventoryKey(selectedSeedType);
 
             if (gameState[selectedSeedInventoryKey] < 1) {
-                alert(`Not enough ${selectedSeedType} seeds!`);
+                showNotification(`Not enough ${selectedSeedType} seeds!`, 'Store');
                 return;
             }
             
@@ -292,7 +293,7 @@ function handlePlotClick(plot, plotIndex) {
 
                 didChange = true;
             } else {
-                alert("Not enough water!");
+                showNotification('Not enough water!', 'Water');
             }
             break;
             
@@ -316,7 +317,7 @@ function handlePlotClick(plot, plotIndex) {
                 // Update generic crops count for backward compatibility
                 updateState({ crops: gameState.crops + 1 });
             } else {
-                alert('Harvest missed! Select the Scythe to guarantee harvests.');
+                showNotification('Harvest missed! Select the Scythe to guarantee harvests.', 'Harvest');
             }
             
             // Reset plot
@@ -589,4 +590,4 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
     updateCurrencyBar();
 }
 
-export { handlePlotClick };
+export { handlePlotClick, getPlotDisabledTime };

@@ -1,8 +1,13 @@
 // ./ui/field.js
 import { getState, updateState, reconcileAllFieldsProgress } from "../state.js";
 import { handlePlotClick } from '../handlers/plotHandlers.js'; 
+import { getPlotDisabledTime } from '../handlers/plotHandlers.js';
 
 const TITLEBAR_SELECT_ID = 'field-title-select';
+const FIELD_SUBTITLE_ID = 'field-subtitlebar';
+const FIELD_SUBTITLE_PLOTS_ID = 'field-subtitle-plots';
+const FIELD_SUBTITLE_SELECTOR_ID = 'field-subtitle-selector';
+const FIELD_SUBTITLE_FALLOW_ID = 'field-subtitle-fallow';
 
 function getActiveFieldFromSnapshot(gameState) {
     if (!gameState?.fields || !gameState?.activeFieldId) {
@@ -77,23 +82,85 @@ function refreshFieldTitlebarControl() {
         return;
     }
 
+    titleContainer.textContent = 'The Field';
+    refreshFieldSubtitlebarControl(fieldWindow);
+}
+
+function formatFallowSeconds(durationMs) {
+    const seconds = Math.max(0, Number(durationMs) || 0) / 1000;
+    return `${seconds.toFixed(1)}s`;
+}
+
+function getOrCreateSubtitleElement(fieldWindow) {
+    let subtitleBar = fieldWindow.querySelector(`#${FIELD_SUBTITLE_ID}`);
+    if (!subtitleBar) {
+        subtitleBar = document.createElement('div');
+        subtitleBar.id = FIELD_SUBTITLE_ID;
+        subtitleBar.classList.add('mac-subtitlebar');
+
+        const plotsDisplay = document.createElement('span');
+        plotsDisplay.id = FIELD_SUBTITLE_PLOTS_ID;
+        plotsDisplay.classList.add('mac-subtitle-value', 'mac-subtitle-left');
+
+        const selectorSlot = document.createElement('div');
+        selectorSlot.id = FIELD_SUBTITLE_SELECTOR_ID;
+        selectorSlot.classList.add('mac-subtitle-center');
+
+        const fallowDisplay = document.createElement('span');
+        fallowDisplay.id = FIELD_SUBTITLE_FALLOW_ID;
+        fallowDisplay.classList.add('mac-subtitle-value', 'mac-subtitle-right');
+
+        subtitleBar.appendChild(plotsDisplay);
+        subtitleBar.appendChild(selectorSlot);
+        subtitleBar.appendChild(fallowDisplay);
+
+        const titlebar = fieldWindow.querySelector('.mac-titlebar');
+        if (!titlebar || !titlebar.parentElement) {
+            return null;
+        }
+
+        titlebar.insertAdjacentElement('afterend', subtitleBar);
+    }
+
+    return subtitleBar;
+}
+
+function refreshFieldSubtitlebarControl(fieldWindow) {
     const gameState = getState();
     const ownedFieldIds = Array.isArray(gameState.ownedFieldIds) ? gameState.ownedFieldIds : [];
-
-    if (ownedFieldIds.length < 2) {
-        titleContainer.textContent = 'The Field';
+    const activeField = getActiveFieldFromSnapshot(gameState);
+    if (!activeField) {
         return;
     }
 
-    titleContainer.textContent = '';
-    const existingSelect = titleContainer.querySelector(`#${TITLEBAR_SELECT_ID}`);
-    if (existingSelect) {
-        existingSelect.remove();
+    const subtitleBar = getOrCreateSubtitleElement(fieldWindow);
+    if (!subtitleBar) {
+        return;
+    }
+
+    const plotsDisplay = subtitleBar.querySelector(`#${FIELD_SUBTITLE_PLOTS_ID}`);
+    const selectorSlot = subtitleBar.querySelector(`#${FIELD_SUBTITLE_SELECTOR_ID}`);
+    const fallowDisplay = subtitleBar.querySelector(`#${FIELD_SUBTITLE_FALLOW_ID}`);
+    if (!plotsDisplay || !selectorSlot || !fallowDisplay) {
+        return;
+    }
+
+    plotsDisplay.textContent = `Plots: ${activeField.plots}`;
+    fallowDisplay.textContent = `Fallow: ${formatFallowSeconds(getPlotDisabledTime(activeField.plots))}`;
+
+    selectorSlot.textContent = '';
+
+    if (ownedFieldIds.length < 2) {
+        const singleFieldLabel = document.createElement('span');
+        singleFieldLabel.classList.add('mac-subtitle-center-label');
+        singleFieldLabel.textContent = activeField.name || gameState.activeFieldId;
+        selectorSlot.appendChild(singleFieldLabel);
+        return;
     }
 
     const fieldSelect = document.createElement('select');
     fieldSelect.id = TITLEBAR_SELECT_ID;
-    fieldSelect.classList.add('store-button');
+    fieldSelect.classList.add('store-button', 'field-subtitle-select');
     fieldSelect.setAttribute('aria-label', 'Select Active Field');
 
     ownedFieldIds.forEach((fieldId) => {
@@ -117,7 +184,7 @@ function refreshFieldTitlebarControl() {
         switchToField(selectedFieldId);
     });
 
-    titleContainer.appendChild(fieldSelect);
+    selectorSlot.appendChild(fieldSelect);
 }
 
 function initializeFieldTitle() {

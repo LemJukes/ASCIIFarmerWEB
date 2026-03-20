@@ -8,6 +8,7 @@ import { applyStoreValuesSnapshot, initializeStore, initializeStoreTitle } from 
 import { applyUpgradeValuesSnapshot } from './ui/upgrades.js';
 import { initializeToolbox, initializeToolboxTitle, selectTool, selectSeedType } from './ui/toolbox.js';
 import { initializeClicksDisplay } from './ui/clicks.js';
+import { showConfirmation } from './ui/macNotifications.js';
 import { trackAchievements } from './handlers/achievementHandlers.js';
 
 function initializeResetSaveButton() {
@@ -18,13 +19,13 @@ function initializeResetSaveButton() {
     resetSaveButton.setAttribute('aria-label', 'Reset Save Data');
 
     resetSaveButton.addEventListener('click', () => {
-        const confirmed = window.confirm('Delete save data and reload the page?');
-        if (!confirmed) {
-            return;
-        }
-
-        clearSnapshot();
-        window.location.reload();
+        showConfirmation('Delete save data and reload the page?', {
+            title: 'Reset Save',
+            onConfirm: () => {
+                clearSnapshot();
+                window.location.reload();
+            },
+        });
     });
 
     document.body.appendChild(resetSaveButton);

@@ -9,6 +9,7 @@ import {
     renderClickUpgradesSection,
 } from "../ui/upgrades.js";
 import { updateClicksDisplay } from "../ui/clicks.js";
+import { showNotification } from "../ui/macNotifications.js";
 import { progressionConfig } from "../../configs/progressionConfig.js";
 
 function finalizeClickUpgradeInteraction() {
@@ -23,7 +24,7 @@ function buyToolAutoChangerChargePack(amount, cost) {
     const upgradeValues = getUpgradeValues();
 
     if (gameState.coins < cost) {
-        alert('Not enough coins for this upgrade.');
+        showNotification('Not enough coins for this upgrade.', 'Upgrades');
         return;
     }
 
@@ -58,7 +59,7 @@ function buyWaterCapacityUpgrade() {
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
-        alert('Not enough coins for this upgrade.');
+        showNotification('Not enough coins for this upgrade.', 'Upgrades');
     }
 }
 
@@ -78,7 +79,7 @@ function buyExpandedClickUpgrade(level) {
     const upgradeCost = upgradeValues[costKey];
 
     if (!upgradeValues[unlockedKey]) {
-        alert(`Expanded Click Mk.${level} is still locked.`);
+        showNotification(`Expanded Click Mk.${level} is still locked.`, 'Upgrades');
         return;
     }
 
@@ -94,7 +95,7 @@ function buyExpandedClickUpgrade(level) {
         console.log(`Expanded Click Mk.${level} Upgrade Purchased`);
         finalizeClickUpgradeInteraction();
     } else {
-        alert('Not enough coins for this upgrade.');
+        showNotification('Not enough coins for this upgrade.', 'Upgrades');
     }
 }
 
@@ -127,7 +128,7 @@ function buyToolAutoChangerUpgrade() {
     const upgradeValues = getUpgradeValues();
 
     if (gameState.coins < upgradeValues.toolAutoChangerCost) {
-        alert('Not enough coins for this upgrade.');
+        showNotification('Not enough coins for this upgrade.', 'Upgrades');
         return;
     }
 

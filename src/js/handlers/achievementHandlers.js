@@ -2,6 +2,7 @@ import { getState, updateState } from "../state.js";
 import { progressionConfig, getAchievementValues as getProgressionAchievementValues } from "../../configs/progressionConfig.js";
 import { addBulkSeedButton, addBulkCropSaleButton, addBulkWaterRefillButton } from "../ui/store.js";
 import { wrapInMacWindow } from "../ui/macWindow.js";
+import { showNotification } from "../ui/macNotifications.js";
 import {
     initializeUpgradesTitle,
     initializeUpgrades,
@@ -18,7 +19,7 @@ function getAchievementValues() {
 }
 
 function announceAchievementUnlock(message) {
-    alert(message);
+    showNotification(message, 'Achievement');
 }
 
 function unlockAchievement(achievementId, message) {

@@ -12,6 +12,7 @@ import { trackAchievements,
         } from "./achievementHandlers.js";
 import { updateClicksDisplay } from "../ui/clicks.js";
 import { progressionConfig } from "../../configs/progressionConfig.js";
+import { showNotification } from "../ui/macNotifications.js";
 
 
 // Purchasing Handlers
@@ -243,7 +244,7 @@ function buyPlot() {
     } else if (gameState.coins < plotCost) {
         console.log("Not enough coins to buy a plot");
     } else if (plots >= maxPlots) {
-        alert("Field is full, cannot buy more plots");
+        showNotification('Field is full, cannot buy more plots', 'Field');
         console.log("Field is full, cannot buy more plots");
     }
 }
