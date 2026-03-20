@@ -9,6 +9,7 @@ import { applyUpgradeValuesSnapshot } from './ui/upgrades.js';
 import { initializeToolbox, initializeToolboxTitle, selectTool, selectSeedType } from './ui/toolbox.js';
 import { initializeClicksDisplay } from './ui/clicks.js';
 import { showConfirmation } from './ui/macNotifications.js';
+import { showWelcomeMessage } from './ui/welcomeMessage.js';
 import { trackAchievements } from './handlers/achievementHandlers.js';
 
 function initializeResetSaveButton() {
@@ -122,4 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
     wrapSectionsInMacWindows();
     refreshFieldTitlebarControl();
 
+    if (!snapshot) {
+        showWelcomeMessage();
+    }
 });

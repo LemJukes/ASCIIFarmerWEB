@@ -735,6 +735,31 @@ body.light {
     margin: 0;
 }
 
+.mac-welcome-window {
+    width: min(560px, 96vw);
+}
+
+.mac-welcome-body {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.mac-welcome-sprite {
+    width: 64px;
+    height: auto;
+    image-rendering: pixelated;
+    flex-shrink: 0;
+}
+
+.mac-welcome-message {
+    margin: 0;
+    white-space: pre-wrap;
+    font-size: 0.85em;
+    line-height: 1.5;
+}
+
 .mac-dialog-content {
     padding: 12px;
 }
@@ -889,7 +914,8 @@ body.light {
         background: #000;
     }
 
-    body:not(.light) .mac-notification-overlay {
+    body:not(.light) .mac-notification-overlay,
+    body:not(.light) .mac-welcome-overlay {
         background: rgba(0, 0, 0, 0.6);
     }
 
@@ -939,7 +965,8 @@ body.dark .mac-subtitlebar {
     background: #000;
 }
 
-body.dark .mac-notification-overlay {
+body.dark .mac-notification-overlay,
+body.dark .mac-welcome-overlay {
     background: rgba(0, 0, 0, 0.6);
 }
 

@@ -29,7 +29,7 @@ function buySeed() {
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
-        console.log("Not enough coins to buy seeds");
+        showNotification('Not enough coins to buy seeds!', 'Store');
     }
 }
 
@@ -57,7 +57,7 @@ function buyBulkSeeds(event) {
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
-        console.log("Not enough coins to buy bulk seeds");
+        showNotification('Not enough coins to buy bulk seeds!', 'Store');
     }
 }
 
@@ -86,34 +86,29 @@ function buyWaterRefill({ amount, cost, gameState }) {
     const refillAmount = Math.max(1, Number(amount) || 1);
     const refillCost = Math.max(0, Number(cost) || 0);
 
-    // Check if the player's water is already at capacity
-    if (gameState.water >= gameState.waterCapacity) {
-        console.log("Water is already at capacity. You cannot purchase more water.");
+    if (gameState.coins < refillCost) {
+        showNotification('Not enough coins to buy water!', 'Store');
         return;
     }
 
-    // Check if the player has enough coins to buy water
-    if (gameState.coins >= refillCost) {
-        // Calculate the new water level, ensuring it does not exceed the water capacity
-        const newWaterLevel = Math.min(gameState.water + refillAmount, gameState.waterCapacity);
-        
-        updateState({
-            coins: gameState.coins - refillCost,
-            water: newWaterLevel,
-            totalCoinsSpent: gameState.totalCoinsSpent + refillCost,
-        });
-
-        // Increment waterRefillsPurchased and check for achievement
-        updateWaterRefillsPurchased();
-
-        // Track achievements and update the UI
-        trackAchievements();
-        updateCurrencyBar();
-        incrementTotalClicks();
-        updateClicksDisplay();
-    } else {
-        console.log("Not enough coins to buy water");
+    if (gameState.water >= gameState.waterCapacity) {
+        showNotification('Water supply is already full!', 'Store');
+        return;
     }
+
+    const newWaterLevel = Math.min(gameState.water + refillAmount, gameState.waterCapacity);
+
+    updateState({
+        coins: gameState.coins - refillCost,
+        water: newWaterLevel,
+        totalCoinsSpent: gameState.totalCoinsSpent + refillCost,
+    });
+
+    updateWaterRefillsPurchased();
+    trackAchievements();
+    updateCurrencyBar();
+    incrementTotalClicks();
+    updateClicksDisplay();
 }
 
 function buyBulkSeedPack(cropType, quantity, totalCost) {
@@ -143,7 +138,7 @@ function buyBulkSeedPack(cropType, quantity, totalCost) {
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
-        console.log(`Not enough coins to buy ${cropType} seed pack`);
+        showNotification(`Not enough coins to buy ${cropType} seeds!`, 'Store');
     }
 }
 
@@ -177,7 +172,7 @@ function sellBulkCropPack(cropType, quantity, payout) {
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
-        console.log(`Not enough ${cropType} to sell bulk`);
+           showNotification(`Not enough ${cropType} to sell!`, 'Store');
     }
 }
 
@@ -242,7 +237,7 @@ function buyPlot() {
         incrementTotalClicks();
         updateClicksDisplay();
     } else if (gameState.coins < plotCost) {
-        console.log("Not enough coins to buy a plot");
+        showNotification('Not enough coins to buy a plot!', 'Store');
     } else if (plots >= maxPlots) {
         showNotification('Field is full, cannot buy more plots', 'Field');
         console.log("Field is full, cannot buy more plots");
@@ -260,7 +255,7 @@ function buyNewField() {
 
     const fieldCost = Math.max(1, Number(gameState.nextFieldCost) || purchaseConfig.baseCost);
     if (gameState.coins < fieldCost) {
-        console.log("Not enough coins to buy a new field");
+        showNotification('Not enough coins to buy a new field!', 'Store');
         return;
     }
 
@@ -335,7 +330,7 @@ function sellCrops() {
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
-        console.log("No crops available to sell");  // Log a message if no crops are available
+           showNotification('No crops to sell!', 'Store');
     }
 }
 
@@ -364,7 +359,7 @@ function sellBulkCrops(event) {
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
-        console.log("Not enough crops to sell");
+           showNotification('Not enough crops to sell!', 'Store');
     }
 }
 
@@ -383,7 +378,7 @@ function buyWheatSeeds() {
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
-        console.log("Not enough coins to buy wheat seeds");
+        showNotification('Not enough coins to buy wheat seeds!', 'Store');
     }
 }
 
@@ -401,7 +396,7 @@ function buyCornSeeds() {
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
-        console.log("Not enough coins to buy corn seeds");
+        showNotification('Not enough coins to buy corn seeds!', 'Store');
     }
 }
 
@@ -419,7 +414,7 @@ function buyTomatoSeeds() {
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
-        console.log("Not enough coins to buy tomato seeds");
+        showNotification('Not enough coins to buy tomato seeds!', 'Store');
     }
 }
 
@@ -439,7 +434,7 @@ function sellWheat() {
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
-        console.log("No wheat available to sell");
+           showNotification('No wheat to sell!', 'Store');
     }
 }
 
@@ -458,7 +453,7 @@ function sellCorn() {
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
-        console.log("No corn available to sell");
+           showNotification('No corn to sell!', 'Store');
     }
 }
 
@@ -477,7 +472,7 @@ function sellTomato() {
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
-        console.log("No tomatoes available to sell");
+           showNotification('No tomatoes to sell!', 'Store');
     }
 }
 
