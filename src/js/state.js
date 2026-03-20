@@ -187,7 +187,7 @@ const initialGameState = {
     plotDisableCoefficient: 1.15, // Coefficient used to calculate plot disable time
     plotStates: [], // Backward-compatible mirror of active field plot states
     fields: {
-        [DEFAULT_FIELD_ID]: createDefaultField({ id: DEFAULT_FIELD_ID, name: 'Field 1', plots: 81 }),
+        [DEFAULT_FIELD_ID]: createDefaultField({ id: DEFAULT_FIELD_ID, name: 'Field 1', plots: 1 }),
     },
     ownedFieldIds: [DEFAULT_FIELD_ID],
     activeFieldId: DEFAULT_FIELD_ID,
