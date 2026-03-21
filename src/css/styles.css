@@ -907,6 +907,13 @@ body.light {
     font-size: 0.8em;
 }
 
+.keybinds-actions-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
 .mac-button-group {
     display: flex;
     justify-content: flex-end;

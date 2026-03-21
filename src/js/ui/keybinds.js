@@ -222,6 +222,14 @@ export function createKeybindsWindowContent() {
     error.className = 'keybinds-error';
     error.hidden = true;
 
+    const actionsRow = document.createElement('div');
+    actionsRow.className = 'keybinds-actions-row';
+
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'mac-button';
+    resetBtn.type = 'button';
+    resetBtn.textContent = 'Reset Keybinds';
+
     const buttonGroup = document.createElement('div');
     buttonGroup.className = 'mac-button-group';
 
@@ -236,12 +244,14 @@ export function createKeybindsWindowContent() {
     okBtn.textContent = 'OK';
 
     buttonGroup.append(cancelBtn, okBtn);
-    content.append(list, error, buttonGroup);
+    actionsRow.append(resetBtn, buttonGroup);
+    content.append(list, error, actionsRow);
 
     return {
         content,
         list,
         error,
+        resetBtn,
         cancelBtn,
         okBtn,
     };
@@ -267,6 +277,19 @@ function hydrateInputsFromActiveKeybinds() {
         const inputEl = document.getElementById(`keybind-input-${action.id}`);
         if (inputEl) {
             inputEl.value = normalizeKeybind(activeKeybinds[action.id]);
+        }
+    });
+}
+
+function hydrateInputsFromDefaultKeybinds() {
+    if (!keybindInputsContainer) {
+        return;
+    }
+
+    KEYBIND_ACTIONS.forEach((action) => {
+        const inputEl = document.getElementById(`keybind-input-${action.id}`);
+        if (inputEl) {
+            inputEl.value = normalizeKeybind(DEFAULT_KEYBINDS[action.id]);
         }
     });
 }
@@ -319,9 +342,14 @@ function ensureKeybindsWindow() {
         hideKeybindsWindow();
     });
 
-    const { content, list, error, cancelBtn, okBtn } = createKeybindsWindowContent();
+    const { content, list, error, resetBtn, cancelBtn, okBtn } = createKeybindsWindowContent();
     keybindInputsContainer = list;
     keybindErrorEl = error;
+
+    resetBtn.addEventListener('click', () => {
+        hydrateInputsFromDefaultKeybinds();
+        setError('');
+    });
 
     cancelBtn.addEventListener('click', () => {
         hideKeybindsWindow();
