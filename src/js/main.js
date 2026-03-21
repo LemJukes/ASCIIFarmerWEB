@@ -11,6 +11,7 @@ import { initializeClicksDisplay } from './ui/clicks.js';
 import { showConfirmation } from './ui/macNotifications.js';
 import { showWelcomeMessage } from './ui/welcomeMessage.js';
 import { trackAchievements } from './handlers/achievementHandlers.js';
+import { getBoundActionForKey } from './ui/keybinds.js';
 
 function initializeResetSaveButton() {
     const resetSaveButton = document.createElement('button');
@@ -42,19 +43,6 @@ function isEditableElement(element) {
 }
 
 function initializeKeyboardShortcuts() {
-    const toolShortcutMap = {
-        a: 'Plow',
-        s: 'Seed Bag',
-        d: 'Watering Can',
-        f: 'Scythe',
-    };
-
-    const seedShortcutMap = {
-        z: 'wheat',
-        x: 'corn',
-        c: 'tomato',
-    };
-
     document.addEventListener('keydown', (event) => {
         if (event.altKey || event.ctrlKey || event.metaKey) {
             return;
@@ -64,28 +52,29 @@ function initializeKeyboardShortcuts() {
             return;
         }
 
-        const pressedKey = event.key.toLowerCase();
-        const mappedTool = toolShortcutMap[pressedKey];
-
-        if (mappedTool) {
-            event.preventDefault();
-            selectTool(mappedTool);
+        const boundAction = getBoundActionForKey(event.key);
+        if (!boundAction) {
             return;
         }
 
-        const mappedSeed = seedShortcutMap[pressedKey];
-        if (mappedSeed) {
+        if (boundAction.type === 'tool') {
             event.preventDefault();
-            selectSeedType(mappedSeed);
+            selectTool(boundAction.value);
             return;
         }
 
-        if (!/^[0-9]$/.test(pressedKey)) {
+        if (boundAction.type === 'seed') {
+            event.preventDefault();
+            selectSeedType(boundAction.value);
+            return;
+        }
+
+        if (boundAction.type !== 'plot') {
             return;
         }
 
         const plotButtons = document.querySelectorAll('.plotButton');
-        const plotIndex = pressedKey === '0' ? 9 : Number(pressedKey) - 1;
+        const plotIndex = boundAction.value;
         const targetPlotButton = plotButtons[plotIndex];
 
         if (!targetPlotButton || targetPlotButton.disabled) {

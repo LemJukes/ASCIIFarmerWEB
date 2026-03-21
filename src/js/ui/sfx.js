@@ -26,9 +26,20 @@ const MAIN_STATE_VOLUME = {
 const ADJACENT_MULTIPLIER = 0.35;
 const MIN_ADJACENT_VOLUME = 0.04;
 const MAX_VOLUME = 1;
+const AUDIO_STORAGE_KEY = 'audioEnabled';
 
 let shuffleBag = [];
 let audioEnabled = true;
+
+function initializeAudioPreference() {
+    const storedAudioPreference = localStorage.getItem(AUDIO_STORAGE_KEY);
+    if (storedAudioPreference === 'false') {
+        audioEnabled = false;
+        return;
+    }
+
+    audioEnabled = true;
+}
 
 function shuffleArray(values) {
     for (let i = values.length - 1; i > 0; i--) {
@@ -71,6 +82,7 @@ function playBubbleWithVolume(volume) {
 
     audio.play().catch(() => {
         audioEnabled = false;
+        localStorage.setItem(AUDIO_STORAGE_KEY, 'false');
     });
 }
 
@@ -82,4 +94,20 @@ function playAdjacentBubbleForState(symbol) {
     playBubbleWithVolume(getAdjacentVolumeForState(symbol));
 }
 
-export { playPlotBubbleForState, playAdjacentBubbleForState };
+function isAudioEnabled() {
+    return audioEnabled;
+}
+
+function setAudioEnabled(enabled) {
+    audioEnabled = Boolean(enabled);
+    localStorage.setItem(AUDIO_STORAGE_KEY, audioEnabled ? 'true' : 'false');
+    return audioEnabled;
+}
+
+function toggleAudioEnabled() {
+    return setAudioEnabled(!audioEnabled);
+}
+
+initializeAudioPreference();
+
+export { playPlotBubbleForState, playAdjacentBubbleForState, isAudioEnabled, setAudioEnabled, toggleAudioEnabled };

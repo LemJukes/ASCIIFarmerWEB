@@ -461,6 +461,26 @@ main {
 
 .dark-mode-toggle {
     font-size: 2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.options-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+#keybinds-toggle {
+    line-height: 1;
+}
+
+.dark-mode-toggle img {
+    width: 2em;
+    height: 2em;
+    display: block;
 }
 
 /* Smooth crossfade for all elements that change color in dark mode */
@@ -481,6 +501,10 @@ body,
 .click-upgrade-group-title,
 .clicks-display,
 .mac-window,
+.mac-subtitlebar,
+.mac-subtitle-value,
+.mac-subtitle-center-label,
+.field-subtitle-select,
 .mac-close-btn,
 .mac-zoom-btn {
     transition: background 5s ease, color 5s ease, border-color 5s ease;
@@ -665,7 +689,28 @@ body.light {
         #fff 1px,
         #fff 2px
     );
-    transition: background 5s ease, border-color 5s ease;
+    transition: border-color 5s ease;
+}
+
+.mac-titlebar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        to bottom,
+        #fff 0px,
+        #fff 1px,
+        #000 1px,
+        #000 2px
+    );
+    opacity: 0;
+    transition: opacity 5s ease;
+    pointer-events: none;
+}
+
+.mac-titlebar > * {
+    position: relative;
+    z-index: 1;
 }
 
 /* Title text — white pill floats absolutely centered over the full-width pinstripes */
@@ -726,6 +771,13 @@ body.light {
     width: 100%;
 }
 
+#mac-window-options .mac-content-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
 .mac-notification-overlay {
     position: fixed;
     inset: 0;
@@ -782,6 +834,79 @@ body.light {
     line-height: 1.5;
 }
 
+.keybinds-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.65);
+    z-index: 1900;
+}
+
+.keybinds-overlay--visible {
+    display: flex;
+}
+
+.keybinds-window {
+    width: min(560px, 96vw);
+    margin: 0;
+}
+
+.keybinds-dialog-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.keybinds-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+}
+
+.keybinds-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.keybinds-action {
+    text-align: left;
+    font-size: 0.85em;
+    line-height: 1.2;
+}
+
+.keybinds-equals {
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+.keybinds-input {
+    width: 52px;
+    text-align: center;
+    font: inherit;
+    border: 1.5px solid #000;
+    background: #fff;
+    color: #000;
+    padding: 2px 4px;
+}
+
+.keybinds-input:focus-visible {
+    outline: 1px dotted #000;
+    outline-offset: 1px;
+}
+
+.keybinds-error {
+    margin: 0;
+    text-align: left;
+    font-size: 0.8em;
+}
+
 .mac-button-group {
     display: flex;
     justify-content: flex-end;
@@ -823,6 +948,7 @@ body.light {
     background: #fff;
     min-height: 26px;
     box-sizing: border-box;
+    transition: background 5s ease, border-color 5s ease, color 5s ease;
 }
 
 .mac-subtitle-value {
@@ -901,13 +1027,10 @@ body.light {
 
     body:not(.light) .mac-titlebar {
         border-bottom-color: #fff;
-        background: repeating-linear-gradient(
-            to bottom,
-            #fff 0px,
-            #fff 1px,
-            #000 1px,
-            #000 2px
-        );
+    }
+
+    body:not(.light) .mac-titlebar::before {
+        opacity: 1;
     }
 
     body:not(.light) .mac-title {
@@ -931,7 +1054,17 @@ body.light {
         background: rgba(0, 0, 0, 0.6);
     }
 
+    body:not(.light) .keybinds-overlay {
+        background: rgba(0, 0, 0, 0.6);
+    }
+
     body:not(.light) .mac-button {
+        border-color: #fff;
+        background: #000;
+        color: #fff;
+    }
+
+    body:not(.light) .keybinds-input {
         border-color: #fff;
         background: #000;
         color: #fff;
@@ -939,6 +1072,10 @@ body.light {
 
     body:not(.light) .mac-button:focus-visible,
     body:not(.light) .mac-close-btn:focus-visible {
+        outline-color: #fff;
+    }
+
+    body:not(.light) .keybinds-input:focus-visible {
         outline-color: #fff;
     }
 }
@@ -952,13 +1089,10 @@ body.dark .mac-window {
 
 body.dark .mac-titlebar {
     border-bottom-color: #fff;
-    background: repeating-linear-gradient(
-        to bottom,
-        #fff 0px,
-        #fff 1px,
-        #000 1px,
-        #000 2px
-    );
+}
+
+body.dark .mac-titlebar::before {
+    opacity: 1;
 }
 
 body.dark .mac-title {
@@ -982,7 +1116,17 @@ body.dark .mac-welcome-overlay {
     background: rgba(0, 0, 0, 0.6);
 }
 
+body.dark .keybinds-overlay {
+    background: rgba(0, 0, 0, 0.6);
+}
+
 body.dark .mac-button {
+    border-color: #fff;
+    background: #000;
+    color: #fff;
+}
+
+body.dark .keybinds-input {
     border-color: #fff;
     background: #000;
     color: #fff;
@@ -990,6 +1134,10 @@ body.dark .mac-button {
 
 body.dark .mac-button:focus-visible,
 body.dark .mac-close-btn:focus-visible {
+    outline-color: #fff;
+}
+
+body.dark .keybinds-input:focus-visible {
     outline-color: #fff;
 }
 
@@ -1002,13 +1150,10 @@ body.light .mac-window {
 
 body.light .mac-titlebar {
     border-bottom-color: #000;
-    background: repeating-linear-gradient(
-        to bottom,
-        #000 0px,
-        #000 1px,
-        #fff 1px,
-        #fff 2px
-    );
+}
+
+body.light .mac-titlebar::before {
+    opacity: 0;
 }
 
 body.light .mac-title {

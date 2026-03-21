@@ -1,5 +1,8 @@
 // src/js/darkMode.js
 
+import { isAudioEnabled, toggleAudioEnabled } from './sfx.js';
+import { initializeKeybindsWindow, showKeybindsWindow } from './keybinds.js';
+
 const STORAGE_KEY = 'colorScheme';
 
 function isCurrentlyDark() {
@@ -59,4 +62,50 @@ function initializeDarkModeToggle() {
     });
 }
 
+function updateAudioButtonIcon(btn) {
+    if (isAudioEnabled()) {
+        btn.textContent = '♪';
+        btn.setAttribute('aria-label', 'Turn audio off');
+        return;
+    }
+
+    btn.textContent = '✖';
+    btn.setAttribute('aria-label', 'Turn audio on');
+}
+
+function initializeAudioToggle() {
+    const btn = document.getElementById('audio-toggle');
+    if (!btn) return;
+
+    updateAudioButtonIcon(btn);
+
+    btn.addEventListener('click', () => {
+        toggleAudioEnabled();
+        updateAudioButtonIcon(btn);
+    });
+}
+
+function initializeOptionsWindow() {
+    const win = document.getElementById('mac-window-options');
+    if (!win) return;
+    const closeBtn = win.querySelector('.mac-close-btn');
+    const content = win.querySelector('.mac-content');
+    if (!closeBtn || !content) return;
+    closeBtn.addEventListener('click', () => {
+        const isCollapsed = content.classList.toggle('mac-content--collapsed');
+        win.classList.toggle('mac-window--collapsed', isCollapsed);
+        closeBtn.setAttribute('aria-label', isCollapsed ? 'Expand Options' : 'Collapse Options');
+    });
+
+    const keybindsBtn = document.getElementById('keybinds-toggle');
+    if (keybindsBtn) {
+        keybindsBtn.addEventListener('click', () => {
+            showKeybindsWindow();
+        });
+    }
+}
+
 initializeDarkModeToggle();
+initializeAudioToggle();
+initializeOptionsWindow();
+initializeKeybindsWindow();
