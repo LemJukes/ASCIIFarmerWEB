@@ -75,6 +75,16 @@ main {
 }
 
 /* Currency Bar Styles */
+.currency-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    max-width: 600px;
+    margin: 5px 0;
+}
+
 .currency-bar {
     display: flex;
     flex-wrap: wrap;
@@ -86,7 +96,7 @@ main {
     border: dashed 2.5px #000;    
     gap: 6px;
     box-sizing: border-box;
-    margin: 5px 0;
+    margin: 0;
 }
 
 .currency-item {
@@ -456,6 +466,7 @@ main {
 /* Smooth crossfade for all elements that change color in dark mode */
 body,
 .currency-bar,
+.currency-panel,
 .currency-item span,
 .toolbox-container,
 .toolbox-selected-tool,
@@ -868,6 +879,7 @@ body.light {
 }
 
 /* Strip borders / margins from containers that are now inside a mac-window */
+.mac-window .currency-panel,
 .mac-window .currency-bar,
 .mac-window .toolbox-container,
 .mac-window .field-container,

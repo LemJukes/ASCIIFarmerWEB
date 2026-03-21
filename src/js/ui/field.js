@@ -93,6 +93,8 @@ function formatFallowSeconds(durationMs) {
 
 function getOrCreateSubtitleElement(fieldWindow) {
     let subtitleBar = fieldWindow.querySelector(`#${FIELD_SUBTITLE_ID}`);
+    const macContentInner = fieldWindow.querySelector('.mac-content-inner');
+
     if (!subtitleBar) {
         subtitleBar = document.createElement('div');
         subtitleBar.id = FIELD_SUBTITLE_ID;
@@ -113,7 +115,14 @@ function getOrCreateSubtitleElement(fieldWindow) {
         subtitleBar.appendChild(plotsDisplay);
         subtitleBar.appendChild(selectorSlot);
         subtitleBar.appendChild(fallowDisplay);
+    }
 
+    if (macContentInner) {
+        macContentInner.prepend(subtitleBar);
+        return subtitleBar;
+    }
+
+    if (!subtitleBar.parentElement) {
         const titlebar = fieldWindow.querySelector('.mac-titlebar');
         if (!titlebar || !titlebar.parentElement) {
             return null;
