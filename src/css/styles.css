@@ -74,8 +74,8 @@ main {
     box-sizing: border-box;
 }
 
-/* Currency Bar Styles */
-.currency-panel {
+/* Resource Bar Styles */
+.resource-panel {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -85,7 +85,7 @@ main {
     margin: 5px 0;
 }
 
-.currency-bar {
+.resource-bar {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -99,7 +99,7 @@ main {
     margin: 0;
 }
 
-.currency-item {
+.resource-item {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -111,13 +111,13 @@ main {
     line-height: 1.1;
 }
 
-.currency-item--offset::before {
+.resource-item--offset::before {
     content: "\00a0";
     display: block;
     line-height: 1;
 }
 
-.currency-item span {
+.resource-item span {
     display: block;
     margin-top: 2px;
     padding: 2px 4px;
@@ -128,7 +128,7 @@ main {
     box-sizing: border-box;
 }
 
-.currency-group {
+.resource-group {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -139,12 +139,12 @@ main {
     flex: 1 1 86px;
 }
 
-.currency-group strong {
+.resource-group strong {
     font-size: 0.95em;
     line-height: 1;
 }
 
-.currency-subitem {
+.resource-subitem {
     font-size: 0.85em;
     min-width: 0;
     width: 100%;
@@ -431,18 +431,18 @@ main {
 }
 
 @media screen and (min-width: 768px) {
-    .currency-bar {
+    .resource-bar {
         flex-wrap: nowrap;
         justify-content: space-between;
         gap: 4px;
     }
 
-    .currency-item {
+    .resource-item {
         min-width: 0;
         flex: 1 1 0;
     }
 
-    .currency-group {
+    .resource-group {
         min-width: 0;
         flex: 1 1 0;
     }
@@ -489,9 +489,9 @@ main {
 
 /* Smooth crossfade for all elements that change color in dark mode */
 body,
-.currency-bar,
-.currency-panel,
-.currency-item span,
+.resource-bar,
+.resource-panel,
+.resource-item span,
 .toolbox-container,
 .toolbox-selected-tool,
 .toolbox-selected-seed,
@@ -522,11 +522,11 @@ body,
         color: #fff;
     }
 
-    body:not(.light) .currency-bar {
+    body:not(.light) .resource-bar {
         border-color: #fff;
     }
 
-    body:not(.light) .currency-item span {
+    body:not(.light) .resource-item span {
         background: #000;
         border-color: #fff;
         color: #fff;
@@ -594,11 +594,11 @@ body.dark {
     color: #fff;
 }
 
-body.dark .currency-bar {
+body.dark .resource-bar {
     border-color: #fff;
 }
 
-body.dark .currency-item span {
+body.dark .resource-item span {
     background: #000;
     border-color: #fff;
     color: #fff;
@@ -1016,8 +1016,8 @@ body.light {
 }
 
 /* Strip borders / margins from containers that are now inside a mac-window */
-.mac-window .currency-panel,
-.mac-window .currency-bar,
+.mac-window .resource-panel,
+.mac-window .resource-bar,
 .mac-window .toolbox-container,
 .mac-window .field-container,
 .mac-window .store-container,

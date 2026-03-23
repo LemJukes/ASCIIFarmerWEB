@@ -289,7 +289,7 @@ function checkCropUnlocks(currentState) {
         updateState({ cornUnlocked: true });
         announceAchievementUnlock("Corn unlocked! You can now buy corn seeds.");
         showCornInStore();
-        showCornInCurrency();
+        showCornInResource();
         updateToolboxDisplay();
     }
 
@@ -297,7 +297,7 @@ function checkCropUnlocks(currentState) {
         updateState({ tomatoUnlocked: true });
         announceAchievementUnlock("Tomato unlocked! You can now buy tomato seeds.");
         showTomatoInStore();
-        showTomatoInCurrency();
+        showTomatoInResource();
         updateToolboxDisplay();
     }
 }
@@ -316,14 +316,14 @@ function showTomatoInStore() {
     if (tomatoSellSection) tomatoSellSection.style.display = "flex";
 }
 
-function showCornInCurrency() {
+function showCornInResource() {
     const cornSeeds = document.getElementById("corn-seeds-item");
     const cornCrops = document.getElementById("corn-item");
     if (cornSeeds) cornSeeds.style.display = "flex";
     if (cornCrops) cornCrops.style.display = "flex";
 }
 
-function showTomatoInCurrency() {
+function showTomatoInResource() {
     const tomatoSeeds = document.getElementById("tomato-seeds-item");
     const tomatoCrops = document.getElementById("tomato-item");
     if (tomatoSeeds) tomatoSeeds.style.display = "flex";

@@ -1,5 +1,5 @@
 import { getState, updateState, incrementTotalClicks } from '../state.js';
-import { updateCurrencyBar } from '../ui/currency.js';
+import { updateResourceBar } from '../ui/resource.js';
 import { getUpgradeValues, updateUpgradeValues, renderClickUpgradesSection } from '../ui/upgrades.js';
 import { getCropConfig, getGrowthSymbol } from '../../configs/cropConfig.js';
 import { progressionConfig } from '../../configs/progressionConfig.js';
@@ -379,7 +379,7 @@ function handlePlotClick(plot, plotIndex) {
 
     if (expandedClickActivations.length <= 1) {
         expandedClickActivations.forEach((activateLevel) => activateLevel());
-        updateCurrencyBar();
+        updateResourceBar();
         return;
     }
 
@@ -388,7 +388,7 @@ function handlePlotClick(plot, plotIndex) {
             activateLevel();
 
             if (levelIndex === expandedClickActivations.length - 1) {
-                updateCurrencyBar();
+                updateResourceBar();
             }
         }, levelIndex * EXPANDED_CLICK_LEVEL_DELAY_MS);
     });
@@ -587,7 +587,7 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
 
     // Update the game state with modified plot states
     commitActiveFieldPlotStates(gameState, activeFieldId, plotStates, activeField.plots);
-    updateCurrencyBar();
+    updateResourceBar();
 }
 
 export { handlePlotClick, getPlotDisabledTime };

@@ -155,7 +155,7 @@ function refreshFieldSubtitlebarControl(fieldWindow) {
     }
 
     plotsDisplay.textContent = `Plots: ${activeField.plots}`;
-    fallowDisplay.textContent = `Fallow: ${formatFallowSeconds(getPlotDisabledTime(activeField.plots))}`;
+    fallowDisplay.textContent = `Fallow Period: ${formatFallowSeconds(getPlotDisabledTime(activeField.plots))}`;
 
     selectorSlot.textContent = '';
 

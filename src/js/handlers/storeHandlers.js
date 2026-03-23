@@ -1,7 +1,7 @@
 // handlers/storeHandlers.js
 
 import { getState, updateState, incrementTotalClicks } from "../state.js";
-import { updateCurrencyBar } from "../ui/currency.js";
+import { updateResourceBar } from "../ui/resource.js";
 import { updateField } from "../ui/field.js";
 import { getStoreValues, updateStoreValues } from "../ui/store.js";
 import { updateWaterRefillsPurchased } from "./upgradeHandlers.js";
@@ -25,7 +25,7 @@ function buySeed() {
             seeds: gameState.seeds + 1,
         });
         updateSeedsBought('wheat', 1);
-        updateCurrencyBar();
+        updateResourceBar();
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
@@ -53,7 +53,7 @@ function buyBulkSeeds(event) {
             seeds: gameState.seeds + bulkQuantity,
         });
         updateSeedsBought(bulkQuantity); // Update seedsBought and check achievements
-        updateCurrencyBar();
+        updateResourceBar();
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
@@ -106,7 +106,7 @@ function buyWaterRefill({ amount, cost, gameState }) {
 
     updateWaterRefillsPurchased();
     trackAchievements();
-    updateCurrencyBar();
+    updateResourceBar();
     incrementTotalClicks();
     updateClicksDisplay();
 }
@@ -134,7 +134,7 @@ function buyBulkSeedPack(cropType, quantity, totalCost) {
             totalCoinsSpent: gameState.totalCoinsSpent + packCost,
         });
         updateSeedsBought(cropType, packQuantity);
-        updateCurrencyBar();
+        updateResourceBar();
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
@@ -168,7 +168,7 @@ function sellBulkCropPack(cropType, quantity, payout) {
         updateCoinsEarned(sellPayout);
         updateCropsSold(cropType, sellQuantity);
 
-        updateCurrencyBar();
+        updateResourceBar();
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
@@ -231,7 +231,7 @@ function buyPlot() {
             plotCostLabel.textContent = `${storeValues.plotCost} coin(s)`;
         }
         console.log("Updated plotCost:", storeValues.plotCost);
-        updateCurrencyBar();
+        updateResourceBar();
         updateField();
         trackAchievements();
         incrementTotalClicks();
@@ -307,7 +307,7 @@ function buyNewField() {
         fieldCostLabel.textContent = `${fieldCost + purchaseConfig.costIncreasePerField} coins`;
     }
 
-    updateCurrencyBar();
+    updateResourceBar();
     updateField();
     trackAchievements();
     incrementTotalClicks();
@@ -326,7 +326,7 @@ function sellCrops() {
         });
         updateCoinsEarned(1);
         updateCropsSold('wheat', 1);
-        updateCurrencyBar();  // Refresh the UI to reflect updated currency values
+        updateResourceBar();  // Refresh the UI to reflect updated resource values
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
@@ -355,7 +355,7 @@ function sellBulkCrops(event) {
         });
         updateCoinsEarned(bulkPrice)
         updateCropsSold(bulkQuantity);
-        updateCurrencyBar();
+        updateResourceBar();
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
@@ -374,7 +374,7 @@ function buyWheatSeeds() {
             totalCoinsSpent: gameState.totalCoinsSpent + storeValues.wheatSeedCost,
         });
         updateSeedsBought('wheat', 1);
-        updateCurrencyBar();
+        updateResourceBar();
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
@@ -392,7 +392,7 @@ function buyCornSeeds() {
             totalCoinsSpent: gameState.totalCoinsSpent + storeValues.cornSeedCost,
         });
         updateSeedsBought('corn', 1);
-        updateCurrencyBar();
+        updateResourceBar();
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
@@ -410,7 +410,7 @@ function buyTomatoSeeds() {
             totalCoinsSpent: gameState.totalCoinsSpent + storeValues.tomatoSeedCost,
         });
         updateSeedsBought('tomato', 1);
-        updateCurrencyBar();
+        updateResourceBar();
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
@@ -430,7 +430,7 @@ function sellWheat() {
         });
         updateCoinsEarned(storeValues.wheatPrice);
         updateCropsSold('wheat', 1);
-        updateCurrencyBar();
+        updateResourceBar();
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
@@ -449,7 +449,7 @@ function sellCorn() {
         });
         updateCoinsEarned(storeValues.cornPrice);
         updateCropsSold('corn', 1);
-        updateCurrencyBar();
+        updateResourceBar();
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
@@ -468,7 +468,7 @@ function sellTomato() {
         });
         updateCoinsEarned(storeValues.tomatoPrice);
         updateCropsSold('tomato', 1);
-        updateCurrencyBar();
+        updateResourceBar();
         incrementTotalClicks();
         updateClicksDisplay();
     } else {

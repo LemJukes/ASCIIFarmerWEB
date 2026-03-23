@@ -1,91 +1,91 @@
-// ui/currency.js
+// ui/resource.js
 import { getState, logGameState } from "../state.js";
 import { trackAchievements } from "../handlers/achievementHandlers.js";
 import { getStoreValues, initializeStore } from "./store.js";
 //import { logUpgradeValues } from "./upgrades.js";
 
-function createCurrencyItem(label, value, elementId, ariaLabel, options = {}) {
-    const currencyItem = document.createElement('div');
-    currencyItem.classList.add('currency-item');
+function createResourceItem(label, value, elementId, ariaLabel, options = {}) {
+    const resourceItem = document.createElement('div');
+    resourceItem.classList.add('resource-item');
 
     if (options.offset) {
-        currencyItem.classList.add('currency-item--offset');
+        resourceItem.classList.add('resource-item--offset');
     }
 
     if (options.subitem) {
-        currencyItem.classList.add('currency-subitem');
+        resourceItem.classList.add('resource-subitem');
     }
 
     if (options.itemId) {
-        currencyItem.id = options.itemId;
+        resourceItem.id = options.itemId;
     }
 
     if (options.display) {
-        currencyItem.style.display = options.display;
+        resourceItem.style.display = options.display;
     }
 
-    currencyItem.innerHTML = `${label}:<br> <span id="${elementId}" aria-label="${ariaLabel}">${value}</span>`;
-    return currencyItem;
+    resourceItem.innerHTML = `${label}:<br> <span id="${elementId}" aria-label="${ariaLabel}">${value}</span>`;
+    return resourceItem;
 }
 
-function createCurrencyGroup(title, items) {
-    const currencyGroup = document.createElement('div');
-    currencyGroup.classList.add('currency-group');
-    currencyGroup.innerHTML = `<strong>${title}</strong>`;
+function createResourceGroup(title, items) {
+    const resourceGroup = document.createElement('div');
+    resourceGroup.classList.add('resource-group');
+    resourceGroup.innerHTML = `<strong>${title}</strong>`;
 
     items.forEach((item) => {
-        currencyGroup.appendChild(createCurrencyItem(item.label, item.value, item.elementId, item.ariaLabel, {
+        resourceGroup.appendChild(createResourceItem(item.label, item.value, item.elementId, item.ariaLabel, {
             subitem: true,
             itemId: item.itemId,
             display: item.display,
         }));
     });
 
-    return currencyGroup;
+    return resourceGroup;
 }
 
-function initializeCurrencyBarTitle() {
-    // Currency Bar Title
-    const currencyBarTitle = document.createElement('section');
-    currencyBarTitle.classList.add('container-title');
-    currencyBarTitle.id = 'currency-bar-title';
-    currencyBarTitle.setAttribute('aria-label', 'Currency Bar Title');
-    currencyBarTitle.textContent = 'The Farmer';
+function initializeResourceBarTitle() {
+    // Resource Bar Title
+    const resourceBarTitle = document.createElement('section');
+    resourceBarTitle.classList.add('container-title');
+    resourceBarTitle.id = 'resource-bar-title';
+    resourceBarTitle.setAttribute('aria-label', 'Resource Bar Title');
+    resourceBarTitle.textContent = 'Player Resources';
 
     const mainDiv = document.querySelector('main');
     if (mainDiv) {
-        mainDiv.appendChild(currencyBarTitle);
+        mainDiv.appendChild(resourceBarTitle);
     } else {
         console.error('Main div not found');
     }
 }
 
-function initializeCurrencyBar(){ 
-    // Create the currency bar container
-    const currencyPanel = document.createElement('section');
-    currencyPanel.classList.add('currency-panel');
-    currencyPanel.id = 'currency-bar';
-    currencyPanel.setAttribute('aria-label', 'Currency Bars');
+function initializeResourceBar(){ 
+    // Create the resource bar container
+    const resourcePanel = document.createElement('section');
+    resourcePanel.classList.add('resource-panel');
+    resourcePanel.id = 'resource-bar';
+    resourcePanel.setAttribute('aria-label', 'Resource Bars');
 
-    const primaryCurrencyBar = document.createElement('div');
-    primaryCurrencyBar.classList.add('currency-bar');
-    primaryCurrencyBar.id = 'currency-bar-primary';
-    primaryCurrencyBar.setAttribute('aria-label', 'Primary Currency Bar');
+    const primaryResourceBar = document.createElement('div');
+    primaryResourceBar.classList.add('resource-bar');
+    primaryResourceBar.id = 'resource-bar-primary';
+    primaryResourceBar.setAttribute('aria-label', 'Primary Resource Bar');
 
-    const secondaryCurrencyBar = document.createElement('div');
-    secondaryCurrencyBar.classList.add('currency-bar');
-    secondaryCurrencyBar.id = 'currency-bar-secondary';
-    secondaryCurrencyBar.setAttribute('aria-label', 'Secondary Currency Bar');
+    const secondaryResourceBar = document.createElement('div');
+    secondaryResourceBar.classList.add('resource-bar');
+    secondaryResourceBar.id = 'resource-bar-secondary';
+    secondaryResourceBar.setAttribute('aria-label', 'Secondary Resource Bar');
 
-    const gameState = getState(); // Retrieves the initial player currency values
+    const gameState = getState(); // Retrieves the initial player resource values
     
     // Coins
-    primaryCurrencyBar.appendChild(createCurrencyItem('Coins', gameState.coins, 'coins', 'Player coins', {
+    primaryResourceBar.appendChild(createResourceItem('Coins', gameState.coins, 'coins', 'Player coins', {
         offset: true,
     }));
 
     // Seeds Group
-    secondaryCurrencyBar.appendChild(createCurrencyGroup('Seeds', [
+    secondaryResourceBar.appendChild(createResourceGroup('Seeds', [
         {
             label: 'Wheat',
             value: gameState.wheatSeeds,
@@ -111,15 +111,15 @@ function initializeCurrencyBar(){
     ]));
 
     // Water
-    primaryCurrencyBar.appendChild(createCurrencyItem('Water', gameState.water, 'water', 'Current water', {
+    primaryResourceBar.appendChild(createResourceItem('Water', gameState.water, 'water', 'Current water', {
         offset: true,
     }));
-    primaryCurrencyBar.appendChild(createCurrencyItem('Water Cap', gameState.waterCapacity, 'water-capacity', 'Water capacity', {
+    primaryResourceBar.appendChild(createResourceItem('Water Cap', gameState.waterCapacity, 'water-capacity', 'Water capacity', {
         offset: true,
     }));
 
     // Crops Group
-    secondaryCurrencyBar.appendChild(createCurrencyGroup('Crops', [
+    secondaryResourceBar.appendChild(createResourceGroup('Crops', [
         {
             label: 'Wheat',
             value: gameState.wheat,
@@ -145,18 +145,18 @@ function initializeCurrencyBar(){
         },
     ]));
 
-    currencyPanel.appendChild(primaryCurrencyBar);
-    currencyPanel.appendChild(secondaryCurrencyBar);
+    resourcePanel.appendChild(primaryResourceBar);
+    resourcePanel.appendChild(secondaryResourceBar);
 
     const htmlMain = document.querySelector('main');
-    htmlMain.appendChild(currencyPanel);
+    htmlMain.appendChild(resourcePanel);
 }
 
-function updateCurrencyBar() {
+function updateResourceBar() {
     const gameState = getState();
     const storeValues = getStoreValues();
 
-    // Update the currency values in the UI
+    // Update the resource values in the UI
     document.getElementById('coins').innerText = gameState.coins;
     
     // Update seed counts
@@ -191,4 +191,4 @@ function updatePlotCostDisplay() {
     }
 }
 
-export { initializeCurrencyBarTitle, initializeCurrencyBar, updateCurrencyBar };
+export { initializeResourceBarTitle, initializeResourceBar, updateResourceBar };

@@ -1,5 +1,5 @@
 // main.js
-import { initializeCurrencyBarTitle, initializeCurrencyBar } from './ui/currency.js'
+import { initializeResourceBarTitle, initializeResourceBar } from './ui/resource.js'
 import { clearSnapshot, loadSnapshot } from './persistence.js';
 import { wrapSectionsInMacWindows } from './ui/macWindow.js';
 import { applyStateSnapshot, reconcileAllFieldsProgress } from './state.js';
@@ -96,8 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     reconcileAllFieldsProgress();
 
-    initializeCurrencyBarTitle();
-    initializeCurrencyBar();
+    initializeResourceBarTitle();
+    initializeResourceBar();
     initializeToolboxTitle();
     initializeToolbox();
     initializeFieldTitle();

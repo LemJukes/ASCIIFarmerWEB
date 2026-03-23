@@ -166,7 +166,7 @@ function buildFieldStateSnapshot(fields) {
 }
 
 const initialGameState = {
-    // Player Currency Values
+    // Player Resource Values
     coins: 1,
     seeds: 1, // Generic seeds (kept for backward compatibility)
     crops: 0, // Generic crops (kept for backward compatibility)

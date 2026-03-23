@@ -1,7 +1,7 @@
 // ./handlers/upgradeHandlers.js
 
 import { getState, updateState, incrementTotalClicks } from "../state.js";
-import { updateCurrencyBar } from "../ui/currency.js";
+import { updateResourceBar } from "../ui/resource.js";
 import {
     getUpgradeValues,
     updateUpgradeValues,
@@ -14,7 +14,7 @@ import { progressionConfig } from "../../configs/progressionConfig.js";
 
 function finalizeClickUpgradeInteraction() {
     renderClickUpgradesSection();
-    updateCurrencyBar();
+    updateResourceBar();
     incrementTotalClicks();
     updateClicksDisplay();
 }
@@ -55,7 +55,7 @@ function buyWaterCapacityUpgrade() {
         updateWaterUpgradeButton();
 
         updateState(gameState);
-        updateCurrencyBar();
+        updateResourceBar();
         incrementTotalClicks();
         updateClicksDisplay();
     } else {
