@@ -11,6 +11,7 @@ import {
     updateUpgradeValues,
 } from "../ui/upgrades.js";
 import { updateToolboxDisplay } from "../ui/toolbox.js";
+import { trackQuestUnlocks } from "./questHandlers.js";
 
 const cropTypes = ["wheat", "corn", "tomato"];
 
@@ -167,6 +168,7 @@ function trackAchievements() {
     checkCropsSoldAchievements(gameState);
     checkWaterRefillPurchaseAchievements(gameState);
     checkWaterRefillsAchievementsAndEnableButton(gameState);
+    trackQuestUnlocks(gameState);
 }
 
 function checkFieldStoreUnlock(currentState) {

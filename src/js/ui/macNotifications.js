@@ -39,9 +39,14 @@ function createWindowTitlebar(title, onClose) {
     return titlebar;
 }
 
-function createDialogShell(title, message, onClose) {
+function createDialogShell(title, onClose, options = {}) {
+    const {
+        dialogClassName = '',
+        contentClassName = '',
+    } = options;
+
     const dialog = document.createElement('div');
-    dialog.className = 'mac-window mac-dialog-window';
+    dialog.className = `mac-window mac-dialog-window ${dialogClassName}`.trim();
     dialog.setAttribute('role', 'dialog');
     dialog.setAttribute('aria-modal', 'true');
     dialog.setAttribute('aria-label', title);
@@ -49,20 +54,17 @@ function createDialogShell(title, message, onClose) {
     const titlebar = createWindowTitlebar(title, onClose);
 
     const content = document.createElement('div');
-    content.className = 'mac-dialog-content';
-
-    const messageEl = document.createElement('p');
-    messageEl.className = 'mac-dialog-message';
-    messageEl.textContent = message;
+    content.className = `mac-dialog-content ${contentClassName}`.trim();
 
     const buttonGroup = document.createElement('div');
     buttonGroup.className = 'mac-button-group';
 
-    content.append(messageEl, buttonGroup);
+    content.append(buttonGroup);
     dialog.append(titlebar, content);
 
     return {
         dialog,
+        content,
         buttonGroup,
     };
 }
@@ -89,7 +91,7 @@ function dismissActiveNotification(result) {
     }
 
     if (typeof resolve === 'function') {
-        resolve(Boolean(result));
+        resolve(result);
     }
 
     activeNotification = null;
@@ -110,6 +112,13 @@ function createButton(label, onClick, autofocus = false) {
     return button;
 }
 
+function createMessageElement(message) {
+    const messageEl = document.createElement('p');
+    messageEl.className = 'mac-dialog-message';
+    messageEl.textContent = message;
+    return messageEl;
+}
+
 function showNextNotification() {
     if (activeNotification || notificationQueue.length === 0) {
         return;
@@ -121,12 +130,40 @@ function showNextNotification() {
         title,
         message,
         type,
+        body,
+        buttons,
+        dialogClassName,
+        contentClassName,
+        closeValue,
     } = activeNotification;
 
-    const onClose = () => dismissActiveNotification(type === 'confirmation' ? false : true);
-    const { dialog, buttonGroup } = createDialogShell(title, message, onClose);
+    const onClose = () => dismissActiveNotification(closeValue ?? (type === 'confirmation' ? false : true));
+    const { dialog, content, buttonGroup } = createDialogShell(title, onClose, {
+        dialogClassName,
+        contentClassName,
+    });
 
-    if (type === 'confirmation') {
+    if (body instanceof HTMLElement) {
+        content.prepend(body);
+    } else if (typeof message === 'string' && message.length > 0) {
+        content.prepend(createMessageElement(message));
+    }
+
+    if (Array.isArray(buttons) && buttons.length > 0) {
+        buttons.forEach((buttonConfig, index) => {
+            const button = createButton(
+                buttonConfig.label,
+                () => dismissActiveNotification(buttonConfig.value),
+                Boolean(buttonConfig.autofocus ?? index === 0),
+            );
+
+            if (buttonConfig.className) {
+                button.classList.add(buttonConfig.className);
+            }
+
+            buttonGroup.appendChild(button);
+        });
+    } else if (type === 'confirmation') {
         const cancelBtn = createButton('Cancel', () => dismissActiveNotification(false));
         const okBtn = createButton('OK', () => dismissActiveNotification(true), true);
         buttonGroup.append(cancelBtn, okBtn);
@@ -170,6 +207,32 @@ export function showConfirmation(message, options = {}) {
             message,
             onConfirm,
             onCancel,
+            resolve,
+        });
+    });
+}
+
+export function showDialog(options = {}) {
+    const {
+        title = 'Notification',
+        message = '',
+        body = null,
+        buttons = null,
+        dialogClassName = '',
+        contentClassName = '',
+        closeValue = true,
+    } = options;
+
+    return new Promise((resolve) => {
+        enqueueNotification({
+            type: 'custom',
+            title,
+            message,
+            body,
+            buttons,
+            dialogClassName,
+            contentClassName,
+            closeValue,
             resolve,
         });
     });

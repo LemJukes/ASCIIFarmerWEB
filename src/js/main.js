@@ -8,6 +8,7 @@ import { applyStoreValuesSnapshot, initializeStore, initializeStoreTitle } from 
 import { applyUpgradeValuesSnapshot } from './ui/upgrades.js';
 import { initializeToolbox, initializeToolboxTitle, selectTool, selectSeedType } from './ui/toolbox.js';
 import { initializeClicksDisplay } from './ui/clicks.js';
+import { initializeQuests, initializeQuestsTitle, refreshQuestWindow } from './ui/quests.js';
 import { showConfirmation } from './ui/macNotifications.js';
 import { showWelcomeMessage } from './ui/welcomeMessage.js';
 import { trackAchievements } from './handlers/achievementHandlers.js';
@@ -104,6 +105,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeField();
     updateField();
     startFieldTimerSync();
+    initializeQuestsTitle();
+    initializeQuests();
     initializeStoreTitle();
     initializeStore();
     initializeResetSaveButton();
@@ -112,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     trackAchievements();
     wrapSectionsInMacWindows();
     refreshFieldTitlebarControl();
+    refreshQuestWindow();
 
     if (!snapshot) {
         showWelcomeMessage();

@@ -23,6 +23,31 @@ function normalizeGameStartedAt(value, fallback = Date.now()) {
     return Number(fallback) || Date.now();
 }
 
+function normalizeStringArray(value) {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return [...new Set(value.filter((entry) => typeof entry === 'string' && entry.length > 0))];
+}
+
+function normalizeQuestProgress(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return {};
+    }
+
+    const normalizedProgress = {};
+    Object.entries(value).forEach(([questId, progress]) => {
+        if (!questId || !progress || typeof progress !== 'object' || Array.isArray(progress)) {
+            return;
+        }
+
+        normalizedProgress[questId] = { ...progress };
+    });
+
+    return normalizedProgress;
+}
+
 function createDefaultField({ id, name, plots }) {
     return {
         id,
@@ -176,7 +201,7 @@ function buildFieldStateSnapshot(fields) {
 
 const initialGameState = {
     // Player Resource Values
-    coins: 1,
+    coins: 100,
     seeds: 1, // Generic seeds (kept for backward compatibility)
     crops: 0, // Generic crops (kept for backward compatibility)
     water: 10,
@@ -209,8 +234,8 @@ const initialGameState = {
     tomatoUnlocked: false, // Tomato unlock threshold is defined in progressionConfig.unlocks.cropsByTotalCoinsEarned.tomato
 
     // Game Progress Information
-    totalCoinsSpent: 0,       // Total coins spent on seeds, upgrades, and other purchases
-    totalCoinsEarned: 0,      // Total number of coins the player has earned throughout the game
+    totalCoinsSpent: 250,       // Total coins spent on seeds, upgrades, and other purchases
+    totalCoinsEarned: 250,      // Total number of coins the player has earned throughout the game
     cropsSold: 0,             // Total number of crops sold by the player (all types combined)
     wheatSold: 0,             // Total wheat sold
     cornSold: 0,              // Total corn sold
@@ -223,6 +248,13 @@ const initialGameState = {
     totalClicksClicked: 0,    // Total number of successful button clicks
     totalPlayTimeMs: 0,       // Accumulated play time in ms from all previous sessions
     gameStartedAt: Date.now(), // Timestamp for when this game/save started
+
+    // Quest Values
+    questsUnlocked: [],
+    questsActive: [],
+    questsCompleted: [],
+    questProgress: {},
+    totalCoinsFromQuests: 0,
 
     // Upgrade Values
     // Water Upgrade Values:
@@ -259,6 +291,10 @@ function getStateSnapshot() {
         achievementsUnlocked: Array.isArray(gameState.achievementsUnlocked)
             ? [...gameState.achievementsUnlocked]
             : [],
+        questsUnlocked: normalizeStringArray(gameState.questsUnlocked),
+        questsActive: normalizeStringArray(gameState.questsActive),
+        questsCompleted: normalizeStringArray(gameState.questsCompleted),
+        questProgress: normalizeQuestProgress(gameState.questProgress),
     };
 }
 
@@ -289,6 +325,10 @@ function applyStateSnapshot(snapshot) {
     const normalizedAchievements = Array.isArray(merged.achievementsUnlocked)
         ? [...merged.achievementsUnlocked]
         : [];
+    const normalizedQuestsUnlocked = normalizeStringArray(merged.questsUnlocked);
+    const normalizedQuestsActive = normalizeStringArray(merged.questsActive);
+    const normalizedQuestsCompleted = normalizeStringArray(merged.questsCompleted);
+    const normalizedQuestProgress = normalizeQuestProgress(merged.questProgress);
 
     Object.assign(gameState, merged, {
         fields: fieldsShape.fields,
@@ -297,6 +337,10 @@ function applyStateSnapshot(snapshot) {
         nextFieldNumber: fieldsShape.nextFieldNumber,
         plotStates: normalizedPlotStates,
         achievementsUnlocked: normalizedAchievements,
+        questsUnlocked: normalizedQuestsUnlocked,
+        questsActive: normalizedQuestsActive,
+        questsCompleted: normalizedQuestsCompleted,
+        questProgress: normalizedQuestProgress,
     });
 
     gameState.gameStartedAt = normalizeGameStartedAt(gameState.gameStartedAt);
