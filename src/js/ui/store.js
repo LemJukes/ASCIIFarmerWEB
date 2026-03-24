@@ -1,6 +1,6 @@
 // ./ui/store.js.
 import { savePartialSnapshot } from "../persistence.js";
-import { progressionConfig } from "../../configs/progressionConfig.js";
+import { progressionConfig } from "../configs/progressionConfig.js";
 
 const { storeEconomy, bulkTiers } = progressionConfig;
 

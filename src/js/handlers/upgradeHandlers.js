@@ -10,7 +10,7 @@ import {
 } from "../ui/upgrades.js";
 import { updateClicksDisplay } from "../ui/clicks.js";
 import { showNotification } from "../ui/macNotifications.js";
-import { progressionConfig } from "../../configs/progressionConfig.js";
+import { progressionConfig } from "../configs/progressionConfig.js";
 
 function finalizeClickUpgradeInteraction() {
     renderClickUpgradesSection();

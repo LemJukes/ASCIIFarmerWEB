@@ -1,6 +1,6 @@
 //state.js
 import { savePartialSnapshot, loadSnapshot } from "./persistence.js";
-import { progressionConfig } from "../configs/progressionConfig.js";
+import { progressionConfig } from "./configs/progressionConfig.js";
 
 const DEFAULT_FIELD_ID = 'field-1';
 

@@ -3,7 +3,7 @@
 import { savePartialSnapshot } from "../persistence.js";
 import { incrementTotalClicks } from "../state.js";
 import { updateClicksDisplay } from "./clicks.js";
-import { progressionConfig } from "../../configs/progressionConfig.js";
+import { progressionConfig } from "../configs/progressionConfig.js";
 import {
     buyWaterCapacityUpgrade,
     buyExpandedClickUpgradeMk1,

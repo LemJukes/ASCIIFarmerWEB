@@ -1,4 +1,4 @@
-import { DEFAULT_KEYBINDS, KEYBIND_ACTIONS, KEYBINDS_STORAGE_KEY } from '../../configs/keybindsConfig.js';
+import { DEFAULT_KEYBINDS, KEYBIND_ACTIONS, KEYBINDS_STORAGE_KEY } from '../configs/keybindsConfig.js';
 import { showNotification } from './macNotifications.js';
 
 let activeKeybinds = loadKeybinds();

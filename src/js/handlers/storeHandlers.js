@@ -11,7 +11,7 @@ import { trackAchievements,
          updateCoinsEarned,
         } from "./achievementHandlers.js";
 import { updateClicksDisplay } from "../ui/clicks.js";
-import { progressionConfig } from "../../configs/progressionConfig.js";
+import { progressionConfig } from "../configs/progressionConfig.js";
 import { showNotification } from "../ui/macNotifications.js";
 
 

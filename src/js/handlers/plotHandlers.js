@@ -1,13 +1,13 @@
 import { getState, updateState, incrementTotalClicks } from '../state.js';
 import { updateResourceBar } from '../ui/resource.js';
 import { getUpgradeValues, updateUpgradeValues, renderClickUpgradesSection } from '../ui/upgrades.js';
-import { getCropConfig, getGrowthSymbol } from '../../configs/cropConfig.js';
-import { progressionConfig } from '../../configs/progressionConfig.js';
+import { getCropConfig, getGrowthSymbol } from '../configs/cropConfig.js';
+import { progressionConfig } from '../configs/progressionConfig.js';
 import { playPlotBubbleForState, playAdjacentBubbleForState } from '../ui/sfx.js';
 import { updateClicksDisplay } from '../ui/clicks.js';
 import { updateToolboxDisplay } from '../ui/toolbox.js';
 import { showNotification } from '../ui/macNotifications.js';
-import { TOOLS, WATERING_SYMBOLS, HARVEST_SYMBOLS, getRequiredToolForSymbol } from '../../configs/toolConfig.js';
+import { TOOLS, WATERING_SYMBOLS, HARVEST_SYMBOLS, getRequiredToolForSymbol } from '../configs/toolConfig.js';
 
 const GRID_WIDTH = 9;
 const OUT_OF_CHARGES_MESSAGE = 'Auto-Changer is out of charges. Buy more charges in Upgrades.';
