@@ -32,9 +32,6 @@
     </main>
 
     <footer>
-        <p>by <a class="plain-text-link" href="https://jukeltd.com">Juke LTD.</a></p>
-                <p><a class="plain-text-link" href="./attributions.html">Attributions &amp; Disclaimers</a></p>
-  <!--      <p>&copy; 2024 ASCII Farmer. All rights reserved.</p> -->
         <div class="mac-window" id="mac-window-options">
             <div class="mac-titlebar">
                 <button class="mac-close-btn" aria-label="Collapse Options" type="button" title="Collapse Options"></button>
@@ -44,13 +41,27 @@
             <div class="mac-content" id="options-content">
                 <div class="mac-content-inner">
                     <div class="options-toggle-row">
-                        <button id="dark-mode-toggle" class="dark-mode-toggle" aria-label="Switch to dark mode">&#x263D;</button>
+                        <button id="dark-mode-toggle" class="dark-mode-toggle" aria-label="Switch to dark mode" title="Switch to dark mode">&#x263D;</button>
                         <button id="keybinds-toggle" class="dark-mode-toggle" aria-label="Open keybind settings" title="Edit keybinds">⇄</button>
                         <button id="audio-toggle" class="dark-mode-toggle" aria-label="Turn audio off" title="Toggle audio">♪</button>
+                        <button id="reset-save-button" class="dark-mode-toggle reset-save-button" aria-label="Reset save data" title="Reset Save">↺</button>
                     </div>
                 </div>
             </div>
         </div>
+        <div class="mac-window" id="mac-window-stats">
+            <div class="mac-titlebar">
+                <button class="mac-close-btn" aria-label="Collapse Stats" type="button" title="Collapse Stats"></button>
+                <span class="mac-title">Stats</span>
+                <button class="mac-zoom-btn" aria-hidden="true" tabindex="-1" type="button"></button>
+            </div>
+            <div class="mac-content" id="stats-content">
+                <div class="mac-content-inner" id="stats-content-inner"></div>
+            </div>
+        </div>
+        <p>by <a class="plain-text-link" href="https://jukeltd.com">Juke LTD.</a></p>
+        <p><a class="plain-text-link" href="./attributions.html">Attributions &amp; Disclaimers</a></p>
+  <!--      <p>&copy; 2024 ASCII Farmer. All rights reserved.</p> -->
     </footer>
 
     <script type="module" src="./src/js/main.js"></script>

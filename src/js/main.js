@@ -3,7 +3,7 @@ import { initializeResourceBarTitle, initializeResourceBar } from './ui/resource
 import { clearSnapshot, loadSnapshot } from './persistence.js';
 import { wrapSectionsInMacWindows } from './ui/macWindow.js';
 import { applyStateSnapshot, reconcileAllFieldsProgress } from './state.js';
-import { initializeField, initializeFieldTitle, updateField, refreshFieldTitlebarControl } from './ui/field.js';
+import { initializeField, initializeFieldTitle, updateField, refreshFieldTitlebarControl, startFieldTimerSync } from './ui/field.js';
 import { applyStoreValuesSnapshot, initializeStore, initializeStoreTitle } from './ui/store.js';
 import { applyUpgradeValuesSnapshot } from './ui/upgrades.js';
 import { initializeToolbox, initializeToolboxTitle, selectTool, selectSeedType } from './ui/toolbox.js';
@@ -14,10 +14,12 @@ import { trackAchievements } from './handlers/achievementHandlers.js';
 import { getBoundActionForKey } from './ui/keybinds.js';
 
 function initializeResetSaveButton() {
-    const resetSaveButton = document.createElement('button');
-    resetSaveButton.id = 'reset-save-button';
-    resetSaveButton.classList.add('reset-save-button');
-    resetSaveButton.textContent = 'Reset Save';
+    const resetSaveButton = document.getElementById('reset-save-button');
+    if (!resetSaveButton) {
+        return;
+    }
+
+    resetSaveButton.textContent = '↺';
     resetSaveButton.setAttribute('aria-label', 'Reset Save Data');
 
     resetSaveButton.addEventListener('click', () => {
@@ -29,8 +31,6 @@ function initializeResetSaveButton() {
             },
         });
     });
-
-    document.body.appendChild(resetSaveButton);
 }
 
 function isEditableElement(element) {
@@ -103,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeFieldTitle();
     initializeField();
     updateField();
+    startFieldTimerSync();
     initializeStoreTitle();
     initializeStore();
     initializeResetSaveButton();

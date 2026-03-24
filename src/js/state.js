@@ -1,5 +1,5 @@
 //state.js
-import { savePartialSnapshot } from "./persistence.js";
+import { savePartialSnapshot, loadSnapshot } from "./persistence.js";
 import { progressionConfig } from "../configs/progressionConfig.js";
 
 const DEFAULT_FIELD_ID = 'field-1';
@@ -12,6 +12,15 @@ function normalizePlotState(plot) {
         disabledUntil: Number(plot?.disabledUntil) || 0,
         lastUpdatedAt: Number(plot?.lastUpdatedAt) || Date.now(),
     };
+}
+
+function normalizeGameStartedAt(value, fallback = Date.now()) {
+    const parsedValue = Number(value);
+    if (Number.isFinite(parsedValue) && parsedValue > 0) {
+        return parsedValue;
+    }
+
+    return Number(fallback) || Date.now();
 }
 
 function createDefaultField({ id, name, plots }) {
@@ -212,6 +221,8 @@ const initialGameState = {
     tomatoSeedsBought: 0,     // Total tomato seeds bought
     waterRefillsPurchased: 0, // Total number of times the player has clicked the water refil button
     totalClicksClicked: 0,    // Total number of successful button clicks
+    totalPlayTimeMs: 0,       // Accumulated play time in ms from all previous sessions
+    gameStartedAt: Date.now(), // Timestamp for when this game/save started
 
     // Upgrade Values
     // Water Upgrade Values:
@@ -224,6 +235,8 @@ const initialGameState = {
     achievementsUnlocked: [],   // Array to store the achievements the player has unlocked
 
 }
+
+let _sessionStartedAt = Date.now();
 
 const gameState = { ...initialGameState };
 
@@ -286,15 +299,33 @@ function applyStateSnapshot(snapshot) {
         achievementsUnlocked: normalizedAchievements,
     });
 
+    gameState.gameStartedAt = normalizeGameStartedAt(gameState.gameStartedAt);
+
     if (!Number(gameState.nextFieldCost) || gameState.nextFieldCost < 1) {
         gameState.nextFieldCost = progressionConfig.storeEconomy.fieldPurchase.baseCost;
     }
 
     syncLegacyActiveField(gameState);
+    _sessionStartedAt = Date.now();
+}
+
+function getPlayTimeMs() {
+    const accumulated = Number(gameState.totalPlayTimeMs) || 0;
+    return accumulated + (Date.now() - _sessionStartedAt);
+}
+
+function flushPlayTime() {
+    if (!loadSnapshot()) {
+        return;
+    }
+
+    updateState({ totalPlayTimeMs: getPlayTimeMs() });
+    _sessionStartedAt = Date.now();
 }
 
 function updateState(updates) {
     Object.assign(gameState, updates);
+    gameState.gameStartedAt = normalizeGameStartedAt(gameState.gameStartedAt);
     const fieldsShape = ensureFieldsStateShape(gameState);
     gameState.fields = fieldsShape.fields;
     gameState.ownedFieldIds = fieldsShape.ownedFieldIds;
@@ -341,4 +372,6 @@ export {
     incrementTotalClicks,
     getActiveField,
     reconcileAllFieldsProgress,
+    getPlayTimeMs,
+    flushPlayTime,
 };

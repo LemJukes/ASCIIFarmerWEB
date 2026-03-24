@@ -2,12 +2,16 @@
 import { getState, updateState, reconcileAllFieldsProgress } from "../state.js";
 import { handlePlotClick } from '../handlers/plotHandlers.js'; 
 import { getPlotDisabledTime } from '../handlers/plotHandlers.js';
+import { syncPlotButtonPresentation } from '../handlers/plotHandlers.js';
 
 const TITLEBAR_SELECT_ID = 'field-title-select';
 const FIELD_SUBTITLE_ID = 'field-subtitlebar';
 const FIELD_SUBTITLE_PLOTS_ID = 'field-subtitle-plots';
 const FIELD_SUBTITLE_SELECTOR_ID = 'field-subtitle-selector';
 const FIELD_SUBTITLE_FALLOW_ID = 'field-subtitle-fallow';
+const FIELD_TIMER_SYNC_INTERVAL_MS = 200;
+
+let fieldTimerSyncIntervalId = null;
 
 function getActiveFieldFromSnapshot(gameState) {
     if (!gameState?.fields || !gameState?.activeFieldId) {
@@ -251,10 +255,9 @@ function updateField() {
     for (let i = 0; i < plots; i++) {
         const plot = document.createElement('button');
         const plotState = plotStates[i];
-        plot.textContent = plotState.symbol; // Set the text from plot state
-        plot.disabled = Number(plotState.disabledUntil) > now;
         plot.className = 'plotButton'; // Set the class for styling the plot button
         plot.dataset.plotIndex = i; // Store the plot index for reference
+        syncPlotButtonPresentation(plot, plotState, i, now);
         plot.addEventListener('click', () => handlePlotClick(plot, i)); // Pass index to handler
         fieldElement.appendChild(plot); // Append the plot button to the field element
     }
@@ -262,4 +265,45 @@ function updateField() {
     refreshFieldTitlebarControl();
 }
 
-export { initializeFieldTitle, initializeField, updateField, refreshFieldTitlebarControl, switchToField }
+function syncActiveFieldButtons() {
+    reconcileAllFieldsProgress();
+
+    const gameState = getState();
+    const activeField = getActiveFieldFromSnapshot(gameState);
+    if (!activeField || !Array.isArray(activeField.plotStates)) {
+        return;
+    }
+
+    const fieldElement = document.getElementById('field');
+    if (!fieldElement) {
+        return;
+    }
+
+    const plotButtons = fieldElement.querySelectorAll('.plotButton');
+    if (plotButtons.length !== activeField.plots) {
+        updateField();
+        return;
+    }
+
+    const now = Date.now();
+    for (let i = 0; i < plotButtons.length; i++) {
+        const plotButton = plotButtons[i];
+        const plotState = activeField.plotStates[i];
+
+        if (!plotState) {
+            continue;
+        }
+
+        syncPlotButtonPresentation(plotButton, plotState, i, now);
+    }
+}
+
+function startFieldTimerSync() {
+    if (fieldTimerSyncIntervalId !== null) {
+        return;
+    }
+
+    fieldTimerSyncIntervalId = window.setInterval(syncActiveFieldButtons, FIELD_TIMER_SYNC_INTERVAL_MS);
+}
+
+export { initializeFieldTitle, initializeField, updateField, refreshFieldTitlebarControl, switchToField, startFieldTimerSync }

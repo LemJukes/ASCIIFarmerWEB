@@ -15,9 +15,11 @@ function updateButtonIcon(btn) {
     if (isCurrentlyDark()) {
         btn.textContent = '☼';
         btn.setAttribute('aria-label', 'Switch to light mode');
+        btn.setAttribute('title', 'Switch to light mode');
     } else {
         btn.textContent = '☽';
         btn.setAttribute('aria-label', 'Switch to dark mode');
+        btn.setAttribute('title', 'Switch to dark mode');
     }
 }
 
@@ -66,11 +68,13 @@ function updateAudioButtonIcon(btn) {
     if (isAudioEnabled()) {
         btn.textContent = '♪';
         btn.setAttribute('aria-label', 'Turn audio off');
+        btn.setAttribute('title', 'Turn audio off');
         return;
     }
 
     btn.textContent = '✖';
     btn.setAttribute('aria-label', 'Turn audio on');
+    btn.setAttribute('title', 'Turn audio on');
 }
 
 function initializeAudioToggle() {
@@ -105,7 +109,21 @@ function initializeOptionsWindow() {
     }
 }
 
+function initializeStatsWindow() {
+    const win = document.getElementById('mac-window-stats');
+    if (!win) return;
+    const closeBtn = win.querySelector('.mac-close-btn');
+    const content = win.querySelector('.mac-content');
+    if (!closeBtn || !content) return;
+    closeBtn.addEventListener('click', () => {
+        const isCollapsed = content.classList.toggle('mac-content--collapsed');
+        win.classList.toggle('mac-window--collapsed', isCollapsed);
+        closeBtn.setAttribute('aria-label', isCollapsed ? 'Expand Stats' : 'Collapse Stats');
+    });
+}
+
 initializeDarkModeToggle();
 initializeAudioToggle();
 initializeOptionsWindow();
+initializeStatsWindow();
 initializeKeybindsWindow();

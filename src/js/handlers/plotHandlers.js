@@ -149,6 +149,62 @@ function getAutoChangerRequiredTool(currentSymbol) {
     return null;
 }
 
+function getPlotStateLabel(plotState, now = Date.now()) {
+    if (Number(plotState?.disabledUntil) > now) {
+        return 'Fallow';
+    }
+
+    const symbol = plotState?.symbol;
+
+    if (symbol === '~') {
+        return 'Untilled';
+    }
+
+    if (symbol === '=') {
+        return 'Tilled';
+    }
+
+    if (symbol === '.') {
+        return 'Planted';
+    }
+
+    if (symbol === '/' || symbol === '|' || symbol === '\\') {
+        return 'Growing';
+    }
+
+    if (HARVEST_SYMBOLS.includes(symbol)) {
+        return 'Ready to Harvest';
+    }
+
+    return 'Unknown';
+}
+
+function getRequiredToolLabel(plotState, now = Date.now()) {
+    if (Number(plotState?.disabledUntil) > now) {
+        return 'None';
+    }
+
+    return getAutoChangerRequiredTool(plotState?.symbol) || 'None';
+}
+
+function buildPlotHoverText(plotState, plotIndex, now = Date.now()) {
+    const plotNumber = Number(plotIndex) + 1;
+    const plotStateLabel = getPlotStateLabel(plotState, now);
+    const requiredToolLabel = getRequiredToolLabel(plotState, now);
+
+    return `Plot: ${plotNumber}\nState: ${plotStateLabel}\nRequired Tool: ${requiredToolLabel}`;
+}
+
+function syncPlotButtonPresentation(plot, plotState, plotIndex, now = Date.now()) {
+    if (!plot || !plotState) {
+        return;
+    }
+
+    plot.textContent = plotState.symbol;
+    plot.disabled = Number(plotState.disabledUntil) > now;
+    plot.title = buildPlotHoverText(plotState, plotIndex, now);
+}
+
 function resolveToolSelection(currentSymbol, showFailureAlert) {
     const gameState = getState();
     const selectedTool = getSelectedTool(gameState);
@@ -240,7 +296,6 @@ function handlePlotClick(plot, plotIndex) {
             plotState.symbol = '=';
             plotState.disabledUntil = 0;
             plotState.lastUpdatedAt = Date.now();
-            plot.textContent = '=';
             didChange = true;
             break;
             
@@ -260,7 +315,6 @@ function handlePlotClick(plot, plotIndex) {
             plotState.waterCount = 0;
             plotState.disabledUntil = 0;
             plotState.lastUpdatedAt = Date.now();
-            plot.textContent = '.';
             didChange = true;
             break;
             
@@ -281,11 +335,9 @@ function handlePlotClick(plot, plotIndex) {
                 // Check if crop is fully grown (use > not >= to show all growth stages)
                 if (plotState.waterCount > cropConfig.waterStages) {
                     plotState.symbol = cropConfig.symbol; // Show final crop symbol (¥, ₡, or ₮)
-                    plot.textContent = cropConfig.symbol;
                 } else {
                     // Show oscillating growth symbol
                     plotState.symbol = getGrowthSymbol(plotState.waterCount - 1);
-                    plot.textContent = plotState.symbol;
                 }
 
                 plotState.disabledUntil = 0;
@@ -325,12 +377,10 @@ function handlePlotClick(plot, plotIndex) {
             plotState.cropType = null;
             plotState.waterCount = 0;
             plotState.lastUpdatedAt = Date.now();
-            plot.textContent = '~';
             didChange = true;
 
             const disabledTime = getPlotDisabledTime(activeField.plots);
             plotState.disabledUntil = Date.now() + disabledTime;
-            plot.disabled = true;
             break;
             
         default:
@@ -341,6 +391,8 @@ function handlePlotClick(plot, plotIndex) {
     if (!didChange) {
         return;
     }
+
+    syncPlotButtonPresentation(plot, plotState, plotIndex);
 
     playPlotBubbleForState(currentSymbol);
     incrementTotalClicks();
@@ -488,7 +540,6 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
             plotState.symbol = '=';
             plotState.disabledUntil = 0;
             plotState.lastUpdatedAt = Date.now();
-            plot.textContent = '=';
             didChange = true;
             break;
             
@@ -507,7 +558,6 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
             plotState.waterCount = 0;
             plotState.disabledUntil = 0;
             plotState.lastUpdatedAt = Date.now();
-            plot.textContent = '.';
             didChange = true;
             break;
             
@@ -527,11 +577,9 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
                 // Check if crop is fully grown (use > not >= to show all growth stages)
                 if (plotState.waterCount > cropConfig.waterStages) {
                     plotState.symbol = cropConfig.symbol;
-                    plot.textContent = cropConfig.symbol;
                 } else {
                     // Show oscillating growth symbol
                     plotState.symbol = getGrowthSymbol(plotState.waterCount - 1);
-                    plot.textContent = plotState.symbol;
                 }
 
                 plotState.disabledUntil = 0;
@@ -565,12 +613,10 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
             plotState.cropType = null;
             plotState.waterCount = 0;
             plotState.lastUpdatedAt = Date.now();
-            plot.textContent = '~';
             didChange = true;
 
             const disabledTime = getPlotDisabledTime(activeField.plots);
             plotState.disabledUntil = Date.now() + disabledTime;
-            plot.disabled = true;
             break;
             
         default:
@@ -581,6 +627,8 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
         return;
     }
 
+    syncPlotButtonPresentation(plot, plotState, plotIndex);
+
     playAdjacentBubbleForState(currentSymbol);
     incrementTotalClicks();
     updateClicksDisplay();
@@ -590,4 +638,4 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
     updateResourceBar();
 }
 
-export { handlePlotClick, getPlotDisabledTime };
+export { handlePlotClick, getPlotDisabledTime, buildPlotHoverText, syncPlotButtonPresentation };
