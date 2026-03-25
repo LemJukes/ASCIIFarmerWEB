@@ -201,7 +201,7 @@ function buildFieldStateSnapshot(fields) {
 
 const initialGameState = {
     // Player Resource Values
-    coins: 100,
+    coins: 1,
     seeds: 1, // Generic seeds (kept for backward compatibility)
     crops: 0, // Generic crops (kept for backward compatibility)
     water: 10,
@@ -234,8 +234,8 @@ const initialGameState = {
     tomatoUnlocked: false, // Tomato unlock threshold is defined in progressionConfig.unlocks.cropsByTotalCoinsEarned.tomato
 
     // Game Progress Information
-    totalCoinsSpent: 250,       // Total coins spent on seeds, upgrades, and other purchases
-    totalCoinsEarned: 250,      // Total number of coins the player has earned throughout the game
+    totalCoinsSpent: 0,       // Total coins spent on seeds, upgrades, and other purchases
+    totalCoinsEarned: 0,      // Total number of coins the player has earned throughout the game
     cropsSold: 0,             // Total number of crops sold by the player (all types combined)
     wheatSold: 0,             // Total wheat sold
     cornSold: 0,              // Total corn sold
@@ -380,6 +380,7 @@ function updateState(updates) {
     syncLegacyActiveField(gameState);
 
     savePartialSnapshot({ gameState: getStateSnapshot() });
+    document.dispatchEvent(new CustomEvent('stateUpdated'));
 }
 
 function getActiveField() {

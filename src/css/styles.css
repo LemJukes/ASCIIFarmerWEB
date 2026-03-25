@@ -592,6 +592,79 @@ main {
     gap: 8px;
 }
 
+/* ── Achievements Window ───────────────────────────────────────────────────── */
+
+.achievements-display {
+    font: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 6px 10px;
+    background: white;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.achievements-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.achievement-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 0 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid #000;
+    font-size: 0.85em;
+    line-height: 1.4;
+}
+
+.achievement-item:last-child {
+    border-bottom: none;
+}
+
+.achievement-item-title {
+    grid-column: 1;
+    grid-row: 1;
+    font-weight: bold;
+}
+
+.achievement-item-value {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.achievement-item-reward {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.achievements-empty {
+    margin: 0;
+    font-size: 0.85em;
+    text-align: center;
+    padding: 4px 0;
+}
+
+.achievements-footer {
+    margin-top: 6px;
+    padding-top: 5px;
+    border-top: 2px solid #000;
+    font-size: 0.85em;
+    font-weight: bold;
+    text-align: center;
+}
+
 /* Media Queries for larger screens */
 @media screen and (max-width: 767px) {
     .click-upgrade-group {
@@ -674,6 +747,9 @@ body,
 .click-upgrade-group,
 .click-upgrade-group-title,
 .clicks-display,
+.achievements-display,
+.achievement-item,
+.achievements-footer,
 .mac-window,
 .mac-subtitlebar,
 .mac-subtitle-value,
@@ -764,6 +840,19 @@ body,
         border-color: #fff;
         color: #fff;
     }
+
+    body:not(.light) .achievements-display {
+        background: #000;
+        color: #fff;
+    }
+
+    body:not(.light) .achievement-item {
+        border-bottom-color: #fff;
+    }
+
+    body:not(.light) .achievements-footer {
+        border-top-color: #fff;
+    }
 }
 
 /* body.dark — user explicitly chose dark (active even when OS is light) */
@@ -839,6 +928,19 @@ body.dark .clicks-display {
     background: #000;
     border-color: #fff;
     color: #fff;
+}
+
+body.dark .achievements-display {
+    background: #000;
+    color: #fff;
+}
+
+body.dark .achievement-item {
+    border-bottom-color: #fff;
+}
+
+body.dark .achievements-footer {
+    border-top-color: #fff;
 }
 
 /* body.light — user explicitly chose light (overrides OS dark preference) */

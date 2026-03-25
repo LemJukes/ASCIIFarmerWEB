@@ -122,8 +122,22 @@ function initializeStatsWindow() {
     });
 }
 
+function initializeAchievementsWindow() {
+    const win = document.getElementById('mac-window-achievements');
+    if (!win) return;
+    const closeBtn = win.querySelector('.mac-close-btn');
+    const content = win.querySelector('.mac-content');
+    if (!closeBtn || !content) return;
+    closeBtn.addEventListener('click', () => {
+        const isCollapsed = content.classList.toggle('mac-content--collapsed');
+        win.classList.toggle('mac-window--collapsed', isCollapsed);
+        closeBtn.setAttribute('aria-label', isCollapsed ? 'Expand Achievements' : 'Collapse Achievements');
+    });
+}
+
 initializeDarkModeToggle();
 initializeAudioToggle();
 initializeOptionsWindow();
 initializeStatsWindow();
+initializeAchievementsWindow();
 initializeKeybindsWindow();
