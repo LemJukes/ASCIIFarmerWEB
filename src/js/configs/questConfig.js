@@ -5,9 +5,9 @@ const questDefinitions = [
         issuer: 'GigaGrocery Procurement Grid',
         flavorText: `farmr says one of the agri-cyber buying syndicates just forwarded a produce request. GigaGrocery wants a starter assortment for its pilot aisle refresh, and they are willing to pay a premium if you can send the harvest straight to their intake bots.`,
         requirements: {
-            wheat: 5,
-            corn: 5,
-            tomato: 5,
+            wheat: 1,
+            corn: 1,
+            tomato: 1,
         },
         unlockCondition: {
             type: 'cropsSold',
@@ -26,7 +26,7 @@ const questDefinitions = [
         id: 'root-66-diner-classics-run',
         name: 'Root 66 Diner Classics Run',
         issuer: 'Root 66 Diner',
-        flavorText: `farmr says Root 66 Diner just sent over a starter ticket for all access to all the classics. They need a little of everything for the lunch rush, and they will pay premium rates if the produce goes straight from your field to their prep line.`,
+        flavorText: `farmr says Root 66 Diner just sent over a starter ticket for all access to all the classics. They need a some of everything for the lunch rush, and they will pay premium rates if the produce goes straight from your field to their prep line.`,
         requirements: {
             wheat: 5,
             corn: 5,

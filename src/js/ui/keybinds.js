@@ -1,8 +1,9 @@
-import { DEFAULT_KEYBINDS, KEYBIND_ACTIONS, KEYBINDS_STORAGE_KEY } from '../configs/keybindsConfig.js';
+import { DEFAULT_KEYBINDS, KEYBIND_ACTIONS, KEYBINDS_STORAGE_KEY, DEFAULT_PLOT_MAPPINGS, PLOT_KEY_ACTIONS, PLOT_MAPPINGS_STORAGE_KEY } from '../configs/keybindsConfig.js';
 import { showNotification } from './macNotifications.js';
 
+let activePlotMappings = loadPlotMappings();
 let activeKeybinds = loadKeybinds();
-let actionByKeyLookup = buildActionByKey(activeKeybinds);
+let actionByKeyLookup = buildActionByKey(activeKeybinds, activePlotMappings);
 let keybindOverlay = null;
 let keybindWindow = null;
 let keybindInputsContainer = null;
@@ -24,6 +25,64 @@ function cloneDefaultKeybinds() {
     return { ...DEFAULT_KEYBINDS };
 }
 
+function cloneDefaultPlotMappings() {
+    return { ...DEFAULT_PLOT_MAPPINGS };
+}
+
+function sanitizePlotMappings(raw) {
+    const sanitized = cloneDefaultPlotMappings();
+
+    if (!raw || typeof raw !== 'object') {
+        return sanitized;
+    }
+
+    PLOT_KEY_ACTIONS.forEach((action) => {
+        const parsed = parseInt(raw[action.id], 10);
+        sanitized[action.id] = Number.isInteger(parsed) && parsed >= 1 ? parsed : action.defaultTargetPlot;
+    });
+
+    return sanitized;
+}
+
+export function loadPlotMappings() {
+    const rawValue = localStorage.getItem(PLOT_MAPPINGS_STORAGE_KEY);
+    if (!rawValue) {
+        return cloneDefaultPlotMappings();
+    }
+
+    try {
+        const parsed = JSON.parse(rawValue);
+        return sanitizePlotMappings(parsed);
+    } catch {
+        return cloneDefaultPlotMappings();
+    }
+}
+
+export function validatePlotMappings(mappingsObject) {
+    for (const action of PLOT_KEY_ACTIONS) {
+        const parsed = parseInt(mappingsObject[action.id], 10);
+        if (!Number.isInteger(parsed) || parsed < 1) {
+            return {
+                ok: false,
+                error: `${action.label}: plot number must be 1 or greater.`,
+            };
+        }
+    }
+    return { ok: true };
+}
+
+export function savePlotMappings(mappingsObject) {
+    const sanitized = sanitizePlotMappings(mappingsObject);
+    localStorage.setItem(PLOT_MAPPINGS_STORAGE_KEY, JSON.stringify(sanitized));
+    activePlotMappings = sanitized;
+    actionByKeyLookup = buildActionByKey(activeKeybinds, activePlotMappings);
+    return { ok: true };
+}
+
+function isDigitKey(value) {
+    return /^[0-9]$/.test(value);
+}
+
 function sanitizeKeybinds(rawKeybinds) {
     const sanitized = cloneDefaultKeybinds();
 
@@ -33,13 +92,15 @@ function sanitizeKeybinds(rawKeybinds) {
 
     KEYBIND_ACTIONS.forEach((action) => {
         const normalized = normalizeKeybind(rawKeybinds[action.id]);
-        sanitized[action.id] = isValidKeybind(normalized) ? normalized : DEFAULT_KEYBINDS[action.id];
+        // Digit keys are reserved for plot navigation; fall back to default if one slips in
+        const valid = isValidKeybind(normalized) && !isDigitKey(normalized);
+        sanitized[action.id] = valid ? normalized : DEFAULT_KEYBINDS[action.id];
     });
 
     return sanitized;
 }
 
-function buildActionByKey(keybinds) {
+function buildActionByKey(keybinds, plotMappings) {
     const lookup = {};
 
     KEYBIND_ACTIONS.forEach((action) => {
@@ -49,6 +110,12 @@ function buildActionByKey(keybinds) {
         }
 
         lookup[boundKey] = action;
+    });
+
+    // Plot keys are permanently fixed (1–0); only the target plot number is configurable.
+    PLOT_KEY_ACTIONS.forEach((action) => {
+        const targetPlot = (plotMappings && plotMappings[action.id]) ?? action.defaultTargetPlot;
+        lookup[action.key] = { id: action.id, type: 'plot', value: targetPlot - 1 };
     });
 
     return lookup;
@@ -64,7 +131,14 @@ export function validateKeybinds(keybindsObject) {
         if (!isValidKeybind(normalized)) {
             return {
                 ok: false,
-                error: `Invalid key for ${action.label}. Use one letter (A-Z) or one number (0-9).`,
+                error: `Invalid key for ${action.label}. Use one letter (A–Z) for each keybind.`,
+            };
+        }
+
+        if (isDigitKey(normalized)) {
+            return {
+                ok: false,
+                error: `Keys 0–9 are reserved for plot navigation and cannot be rebound.`,
             };
         }
 
@@ -108,7 +182,7 @@ export function saveKeybinds(keybindsObject) {
 
     localStorage.setItem(KEYBINDS_STORAGE_KEY, JSON.stringify(sanitized));
     activeKeybinds = sanitized;
-    actionByKeyLookup = buildActionByKey(activeKeybinds);
+    actionByKeyLookup = buildActionByKey(activeKeybinds, activePlotMappings);
     return { ok: true };
 }
 
@@ -147,12 +221,31 @@ export function bindKeyInput(inputEl) {
         event.preventDefault();
 
         const normalized = normalizeKeybind(event.key);
+
+        if (isDigitKey(normalized)) {
+            setError('Keys 0–9 are reserved for plot navigation and cannot be rebound.');
+            return;
+        }
+
         if (!isValidKeybind(normalized)) {
-            setError('Use one letter (A-Z) or one number (0-9) for each keybind.');
+            setError('Use one letter (A–Z) for each keybind.');
             return;
         }
 
         inputEl.value = normalized;
+        setError('');
+    });
+}
+
+function bindPlotNumberInput(inputEl) {
+    if (!inputEl) {
+        return;
+    }
+
+    inputEl.addEventListener('input', () => {
+        // Strip any non-digit characters as the user types
+        const digits = inputEl.value.replace(/\D/g, '');
+        inputEl.value = digits;
         setError('');
     });
 }
@@ -182,42 +275,103 @@ function createTitlebar(onClose) {
     return titlebar;
 }
 
+function buildKeybindRow(action) {
+    const row = document.createElement('li');
+    row.className = 'keybinds-row';
+
+    const label = document.createElement('label');
+    label.className = 'keybinds-action';
+    label.setAttribute('for', `keybind-input-${action.id}`);
+    label.textContent = action.label;
+
+    const equals = document.createElement('span');
+    equals.className = 'keybinds-equals';
+    equals.textContent = '=';
+
+    const input = document.createElement('input');
+    input.className = 'keybinds-input';
+    input.id = `keybind-input-${action.id}`;
+    input.name = action.id;
+    input.type = 'text';
+    input.maxLength = 1;
+    input.readOnly = true;
+    input.setAttribute('autocomplete', 'off');
+    input.setAttribute('aria-label', `${action.label} keybind`);
+    bindKeyInput(input);
+
+    row.append(label, equals, input);
+    return row;
+}
+
+function buildPlotRow(action) {
+    const row = document.createElement('li');
+    row.className = 'keybinds-row';
+
+    const label = document.createElement('label');
+    label.className = 'keybinds-action';
+    label.setAttribute('for', `plot-input-${action.id}`);
+    label.textContent = action.label;
+
+    const equals = document.createElement('span');
+    equals.className = 'keybinds-equals';
+    equals.textContent = '=';
+
+    const input = document.createElement('input');
+    input.className = 'keybinds-input keybinds-input--plot';
+    input.id = `plot-input-${action.id}`;
+    input.name = action.id;
+    input.type = 'text';
+    input.inputMode = 'numeric';
+    input.maxLength = 3;
+    input.setAttribute('autocomplete', 'off');
+    input.setAttribute('aria-label', `${action.label} number`);
+    bindPlotNumberInput(input);
+
+    row.append(label, equals, input);
+    return row;
+}
+
 export function createKeybindsWindowContent() {
     const content = document.createElement('div');
     content.className = 'mac-dialog-content keybinds-dialog-content';
 
+    // --- Tool & seed keybinds section ---
+    const keybindsSection = document.createElement('section');
+    keybindsSection.className = 'keybinds-section';
+
+    const keybindsHeading = document.createElement('h3');
+    keybindsHeading.className = 'keybinds-section-heading';
+    keybindsHeading.textContent = 'Tool & Seed Keys';
+
     const list = document.createElement('ul');
     list.className = 'keybinds-list';
-    list.setAttribute('aria-label', 'Keybind settings');
+    list.setAttribute('aria-label', 'Tool and seed keybind settings');
 
-    KEYBIND_ACTIONS.forEach((action) => {
-        const row = document.createElement('li');
-        row.className = 'keybinds-row';
+    KEYBIND_ACTIONS.forEach((action) => list.appendChild(buildKeybindRow(action)));
 
-        const label = document.createElement('label');
-        label.className = 'keybinds-action';
-        label.setAttribute('for', `keybind-input-${action.id}`);
-        label.textContent = action.label;
+    keybindsSection.append(keybindsHeading, list);
 
-        const equals = document.createElement('span');
-        equals.className = 'keybinds-equals';
-        equals.textContent = '=';
+    // --- Plot navigation section ---
+    const plotSection = document.createElement('section');
+    plotSection.className = 'keybinds-section';
 
-        const input = document.createElement('input');
-        input.className = 'keybinds-input';
-        input.id = `keybind-input-${action.id}`;
-        input.name = action.id;
-        input.type = 'text';
-        input.maxLength = 1;
-        input.readOnly = true;
-        input.setAttribute('autocomplete', 'off');
-        input.setAttribute('aria-label', `${action.label} keybind`);
-        bindKeyInput(input);
+    const plotHeading = document.createElement('h3');
+    plotHeading.className = 'keybinds-section-heading';
+    plotHeading.textContent = 'Plot Navigation Keys';
 
-        row.append(label, equals, input);
-        list.appendChild(row);
-    });
+    const plotDesc = document.createElement('p');
+    plotDesc.className = 'keybinds-section-desc';
+    plotDesc.textContent = 'Keys 0\u20139 are permanently reserved for plot navigation. Edit the number in each row to choose which plot that key will select.';
 
+    const plotList = document.createElement('ul');
+    plotList.className = 'keybinds-list';
+    plotList.setAttribute('aria-label', 'Plot navigation key settings');
+
+    PLOT_KEY_ACTIONS.forEach((action) => plotList.appendChild(buildPlotRow(action)));
+
+    plotSection.append(plotHeading, plotDesc, plotList);
+
+    // --- Footer ---
     const error = document.createElement('p');
     error.className = 'keybinds-error';
     error.hidden = true;
@@ -245,7 +399,7 @@ export function createKeybindsWindowContent() {
 
     buttonGroup.append(cancelBtn, okBtn);
     actionsRow.append(resetBtn, buttonGroup);
-    content.append(list, error, actionsRow);
+    content.append(keybindsSection, plotSection, error, actionsRow);
 
     return {
         content,
@@ -268,6 +422,18 @@ function collectDraftKeybinds() {
     return draft;
 }
 
+function collectDraftPlotMappings() {
+    const draft = cloneDefaultPlotMappings();
+
+    PLOT_KEY_ACTIONS.forEach((action) => {
+        const inputEl = document.getElementById(`plot-input-${action.id}`);
+        const parsed = parseInt(inputEl?.value, 10);
+        draft[action.id] = Number.isInteger(parsed) && parsed >= 1 ? parsed : action.defaultTargetPlot;
+    });
+
+    return draft;
+}
+
 function hydrateInputsFromActiveKeybinds() {
     if (!keybindInputsContainer) {
         return;
@@ -277,6 +443,13 @@ function hydrateInputsFromActiveKeybinds() {
         const inputEl = document.getElementById(`keybind-input-${action.id}`);
         if (inputEl) {
             inputEl.value = normalizeKeybind(activeKeybinds[action.id]);
+        }
+    });
+
+    PLOT_KEY_ACTIONS.forEach((action) => {
+        const inputEl = document.getElementById(`plot-input-${action.id}`);
+        if (inputEl) {
+            inputEl.value = activePlotMappings[action.id] ?? action.defaultTargetPlot;
         }
     });
 }
@@ -290,6 +463,13 @@ function hydrateInputsFromDefaultKeybinds() {
         const inputEl = document.getElementById(`keybind-input-${action.id}`);
         if (inputEl) {
             inputEl.value = normalizeKeybind(DEFAULT_KEYBINDS[action.id]);
+        }
+    });
+
+    PLOT_KEY_ACTIONS.forEach((action) => {
+        const inputEl = document.getElementById(`plot-input-${action.id}`);
+        if (inputEl) {
+            inputEl.value = action.defaultTargetPlot;
         }
     });
 }
@@ -308,8 +488,9 @@ function showKeybindsWindowInternal() {
         return;
     }
 
+    activePlotMappings = loadPlotMappings();
     activeKeybinds = loadKeybinds();
-    actionByKeyLookup = buildActionByKey(activeKeybinds);
+    actionByKeyLookup = buildActionByKey(activeKeybinds, activePlotMappings);
     hydrateInputsFromActiveKeybinds();
     setError('');
 
@@ -357,13 +538,24 @@ function ensureKeybindsWindow() {
 
     okBtn.addEventListener('click', async () => {
         const draft = collectDraftKeybinds();
-        const result = saveKeybinds(draft);
+        const keybindResult = saveKeybinds(draft);
 
-        if (!result.ok) {
-            setError(result.error);
-            await showNotification(result.error, 'Invalid Keybinds');
+        if (!keybindResult.ok) {
+            setError(keybindResult.error);
+            await showNotification(keybindResult.error, 'Invalid Keybinds');
             return;
         }
+
+        const draftPlots = collectDraftPlotMappings();
+        const plotResult = validatePlotMappings(draftPlots);
+
+        if (!plotResult.ok) {
+            setError(plotResult.error);
+            await showNotification(plotResult.error, 'Invalid Plot Number');
+            return;
+        }
+
+        savePlotMappings(draftPlots);
 
         hideKeybindsWindow();
     });
@@ -380,8 +572,9 @@ function ensureKeybindsWindow() {
 }
 
 export function initializeKeybindsWindow() {
+    activePlotMappings = loadPlotMappings();
     activeKeybinds = loadKeybinds();
-    actionByKeyLookup = buildActionByKey(activeKeybinds);
+    actionByKeyLookup = buildActionByKey(activeKeybinds, activePlotMappings);
     ensureKeybindsWindow();
 }
 
