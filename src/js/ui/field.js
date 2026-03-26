@@ -43,6 +43,20 @@ function ensureActiveFieldPlotStates(gameState) {
             waterCount: Number(existing?.waterCount) || 0,
             disabledUntil: Number(existing?.disabledUntil) || 0,
             lastUpdatedAt: Number(existing?.lastUpdatedAt) || Date.now(),
+            destroyed: Boolean(existing?.destroyed),
+            autoFarmer: existing?.autoFarmer && typeof existing.autoFarmer === 'object'
+                ? {
+                    level: Math.max(1, Number(existing.autoFarmer.level) || 1),
+                    tickMs: Math.max(250, Number(existing.autoFarmer.tickMs) || 2500),
+                    lastTickAt: Number(existing.autoFarmer.lastTickAt) || 0,
+                    preferredTargetPlotIndex: Number.isInteger(existing.autoFarmer.preferredTargetPlotIndex)
+                        ? Number(existing.autoFarmer.preferredTargetPlotIndex)
+                        : null,
+                    lastErrorCode: typeof existing.autoFarmer.lastErrorCode === 'string' ? existing.autoFarmer.lastErrorCode : null,
+                    lastErrorMessage: typeof existing.autoFarmer.lastErrorMessage === 'string' ? existing.autoFarmer.lastErrorMessage : '',
+                    flashingUntil: Number(existing.autoFarmer.flashingUntil) || 0,
+                }
+                : null,
         });
     }
 

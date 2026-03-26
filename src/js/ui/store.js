@@ -69,7 +69,8 @@ import { getState, } from "../state.js";
 import { buySeed, buyWater, buyPlot, sellCrops, buyBulkSeeds, sellBulkCrops, 
          buyWheatSeeds, buyCornSeeds, buyTomatoSeeds,
          sellWheat, sellCorn, sellTomato,
-         buyBulkSeedPack, sellBulkCropPack, buyBulkWaterRefill, buyNewField } from "../handlers/storeHandlers.js";
+         buyBulkSeedPack, sellBulkCropPack, buyBulkWaterRefill, buyNewField,
+         buyDestroyPlotAction, buyRestorePlotAction, buyAutoFarmerAction } from "../handlers/storeHandlers.js";
 
 function initializeStoreTitle() {
     // Store Title as a Button
@@ -319,6 +320,67 @@ function initializeStore() {
         buyFieldCost.textContent = `${Math.max(1, Number(gameState.nextFieldCost) || storeEconomy.fieldPurchase.baseCost)} coins`;
         buyFieldSection.appendChild(buyFieldCost);
 
+    // Plot utilities (quest unlockable)
+        const destroyPlotSection = document.createElement('section');
+        destroyPlotSection.classList.add('item-title');
+        destroyPlotSection.id = 'destroyPlotSection';
+        destroyPlotSection.textContent = 'Destroy Plot';
+        destroyPlotSection.setAttribute('aria-label', 'Destroy Plot Title');
+        destroyPlotSection.style.display = gameState.destroyPlotUnlocked ? 'flex' : 'none';
+        fieldExpansionSection.appendChild(destroyPlotSection);
+
+        const destroyPlotButton = document.createElement('button');
+        destroyPlotButton.classList.add('store-button');
+        destroyPlotButton.textContent = 'Select Plot';
+        destroyPlotButton.onclick = buyDestroyPlotAction;
+        destroyPlotSection.appendChild(destroyPlotButton);
+
+        const destroyPlotCost = document.createElement('span');
+        destroyPlotCost.classList.add('item-price');
+        destroyPlotCost.id = 'destroy-plot-cost';
+        destroyPlotCost.textContent = '25 coins';
+        destroyPlotSection.appendChild(destroyPlotCost);
+
+        const restorePlotSection = document.createElement('section');
+        restorePlotSection.classList.add('item-title');
+        restorePlotSection.id = 'restorePlotSection';
+        restorePlotSection.textContent = 'Restore Plot';
+        restorePlotSection.setAttribute('aria-label', 'Restore Plot Title');
+        restorePlotSection.style.display = gameState.restorePlotUnlocked ? 'flex' : 'none';
+        fieldExpansionSection.appendChild(restorePlotSection);
+
+        const restorePlotButton = document.createElement('button');
+        restorePlotButton.classList.add('store-button');
+        restorePlotButton.textContent = 'Select Plot';
+        restorePlotButton.onclick = buyRestorePlotAction;
+        restorePlotSection.appendChild(restorePlotButton);
+
+        const restorePlotCost = document.createElement('span');
+        restorePlotCost.classList.add('item-price');
+        restorePlotCost.id = 'restore-plot-cost';
+        restorePlotCost.textContent = '50 coins';
+        restorePlotSection.appendChild(restorePlotCost);
+
+        const buildAutoFarmerSection = document.createElement('section');
+        buildAutoFarmerSection.classList.add('item-title');
+        buildAutoFarmerSection.id = 'buildAutoFarmerSection';
+        buildAutoFarmerSection.textContent = 'Build AutoFarmer';
+        buildAutoFarmerSection.setAttribute('aria-label', 'Build AutoFarmer Title');
+        buildAutoFarmerSection.style.display = gameState.autoFarmerUnlocked ? 'flex' : 'none';
+        fieldExpansionSection.appendChild(buildAutoFarmerSection);
+
+        const buildAutoFarmerButton = document.createElement('button');
+        buildAutoFarmerButton.classList.add('store-button');
+        buildAutoFarmerButton.textContent = 'Build';
+        buildAutoFarmerButton.onclick = buyAutoFarmerAction;
+        buildAutoFarmerSection.appendChild(buildAutoFarmerButton);
+
+        const buildAutoFarmerCost = document.createElement('span');
+        buildAutoFarmerCost.classList.add('item-price');
+        buildAutoFarmerCost.id = 'build-autofarmer-cost';
+        buildAutoFarmerCost.textContent = `${Math.max(100, Number(gameState.autoFarmerNextCost) || 100)} coins`;
+        buildAutoFarmerSection.appendChild(buildAutoFarmerCost);
+
     // Append sections to store
     buyItemsTitle.appendChild(buyItemsSection);
     playerSellableItemsTitle.appendChild(playerSellableItems);
@@ -330,6 +392,32 @@ function initializeStore() {
         mainDiv.appendChild(store);
     } else {
         console.error('Main div not found');
+    }
+
+    refreshPlotFeatureStoreSections();
+}
+
+function refreshPlotFeatureStoreSections() {
+    const gameState = getState();
+
+    const destroyPlotSection = document.getElementById('destroyPlotSection');
+    if (destroyPlotSection) {
+        destroyPlotSection.style.display = gameState.destroyPlotUnlocked ? 'flex' : 'none';
+    }
+
+    const restorePlotSection = document.getElementById('restorePlotSection');
+    if (restorePlotSection) {
+        restorePlotSection.style.display = gameState.restorePlotUnlocked ? 'flex' : 'none';
+    }
+
+    const autoFarmerSection = document.getElementById('buildAutoFarmerSection');
+    if (autoFarmerSection) {
+        autoFarmerSection.style.display = gameState.autoFarmerUnlocked ? 'flex' : 'none';
+    }
+
+    const autoFarmerCost = document.getElementById('build-autofarmer-cost');
+    if (autoFarmerCost) {
+        autoFarmerCost.textContent = `${Math.max(100, Number(gameState.autoFarmerNextCost) || 100)} coins`;
     }
 }
 
@@ -453,4 +541,5 @@ export { initializeStore,
          updateStoreValues,
          addBulkSeedButton, 
          addBulkCropSaleButton,
-         addBulkWaterRefillButton };
+         addBulkWaterRefillButton,
+         refreshPlotFeatureStoreSections };

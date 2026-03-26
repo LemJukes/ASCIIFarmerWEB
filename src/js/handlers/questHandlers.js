@@ -9,6 +9,12 @@ import { getQuestDefinitions, getQuestDefinitionById } from "../configs/questCon
 const QUESTS_UPDATED_EVENT = 'quests:updated';
 const cropTypes = ['wheat', 'corn', 'tomato'];
 
+const QUEST_REWARD_TYPES = {
+    DOUBLE_SALE_PRICE: 'doubleSalePrice',
+    UNLOCK_DESTROY_RESTORE_PLOT: 'unlockDestroyRestorePlot',
+    UNLOCK_AUTO_FARMER: 'unlockAutoFarmer',
+};
+
 function emitQuestUpdate() {
     document.dispatchEvent(new CustomEvent(QUESTS_UPDATED_EVENT));
 }
@@ -121,6 +127,13 @@ function hasMetUnlockCondition(gameState, quest) {
     const unlockCondition = quest.unlockCondition;
     if (!unlockCondition) {
         return true;
+    }
+
+    if (unlockCondition.requiresQuestCompleted) {
+        const requiredQuestId = unlockCondition.requiresQuestCompleted;
+        if (!isQuestCompleted(gameState, requiredQuestId)) {
+            return false;
+        }
     }
 
     if (unlockCondition.type !== 'cropsSold') {
@@ -242,8 +255,57 @@ function calculateQuestPayout(questId) {
 }
 
 function getRewardSummary(questId) {
+    const quest = getQuestDefinitionById(questId);
+    if (!quest) {
+        return '';
+    }
+
     const payout = calculateQuestPayout(questId);
-    return `${payout} coins total (2x store sale value)`;
+    const payoutText = `${payout} coins total (2x store sale value)`;
+
+    if (quest.reward?.type === QUEST_REWARD_TYPES.DOUBLE_SALE_PRICE) {
+        return payoutText;
+    }
+
+    if (quest.reward?.description) {
+        return `${quest.reward.description} + ${payoutText}`;
+    }
+
+    return payoutText;
+}
+
+function applyQuestReward(quest) {
+    if (!quest?.reward?.type) {
+        return;
+    }
+
+    const gameState = getState();
+    const questId = quest.id;
+    const nextQuestProgress = {
+        ...gameState.questProgress,
+        [questId]: {
+            ...(gameState.questProgress?.[questId] || {}),
+            rewardAppliedAt: Date.now(),
+        },
+    };
+
+    if (quest.reward.type === QUEST_REWARD_TYPES.UNLOCK_DESTROY_RESTORE_PLOT) {
+        updateState({
+            destroyPlotUnlocked: true,
+            restorePlotUnlocked: true,
+            questProgress: nextQuestProgress,
+        });
+        showNotification('Destroy Plot and Restore Plot unlocked in the store.', 'Quest Reward');
+        return;
+    }
+
+    if (quest.reward.type === QUEST_REWARD_TYPES.UNLOCK_AUTO_FARMER) {
+        updateState({
+            autoFarmerUnlocked: true,
+            questProgress: nextQuestProgress,
+        });
+        showNotification('Build AutoFarmer unlocked in the store.', 'Quest Reward');
+    }
 }
 
 function getQuestDisplayData(questId, currentState) {
@@ -312,6 +374,8 @@ function deliverQuest(questId) {
         questsCompleted: [...gameState.questsCompleted, questId],
         questProgress: nextQuestProgress,
     });
+
+    applyQuestReward(quest);
 
     updateResourceBar();
     trackAchievements();

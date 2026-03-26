@@ -137,6 +137,53 @@ const questDefinitions = [
             description: '2x store sale price for each crop delivered',
         },
     },
+    {
+        id: 'plot-reclamation-and-salvage-contract',
+        name: 'Plot Reclamation & Salvage Contract',
+        issuer: 'Urban Grid Reclamation Union',
+        flavorText: `farmr says the reclamation crews need help clearing derelict soil tiles and recovering parts. Deliver a broad harvest and they will authorize your yard crew to safely destroy and restore plot shells.` ,
+        requirements: {
+            wheat: 10,
+            corn: 12,
+            tomato: 10,
+        },
+        unlockCondition: {
+            type: 'cropsSold',
+            requirements: {
+                wheat: 20,
+                corn: 18,
+                tomato: 15,
+            },
+        },
+        reward: {
+            type: 'unlockDestroyRestorePlot',
+            description: 'Unlocks Destroy Plot and Restore Plot in the store',
+        },
+    },
+    {
+        id: 'autofarmer-assembly-license',
+        name: 'AutoFarmer Assembly License',
+        issuer: 'Automata Licensing Bureau',
+        flavorText: `farmr says the bureau approved a provisional assembler test, but only for operators who can keep delivery cadence stable. Complete this shipment and they will issue your Build AutoFarmer permit.` ,
+        requirements: {
+            wheat: 14,
+            corn: 14,
+            tomato: 14,
+        },
+        unlockCondition: {
+            type: 'cropsSold',
+            requiresQuestCompleted: 'plot-reclamation-and-salvage-contract',
+            requirements: {
+                wheat: 28,
+                corn: 24,
+                tomato: 22,
+            },
+        },
+        reward: {
+            type: 'unlockAutoFarmer',
+            description: 'Unlocks Build AutoFarmer in the store',
+        },
+    },
 ];
 
 function getQuestDefinitions() {

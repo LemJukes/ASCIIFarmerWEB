@@ -217,9 +217,20 @@ function initializeWaterUpgradesSection() {
     const waterUpgradesTitle = document.createElement('h3');
     waterUpgradesTitle.classList.add('upgrades-section-title');
     waterUpgradesTitle.id = 'water-upgrades-title';
-    waterUpgradesTitle.textContent = 'Water Capacity Upgrades';
+    waterUpgradesTitle.textContent = 'Water Upgrades';
     waterUpgradesTitle.setAttribute('aria-label', 'Upgrades Section Title');
     waterUpgradesSection.appendChild(waterUpgradesTitle);
+
+    const waterUpgradeGroup = document.createElement('section');
+    waterUpgradeGroup.classList.add('click-upgrade-group');
+    waterUpgradeGroup.id = 'water-upgrade-group';
+
+    const waterUpgradeGroupTitle = document.createElement('h4');
+    waterUpgradeGroupTitle.classList.add('click-upgrade-group-title');
+    waterUpgradeGroupTitle.textContent = 'Increase Capacity';
+    waterUpgradeGroup.appendChild(waterUpgradeGroupTitle);
+
+    waterUpgradesSection.appendChild(waterUpgradeGroup);
 
     // Add the Upgrades section to the store or main window
     const mainDiv = document.getElementById('upgrades-container'); // Assuming 'main' is the main container
@@ -232,16 +243,18 @@ function initializeWaterUpgradesSection() {
 }
 
 function addWaterUpgradeButton() {
-    const waterUpgradesSection = document.getElementById('water-upgrades-section');
+    const waterUpgradeGroup = document.getElementById('water-upgrade-group');
 
-    if (!waterUpgradesSection) {
+    if (!waterUpgradeGroup) {
         console.error('Water Upgrades Section not found in the DOM');
         return;
     }
 
-    if (document.getElementById('water-upgrade-cap-button') || document.getElementById('water-upgrade-cap-cost')) {
-        return;
-    }
+    const existingRows = waterUpgradeGroup.querySelectorAll('.click-upgrade-row');
+    existingRows.forEach((row) => row.remove());
+
+    const row = document.createElement('div');
+    row.classList.add('click-upgrade-row');
 
     // Water Capacity Upgrade Purchase Button
     const upgradeWaterCapButton = document.createElement('button');
@@ -249,7 +262,7 @@ function addWaterUpgradeButton() {
     upgradeWaterCapButton.id = 'water-upgrade-cap-button';
     upgradeWaterCapButton.textContent = '+10 Capacity';
     upgradeWaterCapButton.addEventListener('click', buyWaterCapacityUpgrade); // Assign the buyWaterUpgrade function as the click handler
-    waterUpgradesSection.appendChild(upgradeWaterCapButton);
+    row.appendChild(upgradeWaterCapButton);
 
     // Water Capacity Upgrade Cost text
     const upgradeWaterCapCost = document.createElement('span');
@@ -257,7 +270,9 @@ function addWaterUpgradeButton() {
     upgradeWaterCapCost.id = 'water-upgrade-cap-cost';
     const waterUpgradeCost = Math.max(0, Number.parseInt(upgradeValues.waterUpgradeCost, 10) || 0);
     upgradeWaterCapCost.textContent = `${waterUpgradeCost} coins`;
-    waterUpgradesSection.appendChild(upgradeWaterCapCost);
+    row.appendChild(upgradeWaterCapCost);
+
+    waterUpgradeGroup.appendChild(row);
 }
 
 function updateWaterUpgradeButton() {

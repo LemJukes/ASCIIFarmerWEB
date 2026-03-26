@@ -11,6 +11,20 @@ function normalizePlotState(plot) {
         waterCount: Number(plot?.waterCount) || 0,
         disabledUntil: Number(plot?.disabledUntil) || 0,
         lastUpdatedAt: Number(plot?.lastUpdatedAt) || Date.now(),
+        destroyed: Boolean(plot?.destroyed),
+        autoFarmer: plot?.autoFarmer && typeof plot.autoFarmer === 'object'
+            ? {
+                level: Math.max(1, Number(plot.autoFarmer.level) || 1),
+                tickMs: Math.max(250, Number(plot.autoFarmer.tickMs) || 2500),
+                lastTickAt: Number(plot.autoFarmer.lastTickAt) || 0,
+                preferredTargetPlotIndex: Number.isInteger(plot.autoFarmer.preferredTargetPlotIndex)
+                    ? Number(plot.autoFarmer.preferredTargetPlotIndex)
+                    : null,
+                lastErrorCode: typeof plot.autoFarmer.lastErrorCode === 'string' ? plot.autoFarmer.lastErrorCode : null,
+                lastErrorMessage: typeof plot.autoFarmer.lastErrorMessage === 'string' ? plot.autoFarmer.lastErrorMessage : '',
+                flashingUntil: Number(plot.autoFarmer.flashingUntil) || 0,
+            }
+            : null,
     };
 }
 
@@ -207,7 +221,7 @@ const initialGameState = {
     water: 10,
 
     // Crop-Specific Seeds
-    wheatSeeds: 1, // Start with some wheat seeds
+    wheatSeeds: 0, // Start with some wheat seeds
     cornSeeds: 0,
     tomatoSeeds: 0,
 
@@ -255,6 +269,12 @@ const initialGameState = {
     questsCompleted: [],
     questProgress: {},
     totalCoinsFromQuests: 0,
+    destroyPlotUnlocked: false,
+    restorePlotUnlocked: false,
+    autoFarmerUnlocked: false,
+    plotSelectionMode: null,
+    autoFarmerPurchasedCount: 0,
+    autoFarmerNextCost: 100,
 
     // Upgrade Values
     // Water Upgrade Values:

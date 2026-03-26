@@ -250,6 +250,42 @@ main {
 /* Plot Button Styles */
 .plotButton {
     font: inherit;
+    position: relative;
+    overflow: hidden;
+}
+
+.plotButton.destroyed-plot {
+    color: #5f5f5f;
+    background: #d8d8d8;
+    border: 1px solid #7a7a7a;
+    opacity: 0.85;
+}
+
+.plotButton.autofarmer-plot {
+    padding: 0;
+    position: relative;
+    background: #f4f4f4;
+    border: 1px solid #000;
+}
+
+/* All three gifs hidden by default; specific rules below reveal the right one */
+.plotButton .autofarmer-gif {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+}
+
+/* Light mode: show light gif */
+.plotButton.autofarmer-plot:not(.autofarmer-error) .autofarmer-gif-light {
+    display: block;
+}
+
+/* Error state: show only error gif */
+.plotButton.autofarmer-error .autofarmer-gif-error {
+    display: block;
 }
 
 /* Store Styles */
@@ -536,6 +572,25 @@ main {
     margin: 0 0 4px 0;
 }
 
+#water-upgrades-section {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: start;
+    justify-items: stretch;
+    gap: 8px;
+    width: 100%;
+}
+
+#water-upgrades-section > .upgrades-section-title {
+    text-align: center;
+    margin: 0 0 4px 0;
+}
+
+#water-upgrade-group {
+    max-width: 320px;
+    justify-self: center;
+}
+
 .click-upgrade-group {
     display: flex;
     flex-direction: column;
@@ -760,7 +815,8 @@ body,
 .quest-card,
 .quest-empty-state,
 .quest-page-label,
-.quest-requirements-table td {
+.quest-requirements-table td,
+.plotButton.autofarmer-plot {
     transition: background 5s ease, color 5s ease, border-color 5s ease;
 }
 
@@ -795,6 +851,19 @@ body,
 
     body:not(.light) .field-container {
         border-color: #fff;
+    }
+
+    body:not(.light) .plotButton.autofarmer-plot {
+        background: #000;
+        border-color: #fff;
+    }
+
+    body:not(.light) .plotButton.autofarmer-plot:not(.autofarmer-error) .autofarmer-gif-light {
+        display: none;
+    }
+
+    body:not(.light) .plotButton.autofarmer-plot:not(.autofarmer-error) .autofarmer-gif-dark-ver {
+        display: block;
     }
 
     body:not(.light) .store-container {
@@ -884,6 +953,19 @@ body.dark .toolbox-selected-seed {
 
 body.dark .field-container {
     border-color: #fff;
+}
+
+body.dark .plotButton.autofarmer-plot {
+    background: #000;
+    border-color: #fff;
+}
+
+body.dark .plotButton.autofarmer-plot:not(.autofarmer-error) .autofarmer-gif-light {
+    display: none;
+}
+
+body.dark .plotButton.autofarmer-plot:not(.autofarmer-error) .autofarmer-gif-dark-ver {
+    display: block;
 }
 
 body.dark .store-container {

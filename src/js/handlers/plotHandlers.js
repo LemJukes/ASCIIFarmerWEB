@@ -12,6 +12,16 @@ import { TOOLS, WATERING_SYMBOLS, HARVEST_SYMBOLS, getRequiredToolForSymbol } fr
 const GRID_WIDTH = 9;
 const OUT_OF_CHARGES_MESSAGE = 'Auto-Changer is out of charges. Buy more charges in Upgrades.';
 const EXPANDED_CLICK_LEVEL_DELAY_MS = 100;
+const AUTO_FARMER_CLOCKWISE_OFFSETS = [
+    [-1, 0],
+    [-1, 1],
+    [0, 1],
+    [1, 1],
+    [1, 0],
+    [1, -1],
+    [0, -1],
+    [-1, -1],
+];
 const EXPANDED_CLICK_PATTERNS = {
     1: [[0, -1], [0, 1]],
     2: [[-1, 0], [1, 0]],
@@ -150,6 +160,14 @@ function getAutoChangerRequiredTool(currentSymbol) {
 }
 
 function getPlotStateLabel(plotState, now = Date.now()) {
+    if (plotState?.autoFarmer) {
+        return 'AutoFarmer';
+    }
+
+    if (plotState?.destroyed) {
+        return 'Destroyed';
+    }
+
     if (Number(plotState?.disabledUntil) > now) {
         return 'Fallow';
     }
@@ -180,6 +198,10 @@ function getPlotStateLabel(plotState, now = Date.now()) {
 }
 
 function getRequiredToolLabel(plotState, now = Date.now()) {
+    if (plotState?.autoFarmer || plotState?.destroyed) {
+        return 'None';
+    }
+
     if (Number(plotState?.disabledUntil) > now) {
         return 'None';
     }
@@ -192,6 +214,13 @@ function buildPlotHoverText(plotState, plotIndex, now = Date.now()) {
     const plotStateLabel = getPlotStateLabel(plotState, now);
     const requiredToolLabel = getRequiredToolLabel(plotState, now);
 
+    if (plotState?.autoFarmer) {
+        const autoFarmerErrorText = plotState.autoFarmer.lastErrorMessage
+            ? `\nAutoFarmer: ${plotState.autoFarmer.lastErrorMessage}`
+            : '\nAutoFarmer: Active';
+        return `Plot: ${plotNumber}\nState: ${plotStateLabel}\nRequired Tool: ${requiredToolLabel}${autoFarmerErrorText}`;
+    }
+
     return `Plot: ${plotNumber}\nState: ${plotStateLabel}\nRequired Tool: ${requiredToolLabel}`;
 }
 
@@ -200,9 +229,113 @@ function syncPlotButtonPresentation(plot, plotState, plotIndex, now = Date.now()
         return;
     }
 
-    plot.textContent = plotState.symbol;
-    plot.disabled = Number(plotState.disabledUntil) > now;
-    plot.title = buildPlotHoverText(plotState, plotIndex, now);
+    plot.classList.remove('destroyed-plot', 'autofarmer-plot', 'autofarmer-error');
+
+    if (plotState.autoFarmer) {
+        const isErrorVisualActive = !!plotState.autoFarmer.lastErrorCode;
+
+        // Render all three gifs once; CSS + class controls which is visible.
+        if (!plot.querySelector('.autofarmer-gif-light')) {
+            plot.innerHTML = [
+                `<img class="autofarmer-gif autofarmer-gif-light" src="./src/assets/AutoFarmer/AutoFarmer.gif" alt="AutoFarmer">`,
+                `<img class="autofarmer-gif autofarmer-gif-dark-ver" src="./src/assets/AutoFarmer/AutoFarmerDark.gif" alt="AutoFarmer">`,
+                `<img class="autofarmer-gif autofarmer-gif-error" src="./src/assets/AutoFarmer/AutoFarmerError.gif" alt="AutoFarmer error">`,
+            ].join('');
+        }
+
+        plot.disabled = true;
+        plot.classList.add('autofarmer-plot');
+
+        if (isErrorVisualActive) {
+            plot.classList.add('autofarmer-error');
+        }
+    } else if (plotState.destroyed) {
+        const gameState = getState();
+        plot.textContent = '⊠';
+        plot.disabled = gameState.plotSelectionMode !== 'restore';
+        plot.classList.add('destroyed-plot');
+    } else {
+        plot.textContent = plotState.symbol;
+        plot.disabled = Number(plotState.disabledUntil) > now;
+    }
+
+    const nextTitle = buildPlotHoverText(plotState, plotIndex, now);
+    if (plot.title !== nextTitle) {
+        plot.title = nextTitle;
+    }
+}
+
+function handlePlotSelectionInteraction(plot, plotIndex, context) {
+    const mode = context.gameState.plotSelectionMode;
+    if (!mode) {
+        return false;
+    }
+
+    const gameState = context.gameState;
+    const activeField = gameState.fields?.[context.activeFieldId];
+    if (!activeField || !Array.isArray(activeField.plotStates)) {
+        updateState({ plotSelectionMode: null });
+        return true;
+    }
+
+    const plotStates = activeField.plotStates;
+    const plotState = plotStates[plotIndex];
+    if (!plotState) {
+        return true;
+    }
+
+    if (mode === 'destroy') {
+        if (plotState.autoFarmer) {
+            showNotification('Cannot destroy a plot with an AutoFarmer on it.', 'Destroy Plot');
+            return true;
+        }
+
+        if (plotState.destroyed) {
+            showNotification('That plot is already destroyed.', 'Destroy Plot');
+            return true;
+        }
+
+        plotState.symbol = '⊠';
+        plotState.cropType = null;
+        plotState.waterCount = 0;
+        plotState.disabledUntil = 0;
+        plotState.destroyed = true;
+        plotState.lastUpdatedAt = Date.now();
+
+        commitActiveFieldPlotStates(gameState, context.activeFieldId, plotStates, activeField.plots);
+        updateState({ plotSelectionMode: null });
+        syncPlotButtonPresentation(plot, plotState, plotIndex);
+        showNotification(`Plot ${plotIndex + 1} destroyed.`, 'Destroy Plot');
+        return true;
+    }
+
+    if (mode === 'restore') {
+        if (!plotState.destroyed) {
+            showNotification('That plot is not destroyed.', 'Restore Plot');
+            return true;
+        }
+
+        if (plotState.autoFarmer) {
+            showNotification('Cannot restore a plot while an AutoFarmer is built there.', 'Restore Plot');
+            return true;
+        }
+
+        plotState.symbol = '~';
+        plotState.cropType = null;
+        plotState.waterCount = 0;
+        plotState.disabledUntil = 0;
+        plotState.destroyed = false;
+        plotState.lastUpdatedAt = Date.now();
+
+        commitActiveFieldPlotStates(gameState, context.activeFieldId, plotStates, activeField.plots);
+        updateState({ plotSelectionMode: null });
+        syncPlotButtonPresentation(plot, plotState, plotIndex);
+        showNotification(`Plot ${plotIndex + 1} restored.`, 'Restore Plot');
+        return true;
+    }
+
+    updateState({ plotSelectionMode: null });
+    return true;
 }
 
 function resolveToolSelection(currentSymbol, showFailureAlert) {
@@ -265,6 +398,14 @@ function handlePlotClick(plot, plotIndex) {
 
     const initialPlot = initialContext.plotStates[plotIndex];
     if (!initialPlot) {
+        return;
+    }
+
+    if (handlePlotSelectionInteraction(plot, plotIndex, initialContext)) {
+        return;
+    }
+
+    if (initialPlot.destroyed || initialPlot.autoFarmer) {
         return;
     }
 
@@ -451,6 +592,7 @@ function applyExpandedClickPattern(index, offsets) {
     const plots = Array.from(field.children);
     const originRow = Math.floor(index / GRID_WIDTH);
     const originCol = index % GRID_WIDTH;
+    const context = getActiveFieldContext();
 
     offsets.forEach(([rowOffset, colOffset]) => {
         const targetRow = originRow + rowOffset;
@@ -462,8 +604,9 @@ function applyExpandedClickPattern(index, offsets) {
 
         const targetIndex = (targetRow * GRID_WIDTH) + targetCol;
         const targetPlot = plots[targetIndex];
+        const targetState = context?.plotStates?.[targetIndex];
 
-        if (!targetPlot || targetPlot.disabled) {
+        if (!targetPlot || targetPlot.disabled || targetState?.destroyed || targetState?.autoFarmer) {
             return;
         }
 
@@ -502,33 +645,58 @@ function affectAdjacentPlotsMk6(index) {
 }
 
 // Function to handle click on adjacent plots
-function handleAdjacentPlotClickMk1(plot, plotIndex) {
+function handleAdjacentPlotClickMk1(plot, plotIndex, options = {}) {
+    const {
+        ignoreToolRequirement = false,
+        countClick = true,
+        playSfx = true,
+    } = options;
+
     const initialContext = getActiveFieldContext();
     if (!initialContext) {
-        return;
+        return { success: false, errorCode: 'NO_FIELD', errorMessage: 'No active field context.' };
     }
 
     const initialPlot = initialContext.plotStates[plotIndex];
     if (!initialPlot) {
-        return;
+        return { success: false, errorCode: 'NO_PLOT', errorMessage: 'Target plot does not exist.' };
     }
 
-    const toolSelection = resolveToolSelection(initialPlot.symbol, false);
+    if (initialPlot.destroyed || initialPlot.autoFarmer) {
+        return { success: false, errorCode: 'INVALID_TARGET', errorMessage: 'Target plot cannot be worked.' };
+    }
+
+    let toolSelection;
+    if (ignoreToolRequirement) {
+        const gameState = getState();
+        toolSelection = {
+            allowed: true,
+            gameState,
+            selectedTool: getSelectedTool(gameState),
+        };
+    } else {
+        toolSelection = resolveToolSelection(initialPlot.symbol, false);
+    }
+
     if (!toolSelection.allowed) {
-        return;
+        return { success: false, errorCode: 'TOOL_BLOCKED', errorMessage: 'Tool requirements not met.' };
     }
 
     const gameState = toolSelection.gameState;
     const activeFieldId = gameState.activeFieldId;
     const activeField = gameState.fields?.[activeFieldId];
     if (!activeField || !Array.isArray(activeField.plotStates)) {
-        return;
+        return { success: false, errorCode: 'NO_FIELD', errorMessage: 'No active field context.' };
     }
 
     const plotStates = activeField.plotStates;
     const plotState = plotStates[plotIndex];
     if (!plotState) {
-        return;
+        return { success: false, errorCode: 'NO_PLOT', errorMessage: 'Target plot does not exist.' };
+    }
+
+    if (plotState.destroyed || plotState.autoFarmer) {
+        return { success: false, errorCode: 'INVALID_TARGET', errorMessage: 'Target plot cannot be worked.' };
     }
 
     const currentSymbol = plotState.symbol;
@@ -548,7 +716,7 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
             const selectedSeedInventoryKey = getSeedInventoryKey(selectedSeedType);
 
             if (gameState[selectedSeedInventoryKey] < 1) {
-                return;
+                return { success: false, errorCode: 'NO_SEEDS', errorMessage: `Not enough ${selectedSeedType} seeds.` };
             }
             
             updateState({ [selectedSeedInventoryKey]: gameState[selectedSeedInventoryKey] - 1 });
@@ -566,7 +734,7 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
         case '|':
         case '\\':
             if (!plotState.cropType) {
-                return;
+                return { success: false, errorCode: 'NO_CROP', errorMessage: 'Target plot has no crop type.' };
             }
             
             if (gameState.water >= 1) {
@@ -587,12 +755,15 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
 
                 didChange = true;
             }
+            if (!didChange) {
+                return { success: false, errorCode: 'NO_WATER', errorMessage: 'Not enough water.' };
+            }
             break;
             
         case '¥': // Grown wheat
         case '₡': // Grown corn
         case '₮': // Grown tomato
-            const hasScytheSelected = selectedTool === TOOLS.SCYTHE;
+            const hasScytheSelected = ignoreToolRequirement || selectedTool === TOOLS.SCYTHE;
             const harvestSucceeded = hasScytheSelected || Math.random() < 0.5;
 
             if (harvestSucceeded) {
@@ -620,22 +791,147 @@ function handleAdjacentPlotClickMk1(plot, plotIndex) {
             break;
             
         default:
-            break;
+            return { success: false, errorCode: 'INVALID_STATE', errorMessage: 'Plot is not in a workable state.' };
     }
 
     if (!didChange) {
-        return;
+        return { success: false, errorCode: 'NO_CHANGE', errorMessage: 'No state change occurred.' };
     }
 
     syncPlotButtonPresentation(plot, plotState, plotIndex);
 
-    playAdjacentBubbleForState(currentSymbol);
-    incrementTotalClicks();
-    updateClicksDisplay();
+    if (playSfx) {
+        playAdjacentBubbleForState(currentSymbol);
+    }
+
+    if (countClick) {
+        incrementTotalClicks();
+        updateClicksDisplay();
+    }
 
     // Update the game state with modified plot states
     commitActiveFieldPlotStates(gameState, activeFieldId, plotStates, activeField.plots);
     updateResourceBar();
+
+    return { success: true, errorCode: null, errorMessage: '' };
 }
 
-export { handlePlotClick, getPlotDisabledTime, buildPlotHoverText, syncPlotButtonPresentation };
+function attemptAutoFarmerCycle(autoFarmerPlotIndex) {
+    const context = getActiveFieldContext();
+    if (!context) {
+        return { success: false, errorCode: 'NO_FIELD', errorMessage: 'No active field context.' };
+    }
+
+    const sourceState = context.plotStates?.[autoFarmerPlotIndex];
+    if (!sourceState?.autoFarmer) {
+        return { success: false, errorCode: 'NO_AUTOFARMER', errorMessage: 'No AutoFarmer found on source plot.' };
+    }
+
+    const fieldElement = document.getElementById('field');
+    if (!fieldElement) {
+        return { success: false, errorCode: 'NO_FIELD_ELEMENT', errorMessage: 'Field UI is unavailable.' };
+    }
+
+    const plots = Array.from(fieldElement.children);
+    const originRow = Math.floor(autoFarmerPlotIndex / GRID_WIDTH);
+    const originCol = autoFarmerPlotIndex % GRID_WIDTH;
+
+    const neighborIndices = [];
+    for (const [rowOffset, colOffset] of AUTO_FARMER_CLOCKWISE_OFFSETS) {
+        const targetRow = originRow + rowOffset;
+        const targetCol = originCol + colOffset;
+        if (targetRow < 0 || targetRow >= GRID_WIDTH || targetCol < 0 || targetCol >= GRID_WIDTH) {
+            continue;
+        }
+
+        neighborIndices.push((targetRow * GRID_WIDTH) + targetCol);
+    }
+
+    let preferredTargetPlotIndex = Number.isInteger(sourceState.autoFarmer.preferredTargetPlotIndex)
+        ? Number(sourceState.autoFarmer.preferredTargetPlotIndex)
+        : null;
+
+    if (!neighborIndices.includes(preferredTargetPlotIndex)) {
+        preferredTargetPlotIndex = null;
+    }
+
+    if (preferredTargetPlotIndex !== null) {
+        const preferredState = context.plotStates?.[preferredTargetPlotIndex];
+        if (!preferredState || preferredState.destroyed) {
+            preferredTargetPlotIndex = null;
+        }
+    }
+
+    if (preferredTargetPlotIndex === null) {
+        for (const targetIndex of neighborIndices) {
+            const targetState = context.plotStates?.[targetIndex];
+            if (!targetState) {
+                continue;
+            }
+
+            if (targetState.destroyed || targetState.autoFarmer) {
+                continue;
+            }
+
+            preferredTargetPlotIndex = targetIndex;
+            break;
+        }
+    }
+
+    if (preferredTargetPlotIndex === null) {
+        return { success: false, errorCode: 'NO_VALID_TARGET', errorMessage: 'No adjacent valid plot available.' };
+    }
+
+    const targetState = context.plotStates?.[preferredTargetPlotIndex];
+    const targetPlot = plots[preferredTargetPlotIndex];
+    if (!targetState || !targetPlot) {
+        return {
+            success: false,
+            errorCode: 'NO_VALID_TARGET',
+            errorMessage: 'No adjacent valid plot available.',
+            preferredTargetPlotIndex,
+        };
+    }
+
+    if (targetState.destroyed || targetState.autoFarmer) {
+        return {
+            success: false,
+            errorCode: 'INVALID_TARGET',
+            errorMessage: 'Assigned target is no longer workable.',
+            preferredTargetPlotIndex,
+        };
+    }
+
+    if (targetPlot.disabled) {
+        return {
+            success: false,
+            errorCode: 'TARGET_DISABLED',
+            errorMessage: 'Assigned target plot is currently unavailable.',
+            preferredTargetPlotIndex,
+        };
+    }
+
+    const result = handleAdjacentPlotClickMk1(targetPlot, preferredTargetPlotIndex, {
+        ignoreToolRequirement: true,
+        countClick: false,
+        playSfx: false,
+    });
+
+    if (result?.success) {
+        return {
+            success: true,
+            errorCode: null,
+            errorMessage: '',
+            preferredTargetPlotIndex,
+        };
+    }
+
+    return {
+        success: false,
+        errorCode: result?.errorCode || 'UNKNOWN_ERROR',
+        errorMessage: result?.errorMessage || 'AutoFarmer could not work an adjacent plot.',
+        preferredTargetPlotIndex,
+    };
+}
+
+export { handlePlotClick, getPlotDisabledTime, buildPlotHoverText, syncPlotButtonPresentation, attemptAutoFarmerCycle };

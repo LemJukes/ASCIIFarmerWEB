@@ -14,6 +14,163 @@ import { updateClicksDisplay } from "../ui/clicks.js";
 import { progressionConfig } from "../configs/progressionConfig.js";
 import { showNotification } from "../ui/macNotifications.js";
 
+const DESTROY_PLOT_COST = 25;
+const RESTORE_PLOT_COST = 50;
+const AUTO_FARMER_BASE_COST = 100;
+const AUTO_FARMER_COST_STEP = 100;
+
+function getActiveFieldForMutation(gameState) {
+    const activeFieldId = gameState.activeFieldId;
+    const activeField = gameState.fields?.[activeFieldId];
+    if (!activeField || !Array.isArray(activeField.plotStates)) {
+        return null;
+    }
+
+    return {
+        activeFieldId,
+        activeField,
+    };
+}
+
+function commitPlotStatesToActiveField(gameState, activeFieldId, activeField, plotStates) {
+    const updatedFields = {
+        ...gameState.fields,
+        [activeFieldId]: {
+            ...activeField,
+            plotStates,
+        },
+    };
+
+    updateState({ fields: updatedFields });
+}
+
+function buyDestroyPlotAction() {
+    const gameState = getState();
+    if (!gameState.destroyPlotUnlocked) {
+        showNotification('Destroy Plot is not unlocked yet.', 'Store');
+        return;
+    }
+
+    if (gameState.coins < DESTROY_PLOT_COST) {
+        showNotification('Not enough coins to destroy a plot!', 'Store');
+        return;
+    }
+
+    updateState({
+        coins: gameState.coins - DESTROY_PLOT_COST,
+        totalCoinsSpent: gameState.totalCoinsSpent + DESTROY_PLOT_COST,
+        plotSelectionMode: 'destroy',
+    });
+
+    updateResourceBar();
+    updateField();
+    incrementTotalClicks();
+    updateClicksDisplay();
+    showNotification('Select a plot to destroy by clicking it.', 'Destroy Plot');
+}
+
+function buyRestorePlotAction() {
+    const gameState = getState();
+    if (!gameState.restorePlotUnlocked) {
+        showNotification('Restore Plot is not unlocked yet.', 'Store');
+        return;
+    }
+
+    if (gameState.coins < RESTORE_PLOT_COST) {
+        showNotification('Not enough coins to restore a plot!', 'Store');
+        return;
+    }
+
+    updateState({
+        coins: gameState.coins - RESTORE_PLOT_COST,
+        totalCoinsSpent: gameState.totalCoinsSpent + RESTORE_PLOT_COST,
+        plotSelectionMode: 'restore',
+    });
+
+    updateResourceBar();
+    updateField();
+    incrementTotalClicks();
+    updateClicksDisplay();
+    showNotification('Select a destroyed plot to restore by clicking it.', 'Restore Plot');
+}
+
+function buyAutoFarmerAction() {
+    const gameState = getState();
+    if (!gameState.autoFarmerUnlocked) {
+        showNotification('Build AutoFarmer is not unlocked yet.', 'Store');
+        return;
+    }
+
+    const activeFieldContext = getActiveFieldForMutation(gameState);
+    if (!activeFieldContext) {
+        return;
+    }
+
+    const { activeFieldId, activeField } = activeFieldContext;
+    const maxPlots = Number(activeField.plots) || activeField.plotStates.length;
+    const buildCost = Math.max(AUTO_FARMER_BASE_COST, Number(gameState.autoFarmerNextCost) || AUTO_FARMER_BASE_COST);
+
+    if (gameState.coins < buildCost) {
+        showNotification('Not enough coins to build an AutoFarmer!', 'Store');
+        return;
+    }
+
+    const selectedPlotText = window.prompt(`Build AutoFarmer on which destroyed plot? Enter plot number 1-${maxPlots}.`);
+    if (selectedPlotText === null) {
+        return;
+    }
+
+    const selectedPlotNumber = Number.parseInt(String(selectedPlotText).trim(), 10);
+    if (!Number.isFinite(selectedPlotNumber) || selectedPlotNumber < 1 || selectedPlotNumber > maxPlots) {
+        showNotification('Invalid plot number selected.', 'AutoFarmer');
+        return;
+    }
+
+    const selectedPlotIndex = selectedPlotNumber - 1;
+    const nextPlotStates = [...activeField.plotStates];
+    const targetPlot = nextPlotStates[selectedPlotIndex];
+    if (!targetPlot) {
+        showNotification('Selected plot does not exist.', 'AutoFarmer');
+        return;
+    }
+
+    if (!targetPlot.destroyed) {
+        showNotification('AutoFarmers can only be built on destroyed plots.', 'AutoFarmer');
+        return;
+    }
+
+    if (targetPlot.autoFarmer) {
+        showNotification('That plot already has an AutoFarmer.', 'AutoFarmer');
+        return;
+    }
+
+    targetPlot.autoFarmer = {
+        level: 1,
+        tickMs: 2500,
+        lastTickAt: 0,
+        preferredTargetPlotIndex: null,
+        lastErrorCode: null,
+        lastErrorMessage: '',
+        flashingUntil: 0,
+    };
+    targetPlot.lastUpdatedAt = Date.now();
+
+    commitPlotStatesToActiveField(gameState, activeFieldId, activeField, nextPlotStates);
+    updateState({
+        coins: gameState.coins - buildCost,
+        totalCoinsSpent: gameState.totalCoinsSpent + buildCost,
+        autoFarmerPurchasedCount: (Number(gameState.autoFarmerPurchasedCount) || 0) + 1,
+        autoFarmerNextCost: buildCost + AUTO_FARMER_COST_STEP,
+    });
+
+    updateResourceBar();
+    updateField();
+    trackAchievements();
+    incrementTotalClicks();
+    updateClicksDisplay();
+    showNotification(`AutoFarmer built on plot ${selectedPlotNumber}.`, 'AutoFarmer');
+}
+
 
 // Purchasing Handlers
 function buySeed() {
@@ -206,6 +363,8 @@ function buyPlot() {
             waterCount: 0,
             disabledUntil: 0,
             lastUpdatedAt: Date.now(),
+            destroyed: false,
+            autoFarmer: null,
         });
 
         const updatedFields = {
@@ -279,6 +438,8 @@ function buyNewField() {
                 waterCount: 0,
                 disabledUntil: 0,
                 lastUpdatedAt: Date.now(),
+                destroyed: false,
+                autoFarmer: null,
             }],
         },
     };
@@ -480,4 +641,5 @@ export { buySeed, buyWater, buyPlot, sellCrops, buyBulkSeeds, sellBulkCrops,
          buyWheatSeeds, buyCornSeeds, buyTomatoSeeds,
          sellWheat, sellCorn, sellTomato,
          buyBulkSeedPack, sellBulkCropPack, buyBulkWaterRefill,
-         buyNewField };
+         buyNewField,
+         buyDestroyPlotAction, buyRestorePlotAction, buyAutoFarmerAction };

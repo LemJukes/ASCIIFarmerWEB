@@ -1,6 +1,6 @@
 import { getState, updateState } from "../state.js";
 import { progressionConfig, getAchievementValues as getProgressionAchievementValues } from "../configs/progressionConfig.js";
-import { addBulkSeedButton, addBulkCropSaleButton, addBulkWaterRefillButton } from "../ui/store.js";
+import { addBulkSeedButton, addBulkCropSaleButton, addBulkWaterRefillButton, refreshPlotFeatureStoreSections } from "../ui/store.js";
 import { wrapInMacWindow } from "../ui/macWindow.js";
 import { showNotification } from "../ui/macNotifications.js";
 import {
@@ -169,6 +169,7 @@ function trackAchievements() {
     checkWaterRefillPurchaseAchievements(gameState);
     checkWaterRefillsAchievementsAndEnableButton(gameState);
     trackQuestUnlocks(gameState);
+    refreshPlotFeatureStoreSections();
 }
 
 function checkFieldStoreUnlock(currentState) {

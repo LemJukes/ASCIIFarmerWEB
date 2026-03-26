@@ -14,6 +14,7 @@ import { showConfirmation } from './ui/macNotifications.js';
 import { showWelcomeMessage } from './ui/welcomeMessage.js';
 import { trackAchievements } from './handlers/achievementHandlers.js';
 import { getBoundActionForKey } from './ui/keybinds.js';
+import { initializeAutoFarmerEngine } from './handlers/autoFarmerHandlers.js';
 
 function initializeResetSaveButton() {
     const resetSaveButton = document.getElementById('reset-save-button');
@@ -115,6 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeAchievementsDisplay();
     initializeKeyboardShortcuts();
     trackAchievements();
+    initializeAutoFarmerEngine();
     wrapSectionsInMacWindows();
     refreshFieldTitlebarControl();
     refreshQuestWindow();
