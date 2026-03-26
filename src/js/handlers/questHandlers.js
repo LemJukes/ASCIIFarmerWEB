@@ -13,6 +13,7 @@ const QUEST_REWARD_TYPES = {
     DOUBLE_SALE_PRICE: 'doubleSalePrice',
     UNLOCK_DESTROY_RESTORE_PLOT: 'unlockDestroyRestorePlot',
     UNLOCK_AUTO_FARMER: 'unlockAutoFarmer',
+    UNLOCK_DISASSEMBLE_AUTO_FARMER: 'unlockDisassembleAutoFarmer',
 };
 
 function emitQuestUpdate() {
@@ -136,6 +137,17 @@ function hasMetUnlockCondition(gameState, quest) {
         }
     }
 
+    if (unlockCondition.type === 'autoFarmerHarvests') {
+        const required = Number(unlockCondition.requirements?.count) || 0;
+        if (required < 1) {
+            return true;
+        }
+
+        const baseline = Number(gameState.questProgress?.[quest.id]?.autoFarmerHarvestStart) || 0;
+        const current = Number(gameState.autoFarmerCropsHarvested) || 0;
+        return (current - baseline) >= required;
+    }
+
     if (unlockCondition.type !== 'cropsSold') {
         return false;
     }
@@ -162,6 +174,15 @@ function unlockQuest(questId) {
         return false;
     }
 
+    const harvestStart = quest?.unlockCondition?.type === 'autoFarmerHarvests'
+        ? (Number(getState().autoFarmerCropsHarvested) || 0)
+        : undefined;
+
+    const questProgressEntry = { unlockedAt: Date.now() };
+    if (harvestStart !== undefined) {
+        questProgressEntry.autoFarmerHarvestStart = harvestStart;
+    }
+
     updateState({
         questsUnlocked: [...gameState.questsUnlocked, questId],
         questsActive: isQuestActive(gameState, questId)
@@ -169,9 +190,7 @@ function unlockQuest(questId) {
             : [...gameState.questsActive, questId],
         questProgress: {
             ...gameState.questProgress,
-            [questId]: {
-                unlockedAt: Date.now(),
-            },
+            [questId]: questProgressEntry,
         },
     });
 
@@ -201,6 +220,20 @@ function getQuestRequirementRows(questId, currentState) {
         return [];
     }
 
+    // Auto-complete quests use progress rows instead of crop rows
+    if (quest.autoComplete && quest.completionCondition?.type === 'autoFarmerHarvests') {
+        const required = Number(quest.completionCondition.requirements?.count) || 0;
+        const baseline = Number(gameState.questProgress?.[questId]?.autoFarmerHarvestStart) || 0;
+        const current = Math.max(0, (Number(gameState.autoFarmerCropsHarvested) || 0) - baseline);
+        return [{
+            cropType: 'autoFarmerHarvests',
+            label: 'AutoFarmer Harvests',
+            currentAmount: Math.min(current, required),
+            requiredAmount: required,
+            isReady: current >= required,
+        }];
+    }
+
     return cropTypes.reduce((rows, cropType) => {
         const requiredAmount = Number(quest.requirements?.[cropType]) || 0;
         if (requiredAmount < 1) {
@@ -221,6 +254,11 @@ function getQuestRequirementRows(questId, currentState) {
 }
 
 function canDeliverQuest(questId, currentState) {
+    const quest = getQuestDefinitionById(questId);
+    if (quest?.autoComplete) {
+        return false;
+    }
+
     const requirementRows = getQuestRequirementRows(questId, currentState);
     if (!requirementRows.length) {
         return false;
@@ -258,6 +296,10 @@ function getRewardSummary(questId) {
     const quest = getQuestDefinitionById(questId);
     if (!quest) {
         return '';
+    }
+
+    if (quest.autoComplete) {
+        return quest.reward?.description || 'Unlocks new feature';
     }
 
     const payout = calculateQuestPayout(questId);
@@ -305,6 +347,15 @@ function applyQuestReward(quest) {
             questProgress: nextQuestProgress,
         });
         showNotification('Build AutoFarmer unlocked in the store.', 'Quest Reward');
+        return;
+    }
+
+    if (quest.reward.type === QUEST_REWARD_TYPES.UNLOCK_DISASSEMBLE_AUTO_FARMER) {
+        updateState({
+            disassembleAutoFarmerUnlocked: true,
+            questProgress: nextQuestProgress,
+        });
+        showNotification('Disassemble AutoFarmer unlocked in the store.', 'Quest Reward');
     }
 }
 
@@ -336,6 +387,67 @@ function getQuestPanelData(currentState) {
             .map((questId) => getQuestDisplayData(questId, gameState))
             .filter(Boolean),
     };
+}
+
+function hasMetCompletionCondition(gameState, quest) {
+    const cc = quest.completionCondition;
+    if (!cc) {
+        return false;
+    }
+
+    if (cc.type === 'autoFarmerHarvests') {
+        const required = Number(cc.requirements?.count) || 0;
+        const baseline = Number(gameState.questProgress?.[quest.id]?.autoFarmerHarvestStart) || 0;
+        const current = Number(gameState.autoFarmerCropsHarvested) || 0;
+        return (current - baseline) >= required;
+    }
+
+    return false;
+}
+
+function autoCompleteQuest(questId) {
+    const quest = getQuestDefinitionById(questId);
+    const gameState = getState();
+    if (!quest || !isQuestActive(gameState, questId)) {
+        return false;
+    }
+
+    const nextQuestProgress = {
+        ...gameState.questProgress,
+        [questId]: {
+            ...(gameState.questProgress?.[questId] || {}),
+            completedAt: Date.now(),
+        },
+    };
+
+    updateState({
+        questsActive: gameState.questsActive.filter((id) => id !== questId),
+        questsCompleted: [...gameState.questsCompleted, questId],
+        questProgress: nextQuestProgress,
+    });
+
+    applyQuestReward(quest);
+    emitQuestUpdate();
+    showNotification(`${quest.name} complete! ${quest.reward?.description || ''}.`, 'Quest Complete');
+    return true;
+}
+
+function trackQuestAutoCompletions(currentState) {
+    const gameState = currentState ?? getState();
+
+    getQuestDefinitions().forEach((quest) => {
+        if (!quest.autoComplete) {
+            return;
+        }
+
+        if (!isQuestActive(gameState, quest.id)) {
+            return;
+        }
+
+        if (hasMetCompletionCondition(gameState, quest)) {
+            autoCompleteQuest(quest.id);
+        }
+    });
 }
 
 function deliverQuest(questId) {
@@ -389,6 +501,7 @@ function deliverQuest(questId) {
 export {
     QUESTS_UPDATED_EVENT,
     trackQuestUnlocks,
+    trackQuestAutoCompletions,
     unlockQuest,
     canDeliverQuest,
     calculateQuestPayout,

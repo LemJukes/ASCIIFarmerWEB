@@ -70,7 +70,7 @@ import { buySeed, buyWater, buyPlot, sellCrops, buyBulkSeeds, sellBulkCrops,
          buyWheatSeeds, buyCornSeeds, buyTomatoSeeds,
          sellWheat, sellCorn, sellTomato,
          buyBulkSeedPack, sellBulkCropPack, buyBulkWaterRefill, buyNewField,
-         buyDestroyPlotAction, buyRestorePlotAction, buyAutoFarmerAction } from "../handlers/storeHandlers.js";
+         buyDestroyPlotAction, buyRestorePlotAction, buyAutoFarmerAction, buyDisassembleAutoFarmerAction } from "../handlers/storeHandlers.js";
 
 function initializeStoreTitle() {
     // Store Title as a Button
@@ -381,6 +381,26 @@ function initializeStore() {
         buildAutoFarmerCost.textContent = `${Math.max(100, Number(gameState.autoFarmerNextCost) || 100)} coins`;
         buildAutoFarmerSection.appendChild(buildAutoFarmerCost);
 
+        const disassembleAutoFarmerSection = document.createElement('section');
+        disassembleAutoFarmerSection.classList.add('item-title');
+        disassembleAutoFarmerSection.id = 'disassembleAutoFarmerSection';
+        disassembleAutoFarmerSection.textContent = 'Disassemble AutoFarmer';
+        disassembleAutoFarmerSection.setAttribute('aria-label', 'Disassemble AutoFarmer Title');
+        disassembleAutoFarmerSection.style.display = gameState.disassembleAutoFarmerUnlocked ? 'flex' : 'none';
+        fieldExpansionSection.appendChild(disassembleAutoFarmerSection);
+
+        const disassembleAutoFarmerButton = document.createElement('button');
+        disassembleAutoFarmerButton.classList.add('store-button');
+        disassembleAutoFarmerButton.textContent = 'Select Plot';
+        disassembleAutoFarmerButton.onclick = buyDisassembleAutoFarmerAction;
+        disassembleAutoFarmerSection.appendChild(disassembleAutoFarmerButton);
+
+        const disassembleAutoFarmerCost = document.createElement('span');
+        disassembleAutoFarmerCost.classList.add('item-price');
+        disassembleAutoFarmerCost.id = 'disassemble-autofarmer-cost';
+        disassembleAutoFarmerCost.textContent = '50 coins';
+        disassembleAutoFarmerSection.appendChild(disassembleAutoFarmerCost);
+
     // Append sections to store
     buyItemsTitle.appendChild(buyItemsSection);
     playerSellableItemsTitle.appendChild(playerSellableItems);
@@ -418,6 +438,11 @@ function refreshPlotFeatureStoreSections() {
     const autoFarmerCost = document.getElementById('build-autofarmer-cost');
     if (autoFarmerCost) {
         autoFarmerCost.textContent = `${Math.max(100, Number(gameState.autoFarmerNextCost) || 100)} coins`;
+    }
+
+    const disassembleSection = document.getElementById('disassembleAutoFarmerSection');
+    if (disassembleSection) {
+        disassembleSection.style.display = gameState.disassembleAutoFarmerUnlocked ? 'flex' : 'none';
     }
 }
 

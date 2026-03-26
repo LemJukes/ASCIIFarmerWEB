@@ -167,22 +167,31 @@ function renderQuestCard(container, questData, totalQuests) {
     const actions = document.createElement('div');
     actions.className = 'quest-card-actions';
 
-    const status = document.createElement('p');
-    status.className = 'quest-delivery-status';
-    status.textContent = questData.canDeliver
-        ? 'Harvest is ready for pickup.'
-        : 'Keep growing until every line item is ready.';
+    if (questData.autoComplete) {
+        const progressStatus = document.createElement('p');
+        progressStatus.className = 'quest-delivery-status';
+        progressStatus.textContent = questData.requirementRows[0]?.isReady
+            ? 'All conditions met — auto-completing...'
+            : 'Complete automated harvests to satisfy the bureau.';
+        actions.append(progressStatus);
+    } else {
+        const status = document.createElement('p');
+        status.className = 'quest-delivery-status';
+        status.textContent = questData.canDeliver
+            ? 'Harvest is ready for pickup.'
+            : 'Keep growing until every line item is ready.';
 
-    const deliverButton = document.createElement('button');
-    deliverButton.className = 'mac-button quest-deliver-button';
-    deliverButton.type = 'button';
-    deliverButton.textContent = 'Deliver';
-    deliverButton.disabled = !questData.canDeliver;
-    deliverButton.addEventListener('click', () => {
-        deliverQuest(questData.id);
-    });
+        const deliverButton = document.createElement('button');
+        deliverButton.className = 'mac-button quest-deliver-button';
+        deliverButton.type = 'button';
+        deliverButton.textContent = 'Deliver';
+        deliverButton.disabled = !questData.canDeliver;
+        deliverButton.addEventListener('click', () => {
+            deliverQuest(questData.id);
+        });
 
-    actions.append(status, deliverButton);
+        actions.append(status, deliverButton);
+    }
     card.append(pager, header, cardIntro, meta, requirementsHeading, requirementsTable, actions);
     container.replaceChildren(card);
 }

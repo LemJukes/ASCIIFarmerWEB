@@ -184,6 +184,35 @@ const questDefinitions = [
             description: 'Unlocks Build AutoFarmer in the store',
         },
     },
+    {
+        id: 'autofarmer-field-operations-review',
+        name: 'AutoFarmer Field Operations Review',
+        issuer: 'Automata Licensing Bureau',
+        flavorText: `farmr says the bureau wants to verify your AutoFarmers are performing reliable field cycles before issuing a full dismantlement permit. Log enough automated harvests to prove operational proficiency and the disassembly license will be yours.`,
+        requirements: {
+            wheat: 0,
+            corn: 0,
+            tomato: 0,
+        },
+        unlockCondition: {
+            type: 'autoFarmerHarvests',
+            requiresQuestCompleted: 'autofarmer-assembly-license',
+            requirements: {
+                count: 50,
+            },
+        },
+        completionCondition: {
+            type: 'autoFarmerHarvests',
+            requirements: {
+                count: 100,
+            },
+        },
+        autoComplete: true,
+        reward: {
+            type: 'unlockDisassembleAutoFarmer',
+            description: 'Unlocks Disassemble AutoFarmer in the store',
+        },
+    },
 ];
 
 function getQuestDefinitions() {

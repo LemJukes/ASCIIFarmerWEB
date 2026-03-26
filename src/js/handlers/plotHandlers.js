@@ -6,7 +6,7 @@ import { progressionConfig } from '../configs/progressionConfig.js';
 import { playPlotBubbleForState, playAdjacentBubbleForState } from '../ui/sfx.js';
 import { updateClicksDisplay } from '../ui/clicks.js';
 import { updateToolboxDisplay } from '../ui/toolbox.js';
-import { showNotification } from '../ui/macNotifications.js';
+import { showNotification, showConfirmation } from '../ui/macNotifications.js';
 import { TOOLS, WATERING_SYMBOLS, HARVEST_SYMBOLS, getRequiredToolForSymbol } from '../configs/toolConfig.js';
 
 const GRID_WIDTH = 9;
@@ -334,6 +334,45 @@ function handlePlotSelectionInteraction(plot, plotIndex, context) {
         return true;
     }
 
+    if (mode === 'disassembleAutoFarmer') {
+        if (!plotState.autoFarmer) {
+            showNotification('That plot does not have an AutoFarmer to disassemble.', 'Disassemble AutoFarmer');
+            return true;
+        }
+
+        showConfirmation(`Disassemble the AutoFarmer on plot ${plotIndex + 1}? It will be removed and the plot will remain destroyed.`, {
+            title: 'Disassemble AutoFarmer',
+            onConfirm: () => {
+                const gs = getState();
+                const af = gs.fields?.[context.activeFieldId];
+                if (!af || !Array.isArray(af.plotStates)) {
+                    return;
+                }
+
+                const ps = af.plotStates;
+                const ps2 = ps[plotIndex];
+                if (!ps2) {
+                    return;
+                }
+
+                ps2.autoFarmer = null;
+                ps2.lastUpdatedAt = Date.now();
+
+                commitActiveFieldPlotStates(gs, context.activeFieldId, ps, af.plots);
+                updateState({
+                    plotSelectionMode: null,
+                    autoFarmerDisassembledCount: (Number(gs.autoFarmerDisassembledCount) || 0) + 1,
+                });
+                syncPlotButtonPresentation(plot, ps2, plotIndex);
+                showNotification(`AutoFarmer on plot ${plotIndex + 1} disassembled.`, 'Disassemble AutoFarmer');
+            },
+            onCancel: () => {
+                // Keep selection mode active so player may click a different plot
+            },
+        });
+        return true;
+    }
+
     updateState({ plotSelectionMode: null });
     return true;
 }
@@ -650,6 +689,7 @@ function handleAdjacentPlotClickMk1(plot, plotIndex, options = {}) {
         ignoreToolRequirement = false,
         countClick = true,
         playSfx = true,
+        isAutoFarmerAction = false,
     } = options;
 
     const initialContext = getActiveFieldContext();
@@ -777,6 +817,10 @@ function handleAdjacentPlotClickMk1(plot, plotIndex, options = {}) {
                 }
 
                 updateState({ crops: gameState.crops + 1 });
+
+                if (isAutoFarmerAction) {
+                    updateState({ autoFarmerCropsHarvested: (Number(getState().autoFarmerCropsHarvested) || 0) + 1 });
+                }
             }
             
             // Reset plot
@@ -915,6 +959,7 @@ function attemptAutoFarmerCycle(autoFarmerPlotIndex) {
         ignoreToolRequirement: true,
         countClick: false,
         playSfx: false,
+        isAutoFarmerAction: true,
     });
 
     if (result?.success) {

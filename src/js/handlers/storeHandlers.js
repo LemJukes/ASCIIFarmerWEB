@@ -18,6 +18,7 @@ const DESTROY_PLOT_COST = 25;
 const RESTORE_PLOT_COST = 50;
 const AUTO_FARMER_BASE_COST = 100;
 const AUTO_FARMER_COST_STEP = 100;
+const DISASSEMBLE_AUTO_FARMER_COST = 50;
 
 function getActiveFieldForMutation(gameState) {
     const activeFieldId = gameState.activeFieldId;
@@ -169,6 +170,31 @@ function buyAutoFarmerAction() {
     incrementTotalClicks();
     updateClicksDisplay();
     showNotification(`AutoFarmer built on plot ${selectedPlotNumber}.`, 'AutoFarmer');
+}
+
+function buyDisassembleAutoFarmerAction() {
+    const gameState = getState();
+    if (!gameState.disassembleAutoFarmerUnlocked) {
+        showNotification('Disassemble AutoFarmer is not unlocked yet.', 'Store');
+        return;
+    }
+
+    if (gameState.coins < DISASSEMBLE_AUTO_FARMER_COST) {
+        showNotification('Not enough coins to disassemble an AutoFarmer!', 'Store');
+        return;
+    }
+
+    updateState({
+        coins: gameState.coins - DISASSEMBLE_AUTO_FARMER_COST,
+        totalCoinsSpent: gameState.totalCoinsSpent + DISASSEMBLE_AUTO_FARMER_COST,
+        plotSelectionMode: 'disassembleAutoFarmer',
+    });
+
+    updateResourceBar();
+    updateField();
+    incrementTotalClicks();
+    updateClicksDisplay();
+    showNotification('Select an AutoFarmer plot to disassemble by clicking it.', 'Disassemble AutoFarmer');
 }
 
 
@@ -642,4 +668,4 @@ export { buySeed, buyWater, buyPlot, sellCrops, buyBulkSeeds, sellBulkCrops,
          sellWheat, sellCorn, sellTomato,
          buyBulkSeedPack, sellBulkCropPack, buyBulkWaterRefill,
          buyNewField,
-         buyDestroyPlotAction, buyRestorePlotAction, buyAutoFarmerAction };
+         buyDestroyPlotAction, buyRestorePlotAction, buyAutoFarmerAction, buyDisassembleAutoFarmerAction };

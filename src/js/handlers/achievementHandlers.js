@@ -11,7 +11,7 @@ import {
     updateUpgradeValues,
 } from "../ui/upgrades.js";
 import { updateToolboxDisplay } from "../ui/toolbox.js";
-import { trackQuestUnlocks } from "./questHandlers.js";
+import { trackQuestUnlocks, trackQuestAutoCompletions } from "./questHandlers.js";
 
 const cropTypes = ["wheat", "corn", "tomato"];
 
@@ -169,6 +169,7 @@ function trackAchievements() {
     checkWaterRefillPurchaseAchievements(gameState);
     checkWaterRefillsAchievementsAndEnableButton(gameState);
     trackQuestUnlocks(gameState);
+    trackQuestAutoCompletions(gameState);
     refreshPlotFeatureStoreSections();
 }
 

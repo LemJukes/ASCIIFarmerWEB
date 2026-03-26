@@ -272,9 +272,12 @@ const initialGameState = {
     destroyPlotUnlocked: false,
     restorePlotUnlocked: false,
     autoFarmerUnlocked: false,
+    disassembleAutoFarmerUnlocked: false,
     plotSelectionMode: null,
     autoFarmerPurchasedCount: 0,
     autoFarmerNextCost: 100,
+    autoFarmerCropsHarvested: 0,
+    autoFarmerDisassembledCount: 0,
 
     // Upgrade Values
     // Water Upgrade Values:
