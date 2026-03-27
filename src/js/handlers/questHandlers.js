@@ -18,6 +18,39 @@ const QUEST_REWARD_TYPES = {
 
 const QUEST_DECLINE_STEP = 2;
 
+function getQuestTimerConfig(quest) {
+    const deliveryWindowMs = Math.max(0, Number(quest?.deliveryWindowMs) || 0);
+    if (deliveryWindowMs < 1) {
+        return null;
+    }
+
+    const minPercent = Math.max(0, Number(quest?.lateFeeMinPercent) || 0);
+    const maxPercent = Math.max(minPercent, Number(quest?.lateFeeMaxPercent) || minPercent);
+
+    return {
+        deliveryWindowMs,
+        minPercent,
+        maxPercent,
+    };
+}
+
+function getRandomIntInclusive(min, max) {
+    const normalizedMin = Math.ceil(min);
+    const normalizedMax = Math.floor(max);
+    if (normalizedMax <= normalizedMin) {
+        return normalizedMin;
+    }
+
+    return Math.floor(Math.random() * (normalizedMax - normalizedMin + 1)) + normalizedMin;
+}
+
+function formatDurationMs(durationMs) {
+    const totalSeconds = Math.max(0, Math.floor((Number(durationMs) || 0) / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
 function getNormalizedOffset(offset) {
     return {
         wheat: Math.max(0, Number(offset?.wheat) || 0),
@@ -271,11 +304,18 @@ function unlockQuest(questId) {
     const harvestStart = quest?.unlockCondition?.type === 'autoFarmerHarvests'
         ? (Number(getState().autoFarmerCropsHarvested) || 0)
         : undefined;
+    const timerConfig = getQuestTimerConfig(quest);
 
     const questProgressEntry = {
         ...(gameState.questProgress?.[questId] || {}),
         unlockedAt: Date.now(),
     };
+    if (!quest.autoComplete) {
+        questProgressEntry.acceptedAt = Date.now();
+    }
+    if (timerConfig) {
+        questProgressEntry.deliveryWindowMs = timerConfig.deliveryWindowMs;
+    }
     if (harvestStart !== undefined) {
         questProgressEntry.autoFarmerHarvestStart = harvestStart;
     }
@@ -464,16 +504,20 @@ function getRewardSummary(questId) {
 
     const payout = calculateQuestPayout(questId);
     const payoutText = `${payout} coins total (2x store sale value)`;
+    const timerConfig = getQuestTimerConfig(quest);
+    const timedPenaltyText = timerConfig
+        ? ` Late deliveries reduce payout by ${timerConfig.minPercent}-${timerConfig.maxPercent}%.`
+        : '';
 
     if (quest.reward?.type === QUEST_REWARD_TYPES.DOUBLE_SALE_PRICE) {
-        return payoutText;
+        return `${payoutText}.${timedPenaltyText}`.trim();
     }
 
     if (quest.reward?.description) {
-        return `${quest.reward.description} + ${payoutText}`;
+        return `${quest.reward.description} + ${payoutText}.${timedPenaltyText}`.trim();
     }
 
-    return payoutText;
+    return `${payoutText}.${timedPenaltyText}`.trim();
 }
 
 function applyQuestReward(quest) {
@@ -528,6 +572,12 @@ function getQuestDisplayData(questId, currentState) {
 
     const unlockState = getQuestUnlockRequirementState(gameState, quest);
 
+    const timerConfig = getQuestTimerConfig(quest);
+    const acceptedAt = Number(gameState.questProgress?.[questId]?.acceptedAt) || 0;
+    const elapsedMs = acceptedAt > 0 ? Math.max(0, Date.now() - acceptedAt) : 0;
+    const remainingMs = timerConfig ? Math.max(0, timerConfig.deliveryWindowMs - elapsedMs) : 0;
+    const isLateDelivery = Boolean(timerConfig && acceptedAt > 0 && elapsedMs > timerConfig.deliveryWindowMs);
+
     return {
         ...quest,
         requirementRows: getQuestRequirementRows(questId, gameState),
@@ -540,6 +590,11 @@ function getQuestDisplayData(questId, currentState) {
         unlockTargetSummary: unlockState
             ? cropTypes.map((cropType) => `${unlockState.effectiveRequirements[cropType]} ${getCropLabel(cropType)}`).join(', ')
             : '',
+        isTimedQuest: Boolean(timerConfig),
+        deliveryWindowLabel: timerConfig ? formatDurationMs(timerConfig.deliveryWindowMs) : '',
+        lateFeeRangeLabel: timerConfig ? `${timerConfig.minPercent}-${timerConfig.maxPercent}%` : '',
+        timeRemainingLabel: timerConfig ? formatDurationMs(remainingMs) : '',
+        isLateDelivery,
     };
 }
 
@@ -641,14 +696,39 @@ function deliverQuest(questId) {
         return false;
     }
 
-    const payout = calculateQuestPayout(questId);
+    const grossPayout = calculateQuestPayout(questId);
+    const timerConfig = getQuestTimerConfig(quest);
+    const acceptedAt = Number(gameState.questProgress?.[questId]?.acceptedAt) || 0;
+    const deliveredAt = Date.now();
+
+    let wasLate = false;
+    let lateFeePercent = 0;
+    let lateFeeAmount = 0;
+    let payout = grossPayout;
+
+    if (timerConfig && acceptedAt > 0) {
+        const elapsedMs = Math.max(0, deliveredAt - acceptedAt);
+        if (elapsedMs > timerConfig.deliveryWindowMs) {
+            wasLate = true;
+            lateFeePercent = getRandomIntInclusive(timerConfig.minPercent, timerConfig.maxPercent);
+            lateFeeAmount = Math.floor((grossPayout * lateFeePercent) / 100);
+            payout = Math.max(0, grossPayout - lateFeeAmount);
+        }
+    }
+
     const requirementRows = getQuestRequirementRows(questId, gameState);
     const totalDelivered = requirementRows.reduce((sum, row) => sum + row.requiredAmount, 0);
     const nextQuestProgress = {
         ...gameState.questProgress,
         [questId]: {
             ...(gameState.questProgress?.[questId] || {}),
-            completedAt: Date.now(),
+            completedAt: deliveredAt,
+            deliveredAt,
+            wasLate,
+            lateFeePercent,
+            lateFeeAmount,
+            grossPayout,
+            netPayout: payout,
         },
     };
     const pauseReleaseState = getPauseReleaseState(gameState, questId);
@@ -674,7 +754,14 @@ function deliverQuest(questId) {
     incrementTotalClicks();
     updateClicksDisplay();
     emitQuestUpdate();
-    showNotification(`${quest.name} delivered for ${payout} coins.`, 'Quest Complete');
+    if (wasLate) {
+        showNotification(
+            `${quest.name} delivered late. ${lateFeePercent}% fee applied (${lateFeeAmount} coins). Final payout: ${payout} coins.`,
+            'Quest Complete',
+        );
+    } else {
+        showNotification(`${quest.name} delivered for ${payout} coins.`, 'Quest Complete');
+    }
     return true;
 }
 

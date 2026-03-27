@@ -158,6 +158,18 @@ function renderQuestCard(container, questData, totalQuests) {
     rewardRow.textContent = `Reward: ${questData.rewardSummary}`;
     meta.appendChild(rewardRow);
 
+    if (questData.isTimedQuest) {
+        const timerRow = document.createElement('p');
+        timerRow.className = 'quest-meta-row';
+        timerRow.textContent = `Delivery timer: ${questData.deliveryWindowLabel} from acceptance`;
+        meta.appendChild(timerRow);
+
+        const penaltyRow = document.createElement('p');
+        penaltyRow.className = 'quest-meta-row';
+        penaltyRow.textContent = `Late fee: ${questData.lateFeeRangeLabel} off payout (quest still completes)`;
+        meta.appendChild(penaltyRow);
+    }
+
     if (questData.isBlockedQuest && questData.unlockTargetSummary) {
         const pausedRow = document.createElement('p');
         pausedRow.className = 'quest-meta-row';
@@ -184,9 +196,17 @@ function renderQuestCard(container, questData, totalQuests) {
     } else {
         const status = document.createElement('p');
         status.className = 'quest-delivery-status';
-        status.textContent = questData.canDeliver
-            ? 'Harvest is ready for pickup.'
-            : 'Keep growing until every line item is ready.';
+        if (questData.canDeliver) {
+            status.textContent = questData.isTimedQuest && questData.isLateDelivery
+                ? 'Harvest is ready, but this delivery is late and will incur a payout fee.'
+                : 'Harvest is ready for pickup.';
+        } else if (questData.isTimedQuest && questData.isLateDelivery) {
+            status.textContent = 'Timer expired. Keep growing and deliver when ready; a payout fee will apply.';
+        } else if (questData.isTimedQuest) {
+            status.textContent = `Keep growing. Time remaining in this window: ${questData.timeRemainingLabel}.`;
+        } else {
+            status.textContent = 'Keep growing until every line item is ready.';
+        }
 
         const deliverButton = document.createElement('button');
         deliverButton.className = 'mac-button quest-deliver-button';
