@@ -1,6 +1,12 @@
 // src/js/ui/macWindow.js
 // Wraps game section containers in Mac System 6-style window chrome.
 
+const WINDOW_COLLAPSE_STORAGE_PREFIX = 'macWindowCollapsed:';
+
+function getWindowCollapseStorageKey(windowId) {
+    return `${WINDOW_COLLAPSE_STORAGE_PREFIX}${windowId}`;
+}
+
 /**
  * wrapInMacWindow(titleEl, contentEl)
  *
@@ -67,6 +73,16 @@ export function wrapInMacWindow(titleEl, contentEl) {
     // Replace the title element in the DOM with the whole window
     titleEl.replaceWith(macWindow);
 
+    // Main game windows are expanded by default (first launch = no stored key).
+    const collapseStorageKey = getWindowCollapseStorageKey(windowId);
+    const storedCollapsedState = localStorage.getItem(collapseStorageKey);
+    const isInitiallyCollapsed = storedCollapsedState === 'true';
+
+    macContent.classList.toggle('mac-content--collapsed', isInitiallyCollapsed);
+    macWindow.classList.toggle('mac-window--collapsed', isInitiallyCollapsed);
+    closeBtn.setAttribute('aria-label', isInitiallyCollapsed ? `Expand ${titleText}` : `Collapse ${titleText}`);
+    closeBtn.setAttribute('title', isInitiallyCollapsed ? `Expand ${titleText}` : `Collapse ${titleText}`);
+
     // Collapse / expand toggle
     closeBtn.addEventListener('click', () => {
         const isCollapsed = macContent.classList.toggle('mac-content--collapsed');
@@ -75,6 +91,8 @@ export function wrapInMacWindow(titleEl, contentEl) {
             'aria-label',
             isCollapsed ? `Expand ${titleText}` : `Collapse ${titleText}`
         );
+        closeBtn.setAttribute('title', isCollapsed ? `Expand ${titleText}` : `Collapse ${titleText}`);
+        localStorage.setItem(collapseStorageKey, isCollapsed ? 'true' : 'false');
     });
 }
 
