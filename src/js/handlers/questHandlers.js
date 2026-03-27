@@ -16,6 +16,99 @@ const QUEST_REWARD_TYPES = {
     UNLOCK_DISASSEMBLE_AUTO_FARMER: 'unlockDisassembleAutoFarmer',
 };
 
+const QUEST_DECLINE_STEP = 2;
+
+function getNormalizedOffset(offset) {
+    return {
+        wheat: Math.max(0, Number(offset?.wheat) || 0),
+        corn: Math.max(0, Number(offset?.corn) || 0),
+        tomato: Math.max(0, Number(offset?.tomato) || 0),
+    };
+}
+
+function addOffsets(baseOffset, addOffset) {
+    const base = getNormalizedOffset(baseOffset);
+    const addition = getNormalizedOffset(addOffset);
+
+    return {
+        wheat: base.wheat + addition.wheat,
+        corn: base.corn + addition.corn,
+        tomato: base.tomato + addition.tomato,
+    };
+}
+
+function hasOffset(offset) {
+    const normalized = getNormalizedOffset(offset);
+    return cropTypes.some((cropType) => normalized[cropType] > 0);
+}
+
+function getQuestUnlockRequirementState(gameState, quest) {
+    const unlockCondition = quest?.unlockCondition;
+    if (!unlockCondition || unlockCondition.type !== 'cropsSold') {
+        return null;
+    }
+
+    const globalOffset = getNormalizedOffset(gameState.questUnlockThresholdOffset);
+    const pendingOffset = gameState.questProgressionPaused && gameState.questBlockedQuestId === quest.id
+        ? getNormalizedOffset(gameState.questPendingDeclineOffset)
+        : getNormalizedOffset(null);
+
+    const effectiveRequirements = {};
+    const baseRequirements = {};
+
+    cropTypes.forEach((cropType) => {
+        const base = Math.max(0, Number(unlockCondition.requirements?.[cropType]) || 0);
+        const globalAmount = globalOffset[cropType] || 0;
+        const pendingAmount = pendingOffset[cropType] || 0;
+
+        baseRequirements[cropType] = base;
+        effectiveRequirements[cropType] = base + globalAmount + pendingAmount;
+    });
+
+    return {
+        baseRequirements,
+        globalOffset,
+        pendingOffset,
+        effectiveRequirements,
+    };
+}
+
+function getDeclineStepOffset() {
+    return {
+        wheat: QUEST_DECLINE_STEP,
+        corn: QUEST_DECLINE_STEP,
+        tomato: QUEST_DECLINE_STEP,
+    };
+}
+
+function getUnlockTargetMessage(quest, gameState) {
+    const unlockState = getQuestUnlockRequirementState(gameState, quest);
+    if (!unlockState) {
+        return '';
+    }
+
+    const parts = cropTypes.map((cropType) => `${unlockState.effectiveRequirements[cropType]} ${getCropLabel(cropType)}`);
+    return parts.join(', ');
+}
+
+function getQuestDeclineCount(gameState, questId) {
+    return Math.max(0, Number(gameState.questProgress?.[questId]?.declinedCount) || 0);
+}
+
+function getPauseReleaseState(gameState, completedQuestId) {
+    if (!gameState.questProgressionPaused || gameState.questBlockedQuestId !== completedQuestId) {
+        return null;
+    }
+
+    const pending = getNormalizedOffset(gameState.questPendingDeclineOffset);
+    return {
+        questUnlockThresholdOffset: addOffsets(gameState.questUnlockThresholdOffset, pending),
+        questPendingDeclineOffset: getNormalizedOffset(null),
+        questProgressionPaused: false,
+        questBlockedQuestId: null,
+    };
+}
+
 function emitQuestUpdate() {
     document.dispatchEvent(new CustomEvent(QUESTS_UPDATED_EVENT));
 }
@@ -152,8 +245,9 @@ function hasMetUnlockCondition(gameState, quest) {
         return false;
     }
 
+    const unlockState = getQuestUnlockRequirementState(gameState, quest);
     return cropTypes.every((cropType) => {
-        const requiredAmount = Number(unlockCondition.requirements?.[cropType]) || 0;
+        const requiredAmount = Number(unlockState?.effectiveRequirements?.[cropType]) || 0;
         if (requiredAmount < 1) {
             return true;
         }
@@ -178,7 +272,10 @@ function unlockQuest(questId) {
         ? (Number(getState().autoFarmerCropsHarvested) || 0)
         : undefined;
 
-    const questProgressEntry = { unlockedAt: Date.now() };
+    const questProgressEntry = {
+        ...(gameState.questProgress?.[questId] || {}),
+        unlockedAt: Date.now(),
+    };
     if (harvestStart !== undefined) {
         questProgressEntry.autoFarmerHarvestStart = harvestStart;
     }
@@ -202,6 +299,18 @@ function unlockQuest(questId) {
 function trackQuestUnlocks(currentState) {
     const gameState = currentState ?? getState();
 
+    if (gameState.questProgressionPaused && gameState.questBlockedQuestId) {
+        const blockedQuest = getQuestDefinitionById(gameState.questBlockedQuestId);
+        if (!blockedQuest || isQuestCompleted(gameState, blockedQuest.id) || isQuestActive(gameState, blockedQuest.id)) {
+            return;
+        }
+
+        if (hasMetUnlockCondition(gameState, blockedQuest)) {
+            unlockQuest(blockedQuest.id);
+        }
+        return;
+    }
+
     getQuestDefinitions().forEach((quest) => {
         if (isQuestUnlocked(gameState, quest.id) || isQuestCompleted(gameState, quest.id)) {
             return;
@@ -211,6 +320,57 @@ function trackQuestUnlocks(currentState) {
             unlockQuest(quest.id);
         }
     });
+}
+
+function declineQuest(questId) {
+    const gameState = getState();
+    const quest = getQuestDefinitionById(questId);
+
+    if (!quest || !isQuestActive(gameState, questId)) {
+        showNotification('That request is not currently active.', 'Quests');
+        return false;
+    }
+
+    if (quest.autoComplete) {
+        showNotification('This request cannot be declined.', 'Quests');
+        return false;
+    }
+
+    const nextPendingOffset = addOffsets(gameState.questPendingDeclineOffset, getDeclineStepOffset());
+    const nextDeclinedCount = getQuestDeclineCount(gameState, questId) + 1;
+    const nextQuestProgress = {
+        ...gameState.questProgress,
+        [questId]: {
+            ...(gameState.questProgress?.[questId] || {}),
+            declinedAt: Date.now(),
+            declinedCount: nextDeclinedCount,
+        },
+    };
+
+    updateState({
+        questsActive: gameState.questsActive.filter((id) => id !== questId),
+        questsUnlocked: gameState.questsUnlocked.filter((id) => id !== questId),
+        questProgress: nextQuestProgress,
+        questProgressionPaused: true,
+        questBlockedQuestId: questId,
+        questPendingDeclineOffset: nextPendingOffset,
+    });
+
+    emitQuestUpdate();
+
+    const nextState = getState();
+    const unlockTargetMessage = getUnlockTargetMessage(quest, nextState);
+    if (unlockTargetMessage) {
+        showNotification(
+            `${quest.name} declined. Future requests are on hold until this request reaches: ${unlockTargetMessage}.`,
+            'Quest Progression Paused',
+        );
+    } else {
+        showNotification(`${quest.name} declined. Future requests are now on hold.`, 'Quest Progression Paused');
+    }
+
+    trackAchievements();
+    return true;
 }
 
 function getQuestRequirementRows(questId, currentState) {
@@ -366,23 +526,39 @@ function getQuestDisplayData(questId, currentState) {
         return null;
     }
 
+    const unlockState = getQuestUnlockRequirementState(gameState, quest);
+
     return {
         ...quest,
         requirementRows: getQuestRequirementRows(questId, gameState),
         rewardSummary: getRewardSummary(questId),
         canDeliver: canDeliverQuest(questId, gameState),
+        canDecline: !quest.autoComplete,
         isCompleted: isQuestCompleted(gameState, questId),
         isActive: isQuestActive(gameState, questId),
+        isBlockedQuest: gameState.questProgressionPaused && gameState.questBlockedQuestId === questId,
+        unlockTargetSummary: unlockState
+            ? cropTypes.map((cropType) => `${unlockState.effectiveRequirements[cropType]} ${getCropLabel(cropType)}`).join(', ')
+            : '',
     };
 }
 
 function getQuestPanelData(currentState) {
     const gameState = currentState ?? getState();
     const activeQuestIds = Array.isArray(gameState.questsActive) ? [...gameState.questsActive] : [];
+    const blockedQuest = gameState.questBlockedQuestId
+        ? getQuestDefinitionById(gameState.questBlockedQuestId)
+        : null;
 
     return {
         unlockedCount: Array.isArray(gameState.questsUnlocked) ? gameState.questsUnlocked.length : 0,
         completedCount: Array.isArray(gameState.questsCompleted) ? gameState.questsCompleted.length : 0,
+        progressionPaused: Boolean(gameState.questProgressionPaused),
+        blockedQuestName: blockedQuest?.name || '',
+        blockedQuestUnlockTarget: blockedQuest ? getUnlockTargetMessage(blockedQuest, gameState) : '',
+        pendingOffsetSummary: hasOffset(gameState.questPendingDeclineOffset)
+            ? cropTypes.map((cropType) => `+${getNormalizedOffset(gameState.questPendingDeclineOffset)[cropType]} ${getCropLabel(cropType)}`).join(', ')
+            : '',
         activeQuests: activeQuestIds
             .map((questId) => getQuestDisplayData(questId, gameState))
             .filter(Boolean),
@@ -419,11 +595,13 @@ function autoCompleteQuest(questId) {
             completedAt: Date.now(),
         },
     };
+    const pauseReleaseState = getPauseReleaseState(gameState, questId);
 
     updateState({
         questsActive: gameState.questsActive.filter((id) => id !== questId),
         questsCompleted: [...gameState.questsCompleted, questId],
         questProgress: nextQuestProgress,
+        ...(pauseReleaseState || {}),
     });
 
     applyQuestReward(quest);
@@ -473,6 +651,7 @@ function deliverQuest(questId) {
             completedAt: Date.now(),
         },
     };
+    const pauseReleaseState = getPauseReleaseState(gameState, questId);
 
     updateState({
         coins: gameState.coins + payout,
@@ -485,6 +664,7 @@ function deliverQuest(questId) {
         questsActive: gameState.questsActive.filter((activeQuestId) => activeQuestId !== questId),
         questsCompleted: [...gameState.questsCompleted, questId],
         questProgress: nextQuestProgress,
+        ...(pauseReleaseState || {}),
     });
 
     applyQuestReward(quest);
@@ -503,6 +683,7 @@ export {
     trackQuestUnlocks,
     trackQuestAutoCompletions,
     unlockQuest,
+    declineQuest,
     canDeliverQuest,
     calculateQuestPayout,
     getQuestDisplayData,

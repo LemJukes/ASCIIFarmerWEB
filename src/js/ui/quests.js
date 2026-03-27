@@ -1,4 +1,4 @@
-import { getQuestPanelData, deliverQuest, QUESTS_UPDATED_EVENT } from "../handlers/questHandlers.js";
+import { getQuestPanelData, deliverQuest, declineQuest, QUESTS_UPDATED_EVENT } from "../handlers/questHandlers.js";
 
 const QUESTS_TITLE_ID = 'quests-container-title';
 const QUESTS_CONTAINER_ID = 'quests';
@@ -158,6 +158,13 @@ function renderQuestCard(container, questData, totalQuests) {
     rewardRow.textContent = `Reward: ${questData.rewardSummary}`;
     meta.appendChild(rewardRow);
 
+    if (questData.isBlockedQuest && questData.unlockTargetSummary) {
+        const pausedRow = document.createElement('p');
+        pausedRow.className = 'quest-meta-row';
+        pausedRow.textContent = `Progression paused target: ${questData.unlockTargetSummary}`;
+        meta.appendChild(pausedRow);
+    }
+
     const requirementsHeading = document.createElement('p');
     requirementsHeading.className = 'quest-section-heading';
     requirementsHeading.textContent = 'Delivery Requirements';
@@ -190,13 +197,22 @@ function renderQuestCard(container, questData, totalQuests) {
             deliverQuest(questData.id);
         });
 
-        actions.append(status, deliverButton);
+        const declineButton = document.createElement('button');
+        declineButton.className = 'mac-button quest-decline-button';
+        declineButton.type = 'button';
+        declineButton.textContent = 'Decline';
+        declineButton.disabled = !questData.canDecline;
+        declineButton.addEventListener('click', () => {
+            declineQuest(questData.id);
+        });
+
+        actions.append(status, deliverButton, declineButton);
     }
     card.append(pager, header, cardIntro, meta, requirementsHeading, requirementsTable, actions);
     container.replaceChildren(card);
 }
 
-function renderEmptyQuestState(container, completedCount) {
+function renderEmptyQuestState(container, panelData) {
     const emptyState = document.createElement('section');
     emptyState.className = 'quest-empty-state';
 
@@ -206,11 +222,31 @@ function renderEmptyQuestState(container, completedCount) {
 
     const body = document.createElement('p');
     body.className = 'quest-card-flavor';
-    body.textContent = completedCount > 0
-        ? 'farmr has cleared the current request queue. Watch for the next produce message.'
-        : 'farmr will post produce requests here once the networks start asking for harvests.';
+
+    if (panelData.progressionPaused && panelData.blockedQuestName) {
+        body.textContent = `${panelData.blockedQuestName} was declined. Future requests are paused until unlock target is met.`;
+    } else {
+        body.textContent = panelData.completedCount > 0
+            ? 'farmr has cleared the current request queue. Watch for the next produce message.'
+            : 'farmr will post produce requests here once the networks start asking for harvests.';
+    }
 
     emptyState.append(heading, body);
+
+    if (panelData.progressionPaused && panelData.blockedQuestUnlockTarget) {
+        const details = document.createElement('p');
+        details.className = 'quest-card-flavor';
+        details.textContent = `Current re-offer target: ${panelData.blockedQuestUnlockTarget}.`;
+        emptyState.append(details);
+    }
+
+    if (panelData.progressionPaused && panelData.pendingOffsetSummary) {
+        const carryForward = document.createElement('p');
+        carryForward.className = 'quest-card-flavor';
+        carryForward.textContent = `On completion, later quest unlocks will increase by ${panelData.pendingOffsetSummary}.`;
+        emptyState.append(carryForward);
+    }
+
     container.replaceChildren(emptyState);
 }
 
@@ -263,16 +299,16 @@ function refreshQuestWindow() {
     const panelData = getQuestPanelData();
     const totalActiveQuests = panelData.activeQuests.length;
 
-    setQuestWindowVisibility(panelData.unlockedCount > 0);
+    setQuestWindowVisibility(panelData.unlockedCount > 0 || panelData.progressionPaused);
 
-    if (panelData.unlockedCount < 1) {
+    if (panelData.unlockedCount < 1 && !panelData.progressionPaused) {
         questsContainer.replaceChildren();
         return;
     }
 
     if (totalActiveQuests < 1) {
         currentQuestIndex = 0;
-        renderEmptyQuestState(questsContainer, panelData.completedCount);
+        renderEmptyQuestState(questsContainer, panelData);
         return;
     }
 

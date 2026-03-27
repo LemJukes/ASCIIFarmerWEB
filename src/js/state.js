@@ -62,6 +62,18 @@ function normalizeQuestProgress(value) {
     return normalizedProgress;
 }
 
+function normalizeQuestThresholdOffset(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return { wheat: 0, corn: 0, tomato: 0 };
+    }
+
+    return {
+        wheat: Math.max(0, Number(value.wheat) || 0),
+        corn: Math.max(0, Number(value.corn) || 0),
+        tomato: Math.max(0, Number(value.tomato) || 0),
+    };
+}
+
 function createDefaultField({ id, name, plots }) {
     return {
         id,
@@ -268,6 +280,18 @@ const initialGameState = {
     questsActive: [],
     questsCompleted: [],
     questProgress: {},
+    questUnlockThresholdOffset: {
+        wheat: 0,
+        corn: 0,
+        tomato: 0,
+    },
+    questPendingDeclineOffset: {
+        wheat: 0,
+        corn: 0,
+        tomato: 0,
+    },
+    questProgressionPaused: false,
+    questBlockedQuestId: null,
     totalCoinsFromQuests: 0,
     destroyPlotUnlocked: false,
     restorePlotUnlocked: false,
@@ -318,6 +342,12 @@ function getStateSnapshot() {
         questsActive: normalizeStringArray(gameState.questsActive),
         questsCompleted: normalizeStringArray(gameState.questsCompleted),
         questProgress: normalizeQuestProgress(gameState.questProgress),
+        questUnlockThresholdOffset: normalizeQuestThresholdOffset(gameState.questUnlockThresholdOffset),
+        questPendingDeclineOffset: normalizeQuestThresholdOffset(gameState.questPendingDeclineOffset),
+        questProgressionPaused: Boolean(gameState.questProgressionPaused),
+        questBlockedQuestId: typeof gameState.questBlockedQuestId === 'string' && gameState.questBlockedQuestId.length > 0
+            ? gameState.questBlockedQuestId
+            : null,
     };
 }
 
@@ -352,6 +382,12 @@ function applyStateSnapshot(snapshot) {
     const normalizedQuestsActive = normalizeStringArray(merged.questsActive);
     const normalizedQuestsCompleted = normalizeStringArray(merged.questsCompleted);
     const normalizedQuestProgress = normalizeQuestProgress(merged.questProgress);
+    const normalizedQuestUnlockThresholdOffset = normalizeQuestThresholdOffset(merged.questUnlockThresholdOffset);
+    const normalizedQuestPendingDeclineOffset = normalizeQuestThresholdOffset(merged.questPendingDeclineOffset);
+    const normalizedQuestProgressionPaused = Boolean(merged.questProgressionPaused);
+    const normalizedQuestBlockedQuestId = typeof merged.questBlockedQuestId === 'string' && merged.questBlockedQuestId.length > 0
+        ? merged.questBlockedQuestId
+        : null;
 
     Object.assign(gameState, merged, {
         fields: fieldsShape.fields,
@@ -364,6 +400,10 @@ function applyStateSnapshot(snapshot) {
         questsActive: normalizedQuestsActive,
         questsCompleted: normalizedQuestsCompleted,
         questProgress: normalizedQuestProgress,
+        questUnlockThresholdOffset: normalizedQuestUnlockThresholdOffset,
+        questPendingDeclineOffset: normalizedQuestPendingDeclineOffset,
+        questProgressionPaused: normalizedQuestProgressionPaused,
+        questBlockedQuestId: normalizedQuestBlockedQuestId,
     });
 
     gameState.gameStartedAt = normalizeGameStartedAt(gameState.gameStartedAt);

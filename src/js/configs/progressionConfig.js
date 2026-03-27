@@ -16,8 +16,8 @@ const progressionConfig = {
     },
     unlocks: {
         cropsByTotalCoinsEarned: {
-            corn: 60,
-            tomato: 220,
+            corn: 250,
+            tomato: 500,
         },
         fieldsBySpendAndFirstFieldPlots: {
             coinsSpent: 100000,
