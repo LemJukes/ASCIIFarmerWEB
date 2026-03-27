@@ -4,6 +4,18 @@ import { isAudioEnabled, toggleAudioEnabled } from './sfx.js';
 import { initializeKeybindsWindow, showKeybindsWindow } from './keybinds.js';
 
 const STORAGE_KEY = 'colorScheme';
+const OPTIONS_WINDOW_KEY = 'optionsWindowCollapsed';
+const STATS_WINDOW_KEY = 'statsWindowCollapsed';
+const ACHIEVEMENTS_WINDOW_KEY = 'achievementsWindowCollapsed';
+
+function applyWindowCollapsedState(win, content, closeBtn, key, collapsedLabel, expandedLabel) {
+    const stored = localStorage.getItem(key);
+    const isCollapsed = stored !== 'false';
+
+    content.classList.toggle('mac-content--collapsed', isCollapsed);
+    win.classList.toggle('mac-window--collapsed', isCollapsed);
+    closeBtn.setAttribute('aria-label', isCollapsed ? expandedLabel : collapsedLabel);
+}
 
 function isCurrentlyDark() {
     if (document.body.classList.contains('dark')) return true;
@@ -95,10 +107,21 @@ function initializeOptionsWindow() {
     const closeBtn = win.querySelector('.mac-close-btn');
     const content = win.querySelector('.mac-content');
     if (!closeBtn || !content) return;
+
+    applyWindowCollapsedState(
+        win,
+        content,
+        closeBtn,
+        OPTIONS_WINDOW_KEY,
+        'Collapse Options',
+        'Expand Options'
+    );
+
     closeBtn.addEventListener('click', () => {
         const isCollapsed = content.classList.toggle('mac-content--collapsed');
         win.classList.toggle('mac-window--collapsed', isCollapsed);
         closeBtn.setAttribute('aria-label', isCollapsed ? 'Expand Options' : 'Collapse Options');
+        localStorage.setItem(OPTIONS_WINDOW_KEY, isCollapsed ? 'true' : 'false');
     });
 
     const keybindsBtn = document.getElementById('keybinds-toggle');
@@ -115,10 +138,21 @@ function initializeStatsWindow() {
     const closeBtn = win.querySelector('.mac-close-btn');
     const content = win.querySelector('.mac-content');
     if (!closeBtn || !content) return;
+
+    applyWindowCollapsedState(
+        win,
+        content,
+        closeBtn,
+        STATS_WINDOW_KEY,
+        'Collapse Stats',
+        'Expand Stats'
+    );
+
     closeBtn.addEventListener('click', () => {
         const isCollapsed = content.classList.toggle('mac-content--collapsed');
         win.classList.toggle('mac-window--collapsed', isCollapsed);
         closeBtn.setAttribute('aria-label', isCollapsed ? 'Expand Stats' : 'Collapse Stats');
+        localStorage.setItem(STATS_WINDOW_KEY, isCollapsed ? 'true' : 'false');
     });
 }
 
@@ -128,10 +162,21 @@ function initializeAchievementsWindow() {
     const closeBtn = win.querySelector('.mac-close-btn');
     const content = win.querySelector('.mac-content');
     if (!closeBtn || !content) return;
+
+    applyWindowCollapsedState(
+        win,
+        content,
+        closeBtn,
+        ACHIEVEMENTS_WINDOW_KEY,
+        'Collapse Achievements',
+        'Expand Achievements'
+    );
+
     closeBtn.addEventListener('click', () => {
         const isCollapsed = content.classList.toggle('mac-content--collapsed');
         win.classList.toggle('mac-window--collapsed', isCollapsed);
         closeBtn.setAttribute('aria-label', isCollapsed ? 'Expand Achievements' : 'Collapse Achievements');
+        localStorage.setItem(ACHIEVEMENTS_WINDOW_KEY, isCollapsed ? 'true' : 'false');
     });
 }
 
