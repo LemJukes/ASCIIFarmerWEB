@@ -255,6 +255,7 @@ const initialGameState = {
     questsCompleted: [],
     questProgress: {},
     totalCoinsFromQuests: 0,
+    timedQuestsBeatenOnTime: 0,
 
     // Upgrade Values
     // Water Upgrade Values:

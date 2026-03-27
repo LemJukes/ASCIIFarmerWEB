@@ -745,6 +745,7 @@ function deliverQuest(questId) {
         questsCompleted: [...gameState.questsCompleted, questId],
         questProgress: nextQuestProgress,
         ...(pauseReleaseState || {}),
+        ...(timerConfig && !wasLate ? { timedQuestsBeatenOnTime: (Number(gameState.timedQuestsBeatenOnTime) || 0) + 1 } : {}),
     });
 
     applyQuestReward(quest);

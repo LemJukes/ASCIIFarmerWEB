@@ -150,6 +150,31 @@ function buildAchievementCatalog() {
         isUnlocked: (state) => Boolean(state.fieldStoreUnlocked),
     });
 
+    // ── Timed Quest Achievements ──────────────────────────────────────────────
+    catalog.push({
+        id: 'timedQuestsBeaten-1',
+        title: 'On the Clock',
+        reachedValue: 'Beat 1 timed quest before the timer ran out',
+        reward: 'Reward: 100 coins',
+        isUnlocked: (state) => state.achievementsUnlocked.includes('timedQuestsBeaten-1'),
+    });
+
+    catalog.push({
+        id: 'timedQuestsBeaten-3',
+        title: 'Time-Critical Operator',
+        reachedValue: 'Beat 3 timed quests before the timer ran out',
+        reward: 'Reward: 500 coins',
+        isUnlocked: (state) => state.achievementsUnlocked.includes('timedQuestsBeaten-3'),
+    });
+
+    catalog.push({
+        id: 'timedQuestsBeaten-all',
+        title: 'Deadline Champion',
+        reachedValue: 'Beat all timed quests before the timer ran out',
+        reward: 'Reward: 10,000 coins',
+        isUnlocked: (state) => state.achievementsUnlocked.includes('timedQuestsBeaten-all'),
+    });
+
     return catalog;
 }
 
