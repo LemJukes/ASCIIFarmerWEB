@@ -157,31 +157,6 @@ function checkGeneralAchievementMilestones(gameState) {
     });
 }
 
-// Total number of timed quests defined in questConfig.js (quests with deliveryWindowMs).
-const TOTAL_TIMED_QUESTS = 12;
-
-function checkTimedQuestAchievements(gameState) {
-    const beaten = Number(gameState.timedQuestsBeatenOnTime) || 0;
-
-    const tiers = [
-        { threshold: 1, id: 'timedQuestsBeaten-1', coins: 100, label: 'On the Clock' },
-        { threshold: 3, id: 'timedQuestsBeaten-3', coins: 500, label: 'Time-Critical Operator' },
-        { threshold: TOTAL_TIMED_QUESTS, id: 'timedQuestsBeaten-all', coins: 10000, label: 'Deadline Champion' },
-    ];
-
-    tiers.forEach(({ threshold, id, coins, label }) => {
-        if (beaten >= threshold) {
-            if (unlockAchievement(id, `Achievement unlocked: ${label}! You earned ${coins.toLocaleString()} coins.`)) {
-                const currentState = getState();
-                updateState({
-                    coins: currentState.coins + coins,
-                    totalCoinsEarned: currentState.totalCoinsEarned + coins,
-                });
-            }
-        }
-    });
-}
-
 function trackAchievements() {
     const gameState = getState();
 
@@ -193,7 +168,6 @@ function trackAchievements() {
     checkCropsSoldAchievements(gameState);
     checkWaterRefillPurchaseAchievements(gameState);
     checkWaterRefillsAchievementsAndEnableButton(gameState);
-    checkTimedQuestAchievements(gameState);
     trackQuestUnlocks(gameState);
     trackQuestAutoCompletions(gameState);
     refreshPlotFeatureStoreSections();

@@ -5,12 +5,28 @@ import { progressionConfig } from "./configs/progressionConfig.js";
 const DEFAULT_FIELD_ID = 'field-1';
 
 function normalizePlotState(plot) {
+    const autoFarmerMaxLevel = Math.max(1, Number(progressionConfig.upgradesEconomy?.autoFarmerUpgrade?.maxLevel) || 8);
+
     return {
         symbol: plot?.symbol ?? '~',
         cropType: plot?.cropType ?? null,
         waterCount: Number(plot?.waterCount) || 0,
         disabledUntil: Number(plot?.disabledUntil) || 0,
         lastUpdatedAt: Number(plot?.lastUpdatedAt) || Date.now(),
+        destroyed: Boolean(plot?.destroyed),
+        autoFarmer: plot?.autoFarmer && typeof plot.autoFarmer === 'object'
+            ? {
+                level: Math.min(autoFarmerMaxLevel, Math.max(1, Number(plot.autoFarmer.level) || 1)),
+                tickMs: Math.max(250, Number(plot.autoFarmer.tickMs) || 2500),
+                lastTickAt: Number(plot.autoFarmer.lastTickAt) || 0,
+                preferredTargetPlotIndex: Number.isInteger(plot.autoFarmer.preferredTargetPlotIndex)
+                    ? Number(plot.autoFarmer.preferredTargetPlotIndex)
+                    : null,
+                lastErrorCode: typeof plot.autoFarmer.lastErrorCode === 'string' ? plot.autoFarmer.lastErrorCode : null,
+                lastErrorMessage: typeof plot.autoFarmer.lastErrorMessage === 'string' ? plot.autoFarmer.lastErrorMessage : '',
+                flashingUntil: Number(plot.autoFarmer.flashingUntil) || 0,
+            }
+            : null,
     };
 }
 
@@ -46,6 +62,18 @@ function normalizeQuestProgress(value) {
     });
 
     return normalizedProgress;
+}
+
+function normalizeQuestThresholdOffset(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return { wheat: 0, corn: 0, tomato: 0 };
+    }
+
+    return {
+        wheat: Math.max(0, Number(value.wheat) || 0),
+        corn: Math.max(0, Number(value.corn) || 0),
+        tomato: Math.max(0, Number(value.tomato) || 0),
+    };
 }
 
 function createDefaultField({ id, name, plots }) {
@@ -207,7 +235,7 @@ const initialGameState = {
     water: 10,
 
     // Crop-Specific Seeds
-    wheatSeeds: 1, // Start with some wheat seeds
+    wheatSeeds: 0, // Start with some wheat seeds
     cornSeeds: 0,
     tomatoSeeds: 0,
 
@@ -254,8 +282,29 @@ const initialGameState = {
     questsActive: [],
     questsCompleted: [],
     questProgress: {},
+    questUnlockThresholdOffset: {
+        wheat: 0,
+        corn: 0,
+        tomato: 0,
+    },
+    questPendingDeclineOffset: {
+        wheat: 0,
+        corn: 0,
+        tomato: 0,
+    },
+    questProgressionPaused: false,
+    questBlockedQuestId: null,
     totalCoinsFromQuests: 0,
-    timedQuestsBeatenOnTime: 0,
+    destroyPlotUnlocked: false,
+    restorePlotUnlocked: false,
+    autoFarmerUnlocked: false,
+    disassembleAutoFarmerUnlocked: false,
+    autoFarmerUpgradeUnlocked: false,
+    plotSelectionMode: null,
+    autoFarmerPurchasedCount: 0,
+    autoFarmerNextCost: 100,
+    autoFarmerCropsHarvested: 0,
+    autoFarmerDisassembledCount: 0,
 
     // Upgrade Values
     // Water Upgrade Values:
@@ -296,6 +345,12 @@ function getStateSnapshot() {
         questsActive: normalizeStringArray(gameState.questsActive),
         questsCompleted: normalizeStringArray(gameState.questsCompleted),
         questProgress: normalizeQuestProgress(gameState.questProgress),
+        questUnlockThresholdOffset: normalizeQuestThresholdOffset(gameState.questUnlockThresholdOffset),
+        questPendingDeclineOffset: normalizeQuestThresholdOffset(gameState.questPendingDeclineOffset),
+        questProgressionPaused: Boolean(gameState.questProgressionPaused),
+        questBlockedQuestId: typeof gameState.questBlockedQuestId === 'string' && gameState.questBlockedQuestId.length > 0
+            ? gameState.questBlockedQuestId
+            : null,
     };
 }
 
@@ -330,6 +385,12 @@ function applyStateSnapshot(snapshot) {
     const normalizedQuestsActive = normalizeStringArray(merged.questsActive);
     const normalizedQuestsCompleted = normalizeStringArray(merged.questsCompleted);
     const normalizedQuestProgress = normalizeQuestProgress(merged.questProgress);
+    const normalizedQuestUnlockThresholdOffset = normalizeQuestThresholdOffset(merged.questUnlockThresholdOffset);
+    const normalizedQuestPendingDeclineOffset = normalizeQuestThresholdOffset(merged.questPendingDeclineOffset);
+    const normalizedQuestProgressionPaused = Boolean(merged.questProgressionPaused);
+    const normalizedQuestBlockedQuestId = typeof merged.questBlockedQuestId === 'string' && merged.questBlockedQuestId.length > 0
+        ? merged.questBlockedQuestId
+        : null;
 
     Object.assign(gameState, merged, {
         fields: fieldsShape.fields,
@@ -342,6 +403,10 @@ function applyStateSnapshot(snapshot) {
         questsActive: normalizedQuestsActive,
         questsCompleted: normalizedQuestsCompleted,
         questProgress: normalizedQuestProgress,
+        questUnlockThresholdOffset: normalizedQuestUnlockThresholdOffset,
+        questPendingDeclineOffset: normalizedQuestPendingDeclineOffset,
+        questProgressionPaused: normalizedQuestProgressionPaused,
+        questBlockedQuestId: normalizedQuestBlockedQuestId,
     });
 
     gameState.gameStartedAt = normalizeGameStartedAt(gameState.gameStartedAt);

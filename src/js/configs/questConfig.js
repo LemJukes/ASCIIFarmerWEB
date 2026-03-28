@@ -711,6 +711,28 @@ const questDefinitions = [
             description: 'Unlocks Disassemble AutoFarmer in the store',
         },
     },
+    {
+        id: 'autofarmer-mk-calibration-license',
+        name: 'AutoFarmer Mk Calibration License',
+        issuer: 'Automata Licensing Bureau',
+        flavorText: `farmr says the bureau now allows operators to tune individual AutoFarmer rigs, but only after proving sustained automation discipline. Deliver this calibration shipment and they will unlock your Mk upgrade console.`,
+        requirements: {
+            wheat: 72,
+            corn: 68,
+            tomato: 64,
+        },
+        unlockCondition: {
+            type: 'autoFarmerHarvests',
+            requiresQuestCompleted: 'autofarmer-field-operations-review',
+            requirements: {
+                count: 180,
+            },
+        },
+        reward: {
+            type: 'unlockAutoFarmerUpgrade',
+            description: 'Unlocks AutoFarmer upgrades in the Upgrades section',
+        },
+    },
 ];
 
 function getQuestDefinitions() {

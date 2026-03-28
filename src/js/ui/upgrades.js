@@ -1,7 +1,7 @@
 //src/js/ui/upgrades.js+
 
 import { savePartialSnapshot } from "../persistence.js";
-import { incrementTotalClicks } from "../state.js";
+import { getState, incrementTotalClicks } from "../state.js";
 import { updateClicksDisplay } from "./clicks.js";
 import { progressionConfig } from "../configs/progressionConfig.js";
 import {
@@ -16,6 +16,7 @@ import {
     buyToolAutoChangerChargePack100,
     buyToolAutoChangerChargePack500,
     buyToolAutoChangerChargePack1000,
+    buyAutoFarmerUpgrade,
 } from "../handlers/upgradeHandlers.js";
 
 const { upgradesEconomy } = progressionConfig;
@@ -323,8 +324,18 @@ function initializeClickUpgradesSection() {
         toolAutoChangerGroupTitle.textContent = 'Tool Auto-Changer';
         toolAutoChangerGroup.appendChild(toolAutoChangerGroupTitle);
 
+        const autoFarmerUpgradeGroup = document.createElement('section');
+        autoFarmerUpgradeGroup.classList.add('click-upgrade-group');
+        autoFarmerUpgradeGroup.id = 'autofarmer-upgrade-group';
+
+        const autoFarmerUpgradeGroupTitle = document.createElement('h4');
+        autoFarmerUpgradeGroupTitle.classList.add('click-upgrade-group-title');
+        autoFarmerUpgradeGroupTitle.textContent = 'AutoFarmer Calibration';
+        autoFarmerUpgradeGroup.appendChild(autoFarmerUpgradeGroupTitle);
+
         expandedClickUpgradesSection.appendChild(expandedClickGroup);
         expandedClickUpgradesSection.appendChild(toolAutoChangerGroup);
+        expandedClickUpgradesSection.appendChild(autoFarmerUpgradeGroup);
 
         // Add the Upgrades section to the store or main window
         const mainDiv = document.getElementById('upgrades-container'); // Assuming 'main' is the main container
@@ -342,6 +353,41 @@ function initializeClickUpgradesSection() {
 function renderClickUpgradesSection() {
     addExpandedClickUpgradeButton();
     addToolAutoChangerControls();
+    addAutoFarmerUpgradeButton();
+}
+
+function addAutoFarmerUpgradeButton() {
+    const autoFarmerGroup = document.getElementById('autofarmer-upgrade-group');
+    if (!autoFarmerGroup) {
+        return;
+    }
+
+    const gameState = getState();
+    autoFarmerGroup.style.display = gameState.autoFarmerUpgradeUnlocked ? 'flex' : 'none';
+    if (!gameState.autoFarmerUpgradeUnlocked) {
+        return;
+    }
+
+    const existingRows = autoFarmerGroup.querySelectorAll('.click-upgrade-row');
+    existingRows.forEach((row) => row.remove());
+
+    const row = document.createElement('div');
+    row.classList.add('click-upgrade-row');
+
+    const button = document.createElement('button');
+    button.classList.add('upgrade-button');
+    button.id = 'autofarmer-upgrade-buy-button';
+    button.textContent = 'Upgrade AutoFarmer';
+    button.addEventListener('click', buyAutoFarmerUpgrade);
+    row.appendChild(button);
+
+    const detail = document.createElement('span');
+    detail.classList.add('upgrade-price');
+    detail.id = 'autofarmer-upgrade-summary';
+    detail.textContent = 'Select eligible plot';
+    row.appendChild(detail);
+
+    autoFarmerGroup.appendChild(row);
 }
 
 function addExpandedClickUpgradeButton() {
@@ -582,6 +628,7 @@ export { getUpgradeValues,
          renderClickUpgradesSection,
          addExpandedClickUpgradeButton,
          addToolAutoChangerControls,
+         addAutoFarmerUpgradeButton,
          //updateExpandedClickUpgradeButton,
 }
 

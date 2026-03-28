@@ -5,6 +5,7 @@ import { updateResourceBar } from "../ui/resource.js";
 import { updateClicksDisplay } from "../ui/clicks.js";
 import { trackAchievements } from "./achievementHandlers.js";
 import { getQuestDefinitions, getQuestDefinitionById } from "../configs/questConfig.js";
+import { renderClickUpgradesSection } from "../ui/upgrades.js";
 
 const QUESTS_UPDATED_EVENT = 'quests:updated';
 const cropTypes = ['wheat', 'corn', 'tomato'];
@@ -14,6 +15,7 @@ const QUEST_REWARD_TYPES = {
     UNLOCK_DESTROY_RESTORE_PLOT: 'unlockDestroyRestorePlot',
     UNLOCK_AUTO_FARMER: 'unlockAutoFarmer',
     UNLOCK_DISASSEMBLE_AUTO_FARMER: 'unlockDisassembleAutoFarmer',
+    UNLOCK_AUTO_FARMER_UPGRADE: 'unlockAutoFarmerUpgrade',
 };
 
 const QUEST_DECLINE_STEP = 2;
@@ -560,6 +562,18 @@ function applyQuestReward(quest) {
             questProgress: nextQuestProgress,
         });
         showNotification('Disassemble AutoFarmer unlocked in the store.', 'Quest Reward');
+        return;
+    }
+
+    if (quest.reward.type === QUEST_REWARD_TYPES.UNLOCK_AUTO_FARMER_UPGRADE) {
+        updateState({
+            autoFarmerUpgradeUnlocked: true,
+            questProgress: nextQuestProgress,
+        });
+        if (document.getElementById('click-upgrades-section')) {
+            renderClickUpgradesSection();
+        }
+        showNotification('AutoFarmer upgrades unlocked in the Upgrades section.', 'Quest Reward');
     }
 }
 
@@ -745,7 +759,6 @@ function deliverQuest(questId) {
         questsCompleted: [...gameState.questsCompleted, questId],
         questProgress: nextQuestProgress,
         ...(pauseReleaseState || {}),
-        ...(timerConfig && !wasLate ? { timedQuestsBeatenOnTime: (Number(gameState.timedQuestsBeatenOnTime) || 0) + 1 } : {}),
     });
 
     applyQuestReward(quest);
