@@ -4,6 +4,8 @@ import { trackAchievements } from "../handlers/achievementHandlers.js";
 import { getStoreValues, initializeStore } from "./store.js";
 //import { logUpgradeValues } from "./upgrades.js";
 
+const RESOURCES_UPDATED_EVENT = 'resources:updated';
+
 function createResourceItem(label, value, elementId, ariaLabel, options = {}) {
     const resourceItem = document.createElement('div');
     resourceItem.classList.add('resource-item');
@@ -175,6 +177,7 @@ function updateResourceBar() {
     updatePlotCostDisplay();
     trackAchievements();
     logGameState();
+    document.dispatchEvent(new CustomEvent(RESOURCES_UPDATED_EVENT));
 //    logUpgradeValues();    
 }
 
@@ -191,4 +194,4 @@ function updatePlotCostDisplay() {
     }
 }
 
-export { initializeResourceBarTitle, initializeResourceBar, updateResourceBar };
+export { RESOURCES_UPDATED_EVENT, initializeResourceBarTitle, initializeResourceBar, updateResourceBar };

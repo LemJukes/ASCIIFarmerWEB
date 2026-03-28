@@ -78,6 +78,8 @@ const expandedClickUpgradeDefinitions = [
 
 const initialUpgradeValues = {
     waterUpgradeCost: upgradesEconomy.waterCapacity.baseCost,
+    waterAutoBuyerUnlocked: false,
+    waterAutoBuyerEnabled: false,
     
     //Epanded Click Values
     expandedClickUpgradeCost: upgradesEconomy.expandedClick.mk1Cost,
@@ -230,7 +232,17 @@ function initializeWaterUpgradesSection() {
     waterUpgradeGroupTitle.textContent = 'Increase Capacity';
     waterUpgradeGroup.appendChild(waterUpgradeGroupTitle);
 
+    const waterAutoBuyerGroup = document.createElement('section');
+    waterAutoBuyerGroup.classList.add('click-upgrade-group');
+    waterAutoBuyerGroup.id = 'water-auto-buyer-group';
+
+    const waterAutoBuyerGroupTitle = document.createElement('h4');
+    waterAutoBuyerGroupTitle.classList.add('click-upgrade-group-title');
+    waterAutoBuyerGroupTitle.textContent = 'Auto-Buyer';
+    waterAutoBuyerGroup.appendChild(waterAutoBuyerGroupTitle);
+
     waterUpgradesSection.appendChild(waterUpgradeGroup);
+    waterUpgradesSection.appendChild(waterAutoBuyerGroup);
 
     // Add the Upgrades section to the store or main window
     const mainDiv = document.getElementById('upgrades-container'); // Assuming 'main' is the main container
@@ -244,14 +256,17 @@ function initializeWaterUpgradesSection() {
 
 function addWaterUpgradeButton() {
     const waterUpgradeGroup = document.getElementById('water-upgrade-group');
+    const waterAutoBuyerGroup = document.getElementById('water-auto-buyer-group');
 
-    if (!waterUpgradeGroup) {
+    if (!waterUpgradeGroup || !waterAutoBuyerGroup) {
         console.error('Water Upgrades Section not found in the DOM');
         return;
     }
 
-    const existingRows = waterUpgradeGroup.querySelectorAll('.click-upgrade-row');
-    existingRows.forEach((row) => row.remove());
+    const existingCapacityRows = waterUpgradeGroup.querySelectorAll('.click-upgrade-row');
+    existingCapacityRows.forEach((row) => row.remove());
+    const existingAutoBuyerRows = waterAutoBuyerGroup.querySelectorAll('.click-upgrade-row');
+    existingAutoBuyerRows.forEach((row) => row.remove());
 
     const row = document.createElement('div');
     row.classList.add('click-upgrade-row');
@@ -273,6 +288,34 @@ function addWaterUpgradeButton() {
     row.appendChild(upgradeWaterCapCost);
 
     waterUpgradeGroup.appendChild(row);
+
+    if (!upgradeValues.waterAutoBuyerUnlocked) {
+        return;
+    }
+
+    const autoBuyerRow = document.createElement('div');
+    autoBuyerRow.classList.add('click-upgrade-row');
+
+    const autoBuyerLabel = document.createElement('label');
+    autoBuyerLabel.classList.add('expanded-click-label');
+    autoBuyerLabel.id = 'water-auto-buyer-toggle-label';
+    autoBuyerLabel.textContent = 'Auto Refill (+10%)';
+    autoBuyerLabel.htmlFor = 'water-auto-buyer-toggle-checkbox';
+
+    const autoBuyerToggle = document.createElement('input');
+    autoBuyerToggle.classList.add('expanded-click-checkbox');
+    autoBuyerToggle.type = 'checkbox';
+    autoBuyerToggle.id = 'water-auto-buyer-toggle-checkbox';
+    autoBuyerToggle.checked = Boolean(upgradeValues.waterAutoBuyerEnabled);
+    autoBuyerToggle.addEventListener('change', function() {
+        updateUpgradeValues({ waterAutoBuyerEnabled: this.checked });
+        incrementTotalClicks();
+        updateClicksDisplay();
+    });
+
+    autoBuyerRow.appendChild(autoBuyerLabel);
+    autoBuyerRow.appendChild(autoBuyerToggle);
+    waterAutoBuyerGroup.appendChild(autoBuyerRow);
 }
 
 function updateWaterUpgradeButton() {

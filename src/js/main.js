@@ -15,6 +15,7 @@ import { showWelcomeMessage } from './ui/welcomeMessage.js';
 import { trackAchievements } from './handlers/achievementHandlers.js';
 import { getBoundActionForKey } from './ui/keybinds.js';
 import { initializeAutoFarmerEngine } from './handlers/autoFarmerHandlers.js';
+import { initializeWaterAutoBuyerEngine } from './handlers/waterAutoBuyerHandlers.js';
 
 function initializeResetSaveButton() {
     const resetSaveButton = document.getElementById('reset-save-button');
@@ -117,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeKeyboardShortcuts();
     trackAchievements();
     initializeAutoFarmerEngine();
+    initializeWaterAutoBuyerEngine();
     wrapSectionsInMacWindows();
     refreshFieldTitlebarControl();
     refreshQuestWindow();

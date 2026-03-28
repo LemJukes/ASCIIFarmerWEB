@@ -40,6 +40,7 @@ const progressionConfig = {
             pack500: 260,
             pack1000: 700,
         },
+        waterAutoBuyerByWaterRefills: 50,
     },
     storeEconomy: {
         seedCosts: {
@@ -55,6 +56,11 @@ const progressionConfig = {
         water: {
             cost: 1,
             quantity: 10,
+            autoBuyer: {
+                triggerBelow: 5,
+                surchargeMultiplier: 1.1,
+                tickMs: 500,
+            },
         },
         plot: {
             baseCost: 10,

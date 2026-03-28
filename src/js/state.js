@@ -4,13 +4,38 @@ import { progressionConfig } from "./configs/progressionConfig.js";
 
 const DEFAULT_FIELD_ID = 'field-1';
 
-function normalizePlotState(plot) {
+function normalizeAutoFarmerState(autoFarmer) {
+    if (!autoFarmer || typeof autoFarmer !== 'object') {
+        return null;
+    }
+
     return {
-        symbol: plot?.symbol ?? '~',
+        level: Math.max(1, Number(autoFarmer.level) || 1),
+        tickMs: Math.max(250, Number(autoFarmer.tickMs) || 2500),
+        lastTickAt: Number(autoFarmer.lastTickAt) || 0,
+        preferredTargetPlotIndex: Number.isInteger(autoFarmer.preferredTargetPlotIndex)
+            ? Number(autoFarmer.preferredTargetPlotIndex)
+            : null,
+        lastErrorCode: autoFarmer.lastErrorCode ?? null,
+        lastErrorMessage: typeof autoFarmer.lastErrorMessage === 'string'
+            ? autoFarmer.lastErrorMessage
+            : '',
+        flashingUntil: Number(autoFarmer.flashingUntil) || 0,
+    };
+}
+
+function normalizePlotState(plot) {
+    const normalizedAutoFarmer = normalizeAutoFarmerState(plot?.autoFarmer);
+    const isDestroyed = Boolean(plot?.destroyed) || plot?.symbol === '⊠';
+
+    return {
+        symbol: isDestroyed ? '⊠' : (plot?.symbol ?? '~'),
         cropType: plot?.cropType ?? null,
         waterCount: Number(plot?.waterCount) || 0,
         disabledUntil: Number(plot?.disabledUntil) || 0,
         lastUpdatedAt: Number(plot?.lastUpdatedAt) || Date.now(),
+        destroyed: isDestroyed,
+        autoFarmer: normalizedAutoFarmer,
     };
 }
 
@@ -46,6 +71,34 @@ function normalizeQuestProgress(value) {
     });
 
     return normalizedProgress;
+}
+
+function hasQuestBeenCompleted(stateLike, questId) {
+    if (!questId) {
+        return false;
+    }
+
+    if (Array.isArray(stateLike?.questsCompleted) && stateLike.questsCompleted.includes(questId)) {
+        return true;
+    }
+
+    const questProgressEntry = stateLike?.questProgress?.[questId];
+    return Number(questProgressEntry?.completedAt) > 0 || Number(questProgressEntry?.rewardAppliedAt) > 0;
+}
+
+function reconcileQuestRewardUnlocks(stateLike) {
+    if (hasQuestBeenCompleted(stateLike, 'plot-reclamation-and-salvage-contract')) {
+        stateLike.destroyPlotUnlocked = true;
+        stateLike.restorePlotUnlocked = true;
+    }
+
+    if (hasQuestBeenCompleted(stateLike, 'autofarmer-assembly-license')) {
+        stateLike.autoFarmerUnlocked = true;
+    }
+
+    if (hasQuestBeenCompleted(stateLike, 'autofarmer-field-operations-review')) {
+        stateLike.disassembleAutoFarmerUnlocked = true;
+    }
 }
 
 function createDefaultField({ id, name, plots }) {
@@ -201,7 +254,7 @@ function buildFieldStateSnapshot(fields) {
 
 const initialGameState = {
     // Player Resource Values
-    coins: 1,
+    coins: 100000,
     seeds: 1, // Generic seeds (kept for backward compatibility)
     crops: 0, // Generic crops (kept for backward compatibility)
     water: 10,
@@ -228,6 +281,15 @@ const initialGameState = {
     nextFieldNumber: 2,
     fieldStoreUnlocked: false,
     nextFieldCost: progressionConfig.storeEconomy.fieldPurchase.baseCost,
+    destroyPlotUnlocked: false,
+    restorePlotUnlocked: false,
+    autoFarmerUnlocked: false,
+    disassembleAutoFarmerUnlocked: false,
+    plotSelectionMode: null,
+    autoFarmerPurchasedCount: 0,
+    autoFarmerDisassembledCount: 0,
+    autoFarmerCropsHarvested: 0,
+    autoFarmerNextCost: 100,
 
     // Crop Unlock Tracking
     cornUnlocked: false,  // Corn unlock threshold is defined in progressionConfig.unlocks.cropsByTotalCoinsEarned.corn
@@ -235,7 +297,7 @@ const initialGameState = {
 
     // Game Progress Information
     totalCoinsSpent: 0,       // Total coins spent on seeds, upgrades, and other purchases
-    totalCoinsEarned: 0,      // Total number of coins the player has earned throughout the game
+    totalCoinsEarned: 100000,      // Total number of coins the player has earned throughout the game
     cropsSold: 0,             // Total number of crops sold by the player (all types combined)
     wheatSold: 0,             // Total wheat sold
     cornSold: 0,              // Total corn sold
@@ -330,6 +392,12 @@ function applyStateSnapshot(snapshot) {
     const normalizedQuestsActive = normalizeStringArray(merged.questsActive);
     const normalizedQuestsCompleted = normalizeStringArray(merged.questsCompleted);
     const normalizedQuestProgress = normalizeQuestProgress(merged.questProgress);
+
+    merged.questsUnlocked = normalizedQuestsUnlocked;
+    merged.questsActive = normalizedQuestsActive;
+    merged.questsCompleted = normalizedQuestsCompleted;
+    merged.questProgress = normalizedQuestProgress;
+    reconcileQuestRewardUnlocks(merged);
 
     Object.assign(gameState, merged, {
         fields: fieldsShape.fields,

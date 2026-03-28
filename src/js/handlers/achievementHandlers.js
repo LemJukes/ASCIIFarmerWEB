@@ -66,10 +66,15 @@ function ensureUpgradesContainer() {
 function applyUpgradeUnlocks(gameState) {
     const upgradeUnlocks = progressionConfig.unlocks;
     const upgradeUpdates = {};
+    const shouldRenderWaterUpgrades = gameState.waterRefillsPurchased >= upgradeUnlocks.upgradeSections.waterUpgradesByWaterRefills;
 
-    if (gameState.waterRefillsPurchased >= upgradeUnlocks.upgradeSections.waterUpgradesByWaterRefills) {
+    if (shouldRenderWaterUpgrades) {
         ensureUpgradesContainer();
         initializeWaterUpgradesSection();
+    }
+
+    if (gameState.waterRefillsPurchased >= upgradeUnlocks.waterAutoBuyerByWaterRefills) {
+        upgradeUpdates.waterAutoBuyerUnlocked = true;
     }
 
     const shouldRenderClickUpgrades =
@@ -122,6 +127,10 @@ function applyUpgradeUnlocks(gameState) {
 
         if (shouldRenderClickUpgrades || upgradeUpdates.expandedClickMk1Unlocked) {
             initializeClickUpgradesSection();
+        }
+
+        if (shouldRenderWaterUpgrades || upgradeUpdates.waterAutoBuyerUnlocked) {
+            initializeWaterUpgradesSection();
         }
     }
 }

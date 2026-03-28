@@ -19,6 +19,9 @@ const RESTORE_PLOT_COST = 50;
 const AUTO_FARMER_BASE_COST = 100;
 const AUTO_FARMER_COST_STEP = 100;
 const DISASSEMBLE_AUTO_FARMER_COST = 50;
+const WATER_AUTO_BUYER_CONFIG = progressionConfig.storeEconomy.water.autoBuyer || {};
+const WATER_AUTO_BUYER_SURCHARGE_MULTIPLIER = Math.max(1, Number(WATER_AUTO_BUYER_CONFIG.surchargeMultiplier) || 1.1);
+const WATER_AUTO_BUYER_TRIGGER_BELOW = Math.max(1, Number(WATER_AUTO_BUYER_CONFIG.triggerBelow) || 5);
 
 function getActiveFieldForMutation(gameState) {
     const activeFieldId = gameState.activeFieldId;
@@ -245,38 +248,59 @@ function buyBulkSeeds(event) {
 }
 
 function buyWater() {
-    const gameState = getState();
     const storeValues = getStoreValues();
 
-    buyWaterRefill({
+    performWaterRefillPurchase({
         amount: storeValues.waterQuantity,
         cost: storeValues.waterCost,
-        gameState,
+        showErrorNotifications: true,
+        countAsClick: true,
     });
 }
 
 function buyBulkWaterRefill(amount, cost) {
-    const gameState = getState();
-
-    buyWaterRefill({
+    performWaterRefillPurchase({
         amount,
         cost,
-        gameState,
+        showErrorNotifications: true,
+        countAsClick: true,
     });
 }
 
-function buyWaterRefill({ amount, cost, gameState }) {
+function buildWaterRefillCost(amount, { costOverride, costMultiplier = 1, surchargeMultiplier = 1 } = {}) {
+    const refillAmount = Math.max(1, Number(amount) || 1);
+    const parsedOverride = Number(costOverride);
+
+    if (Number.isFinite(parsedOverride) && parsedOverride >= 0) {
+        return Math.ceil(parsedOverride * Math.max(1, Number(surchargeMultiplier) || 1));
+    }
+
+    const storeValues = getStoreValues();
+    const baseQuantity = Math.max(1, Number(storeValues.waterQuantity) || 10);
+    const baseCost = Math.max(0, Number(storeValues.waterCost) || 0);
+    const multiplier = Math.max(0, Number(costMultiplier) || 0);
+    const surcharge = Math.max(1, Number(surchargeMultiplier) || 1);
+
+    return Math.ceil((refillAmount / baseQuantity) * baseCost * multiplier * surcharge);
+}
+
+function performWaterRefillPurchase({ amount, cost, showErrorNotifications = true, countAsClick = true }) {
+    const gameState = getState();
     const refillAmount = Math.max(1, Number(amount) || 1);
     const refillCost = Math.max(0, Number(cost) || 0);
 
     if (gameState.coins < refillCost) {
-        showNotification('Not enough coins to buy water!', 'Store');
-        return;
+        if (showErrorNotifications) {
+            showNotification('Not enough coins to buy water!', 'Store');
+        }
+        return false;
     }
 
     if (gameState.water >= gameState.waterCapacity) {
-        showNotification('Water supply is already full!', 'Store');
-        return;
+        if (showErrorNotifications) {
+            showNotification('Water supply is already full!', 'Store');
+        }
+        return false;
     }
 
     const newWaterLevel = Math.min(gameState.water + refillAmount, gameState.waterCapacity);
@@ -290,8 +314,68 @@ function buyWaterRefill({ amount, cost, gameState }) {
     updateWaterRefillsPurchased();
     trackAchievements();
     updateResourceBar();
-    incrementTotalClicks();
-    updateClicksDisplay();
+
+    if (countAsClick) {
+        incrementTotalClicks();
+        updateClicksDisplay();
+    }
+
+    return true;
+}
+
+function getLargestUnlockedWaterRefill() {
+    const gameState = getState();
+    const storeValues = getStoreValues();
+    const baseQuantity = Math.max(1, Number(storeValues.waterQuantity) || 10);
+    const baseCost = Math.max(0, Number(storeValues.waterCost) || 0);
+    const thresholds = progressionConfig.achievements.waterRefillsPurchased || [];
+    const waterRefillTiers = progressionConfig.bulkTiers.waterRefills || [];
+    const availableTiers = Math.min(thresholds.length, waterRefillTiers.length);
+
+    let largestRefill = {
+        amount: baseQuantity,
+        baseCost,
+    };
+
+    for (let i = 0; i < availableTiers; i++) {
+        if (gameState.waterRefillsPurchased < thresholds[i]) {
+            continue;
+        }
+
+        const tier = waterRefillTiers[i];
+        const tierAmount = Math.max(1, Number(tier?.quantity) || 0);
+        if (tierAmount <= largestRefill.amount) {
+            continue;
+        }
+
+        largestRefill = {
+            amount: tierAmount,
+            baseCost: buildWaterRefillCost(tierAmount, { costMultiplier: tier?.costMultiplier }),
+        };
+    }
+
+    return largestRefill;
+}
+
+function attemptWaterAutoRefillPurchase() {
+    const gameState = getState();
+
+    if (gameState.water >= WATER_AUTO_BUYER_TRIGGER_BELOW || gameState.water >= gameState.waterCapacity) {
+        return false;
+    }
+
+    const largestRefill = getLargestUnlockedWaterRefill();
+    const autoRefillCost = buildWaterRefillCost(largestRefill.amount, {
+        costOverride: largestRefill.baseCost,
+        surchargeMultiplier: WATER_AUTO_BUYER_SURCHARGE_MULTIPLIER,
+    });
+
+    return performWaterRefillPurchase({
+        amount: largestRefill.amount,
+        cost: autoRefillCost,
+        showErrorNotifications: false,
+        countAsClick: false,
+    });
 }
 
 function buyBulkSeedPack(cropType, quantity, totalCost) {
@@ -667,5 +751,6 @@ export { buySeed, buyWater, buyPlot, sellCrops, buyBulkSeeds, sellBulkCrops,
          buyWheatSeeds, buyCornSeeds, buyTomatoSeeds,
          sellWheat, sellCorn, sellTomato,
          buyBulkSeedPack, sellBulkCropPack, buyBulkWaterRefill,
+         attemptWaterAutoRefillPurchase,
          buyNewField,
          buyDestroyPlotAction, buyRestorePlotAction, buyAutoFarmerAction, buyDisassembleAutoFarmerAction };

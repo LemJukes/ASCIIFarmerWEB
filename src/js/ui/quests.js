@@ -1,10 +1,13 @@
 import { getQuestPanelData, deliverQuest, declineQuest, QUESTS_UPDATED_EVENT } from "../handlers/questHandlers.js";
+import { RESOURCES_UPDATED_EVENT } from "./resource.js";
 
 const QUESTS_TITLE_ID = 'quests-container-title';
 const QUESTS_CONTAINER_ID = 'quests';
+const QUEST_TIMER_REFRESH_MS = 1000;
 
 let currentQuestIndex = 0;
 let questsListenerAttached = false;
+let questTimerIntervalId = null;
 
 function isCurrentlyDark() {
     if (document.body.classList.contains('dark')) return true;
@@ -38,6 +41,34 @@ function setQuestWindowVisibility(isVisible) {
     if (containerEl) {
         containerEl.style.display = isVisible ? '' : 'none';
     }
+}
+
+function stopQuestTimerRefresh() {
+    if (questTimerIntervalId) {
+        window.clearInterval(questTimerIntervalId);
+        questTimerIntervalId = null;
+    }
+}
+
+function ensureQuestTimerRefresh() {
+    if (questTimerIntervalId) {
+        return;
+    }
+
+    questTimerIntervalId = window.setInterval(() => {
+        refreshQuestWindow();
+    }, QUEST_TIMER_REFRESH_MS);
+}
+
+function syncQuestTimerRefresh(panelData) {
+    const hasTimedActiveQuest = panelData.activeQuests.some((quest) => quest.isTimedQuest);
+
+    if (hasTimedActiveQuest) {
+        ensureQuestTimerRefresh();
+        return;
+    }
+
+    stopQuestTimerRefresh();
 }
 
 function renderQuestPager(pagerHost, totalQuests) {
@@ -161,7 +192,9 @@ function renderQuestCard(container, questData, totalQuests) {
     if (questData.isTimedQuest) {
         const timerRow = document.createElement('p');
         timerRow.className = 'quest-meta-row';
-        timerRow.textContent = `Delivery timer: ${questData.deliveryWindowLabel} from acceptance`;
+        timerRow.textContent = questData.isLateDelivery
+            ? 'Countdown: Delivery window expired'
+            : `Countdown: ${questData.timeRemainingLabel} remaining`;
         meta.appendChild(timerRow);
 
         const penaltyRow = document.createElement('p');
@@ -304,6 +337,7 @@ function initializeQuests() {
 
     if (!questsListenerAttached) {
         document.addEventListener(QUESTS_UPDATED_EVENT, refreshQuestWindow);
+        document.addEventListener(RESOURCES_UPDATED_EVENT, refreshQuestWindow);
         questsListenerAttached = true;
     }
 
@@ -318,6 +352,7 @@ function refreshQuestWindow() {
 
     const panelData = getQuestPanelData();
     const totalActiveQuests = panelData.activeQuests.length;
+    syncQuestTimerRefresh(panelData);
 
     setQuestWindowVisibility(panelData.unlockedCount > 0 || panelData.progressionPaused);
 

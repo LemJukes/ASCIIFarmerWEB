@@ -748,13 +748,6 @@ function deliverQuest(questId) {
         ...(timerConfig && !wasLate ? { timedQuestsBeatenOnTime: (Number(gameState.timedQuestsBeatenOnTime) || 0) + 1 } : {}),
     });
 
-    applyQuestReward(quest);
-
-    updateResourceBar();
-    trackAchievements();
-    incrementTotalClicks();
-    updateClicksDisplay();
-    emitQuestUpdate();
     if (wasLate) {
         showNotification(
             `${quest.name} delivered late. ${lateFeePercent}% fee applied (${lateFeeAmount} coins). Final payout: ${payout} coins.`,
@@ -763,6 +756,14 @@ function deliverQuest(questId) {
     } else {
         showNotification(`${quest.name} delivered for ${payout} coins.`, 'Quest Complete');
     }
+
+    applyQuestReward(quest);
+
+    updateResourceBar();
+    trackAchievements();
+    incrementTotalClicks();
+    updateClicksDisplay();
+    emitQuestUpdate();
     return true;
 }
 

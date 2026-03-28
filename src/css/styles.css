@@ -574,7 +574,7 @@ main {
 
 #water-upgrades-section {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     align-items: start;
     justify-items: stretch;
     gap: 8px;
@@ -582,12 +582,20 @@ main {
 }
 
 #water-upgrades-section > .upgrades-section-title {
+    grid-column: 1 / -1;
     text-align: center;
     margin: 0 0 4px 0;
 }
 
 #water-upgrade-group {
     max-width: 320px;
+    width: 100%;
+    justify-self: center;
+}
+
+#water-auto-buyer-group {
+    max-width: 320px;
+    width: 100%;
     justify-self: center;
 }
 
