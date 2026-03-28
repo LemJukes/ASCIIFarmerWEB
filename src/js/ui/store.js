@@ -398,7 +398,7 @@ function initializeStore() {
         const disassembleAutoFarmerCost = document.createElement('span');
         disassembleAutoFarmerCost.classList.add('item-price');
         disassembleAutoFarmerCost.id = 'disassemble-autofarmer-cost';
-        disassembleAutoFarmerCost.textContent = 'Refund by Mk level';
+        disassembleAutoFarmerCost.textContent = '50 coins';
         disassembleAutoFarmerSection.appendChild(disassembleAutoFarmerCost);
 
     // Append sections to store

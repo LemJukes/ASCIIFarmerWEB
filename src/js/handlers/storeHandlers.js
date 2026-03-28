@@ -18,6 +18,7 @@ const DESTROY_PLOT_COST = 25;
 const RESTORE_PLOT_COST = 50;
 const AUTO_FARMER_BASE_COST = 100;
 const AUTO_FARMER_COST_STEP = 100;
+const DISASSEMBLE_AUTO_FARMER_COST = 50;
 
 function getActiveFieldForMutation(gameState) {
     const activeFieldId = gameState.activeFieldId;
@@ -178,7 +179,14 @@ function buyDisassembleAutoFarmerAction() {
         return;
     }
 
+    if (gameState.coins < DISASSEMBLE_AUTO_FARMER_COST) {
+        showNotification('Not enough coins to disassemble an AutoFarmer!', 'Store');
+        return;
+    }
+
     updateState({
+        coins: gameState.coins - DISASSEMBLE_AUTO_FARMER_COST,
+        totalCoinsSpent: gameState.totalCoinsSpent + DISASSEMBLE_AUTO_FARMER_COST,
         plotSelectionMode: 'disassembleAutoFarmer',
     });
 
@@ -186,7 +194,7 @@ function buyDisassembleAutoFarmerAction() {
     updateField();
     incrementTotalClicks();
     updateClicksDisplay();
-    showNotification('Select an AutoFarmer plot to disassemble and collect its refund.', 'Disassemble AutoFarmer');
+    showNotification('Select an AutoFarmer plot to disassemble by clicking it.', 'Disassemble AutoFarmer');
 }
 
 

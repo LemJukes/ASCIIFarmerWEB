@@ -22,7 +22,6 @@ const AUTO_FARMER_CLOCKWISE_OFFSETS = [
     [0, -1],
     [-1, -1],
 ];
-const AUTO_FARMER_MAX_LEVEL = Math.max(1, Number(progressionConfig.upgradesEconomy?.autoFarmerUpgrade?.maxLevel) || 8);
 const EXPANDED_CLICK_PATTERNS = {
     1: [[0, -1], [0, 1]],
     2: [[-1, 0], [1, 0]],
@@ -31,33 +30,6 @@ const EXPANDED_CLICK_PATTERNS = {
     5: createSquareRingOffsets(3),
     6: createSquareRingOffsets(4),
 };
-
-function getAutoFarmerCycleTargetCount(level) {
-    const normalizedLevel = Math.min(AUTO_FARMER_MAX_LEVEL, Math.max(1, Number(level) || 1));
-    return normalizedLevel;
-}
-
-function getAutoFarmerDestroyRefund(level) {
-    const refundTable = progressionConfig.upgradesEconomy?.autoFarmerUpgrade?.destroyRefundByLevel || {};
-    const normalizedLevel = Math.min(AUTO_FARMER_MAX_LEVEL, Math.max(1, Number(level) || 1));
-    return Math.max(0, Number(refundTable[normalizedLevel]) || 0);
-}
-
-function buildAutoFarmerTargetOrder(neighborIndices, preferredTargetPlotIndex) {
-    if (!Array.isArray(neighborIndices) || !neighborIndices.length) {
-        return [];
-    }
-
-    const preferredIndex = neighborIndices.indexOf(preferredTargetPlotIndex);
-    if (preferredIndex < 0) {
-        return [...neighborIndices];
-    }
-
-    return [
-        ...neighborIndices.slice(preferredIndex),
-        ...neighborIndices.slice(0, preferredIndex),
-    ];
-}
 
 function createSquareRingOffsets(radius) {
     const offsets = [];
@@ -243,12 +215,10 @@ function buildPlotHoverText(plotState, plotIndex, now = Date.now()) {
     const requiredToolLabel = getRequiredToolLabel(plotState, now);
 
     if (plotState?.autoFarmer) {
-        const autoFarmerLevel = Math.min(AUTO_FARMER_MAX_LEVEL, Math.max(1, Number(plotState.autoFarmer.level) || 1));
         const autoFarmerErrorText = plotState.autoFarmer.lastErrorMessage
             ? `\nAutoFarmer: ${plotState.autoFarmer.lastErrorMessage}`
             : '\nAutoFarmer: Active';
-        const autoFarmerMkText = `\nAutoFarmer Mk.${autoFarmerLevel}`;
-        return `Plot: ${plotNumber}\nState: ${plotStateLabel}\nRequired Tool: ${requiredToolLabel}${autoFarmerMkText}${autoFarmerErrorText}`;
+        return `Plot: ${plotNumber}\nState: ${plotStateLabel}\nRequired Tool: ${requiredToolLabel}${autoFarmerErrorText}`;
     }
 
     return `Plot: ${plotNumber}\nState: ${plotStateLabel}\nRequired Tool: ${requiredToolLabel}`;
@@ -370,10 +340,7 @@ function handlePlotSelectionInteraction(plot, plotIndex, context) {
             return true;
         }
 
-        const currentLevel = Math.min(AUTO_FARMER_MAX_LEVEL, Math.max(1, Number(plotState.autoFarmer.level) || 1));
-        const refundAmount = getAutoFarmerDestroyRefund(currentLevel);
-
-        showConfirmation(`Disassemble the AutoFarmer on plot ${plotIndex + 1}? It will be removed, the plot will remain destroyed, and you will receive ${refundAmount} coins.`, {
+        showConfirmation(`Disassemble the AutoFarmer on plot ${plotIndex + 1}? It will be removed and the plot will remain destroyed.`, {
             title: 'Disassemble AutoFarmer',
             onConfirm: () => {
                 const gs = getState();
@@ -393,14 +360,11 @@ function handlePlotSelectionInteraction(plot, plotIndex, context) {
 
                 commitActiveFieldPlotStates(gs, context.activeFieldId, ps, af.plots);
                 updateState({
-                    coins: gs.coins + refundAmount,
-                    totalCoinsEarned: gs.totalCoinsEarned + refundAmount,
                     plotSelectionMode: null,
                     autoFarmerDisassembledCount: (Number(gs.autoFarmerDisassembledCount) || 0) + 1,
                 });
                 syncPlotButtonPresentation(plot, ps2, plotIndex);
-                updateResourceBar();
-                showNotification(`AutoFarmer on plot ${plotIndex + 1} disassembled for ${refundAmount} coins.`, 'Disassemble AutoFarmer');
+                showNotification(`AutoFarmer on plot ${plotIndex + 1} disassembled.`, 'Disassemble AutoFarmer');
             },
             onCancel: () => {
                 // Keep selection mode active so player may click a different plot
@@ -927,13 +891,6 @@ function attemptAutoFarmerCycle(autoFarmerPlotIndex) {
         neighborIndices.push((targetRow * GRID_WIDTH) + targetCol);
     }
 
-    if (!neighborIndices.length) {
-        return { success: false, errorCode: 'NO_VALID_TARGET', errorMessage: 'No adjacent valid plot available.' };
-    }
-
-    const autoFarmerLevel = Math.min(AUTO_FARMER_MAX_LEVEL, Math.max(1, Number(sourceState.autoFarmer.level) || 1));
-    const targetClicksThisCycle = getAutoFarmerCycleTargetCount(autoFarmerLevel);
-
     let preferredTargetPlotIndex = Number.isInteger(sourceState.autoFarmer.preferredTargetPlotIndex)
         ? Number(sourceState.autoFarmer.preferredTargetPlotIndex)
         : null;
@@ -942,74 +899,83 @@ function attemptAutoFarmerCycle(autoFarmerPlotIndex) {
         preferredTargetPlotIndex = null;
     }
 
-    const orderedNeighborIndices = buildAutoFarmerTargetOrder(neighborIndices, preferredTargetPlotIndex);
-    const failedResults = [];
-    const successfulTargets = [];
+    if (preferredTargetPlotIndex !== null) {
+        const preferredState = context.plotStates?.[preferredTargetPlotIndex];
+        if (!preferredState || preferredState.destroyed) {
+            preferredTargetPlotIndex = null;
+        }
+    }
 
-    for (const targetIndex of orderedNeighborIndices) {
-        if (successfulTargets.length >= targetClicksThisCycle) {
+    if (preferredTargetPlotIndex === null) {
+        for (const targetIndex of neighborIndices) {
+            const targetState = context.plotStates?.[targetIndex];
+            if (!targetState) {
+                continue;
+            }
+
+            if (targetState.destroyed || targetState.autoFarmer) {
+                continue;
+            }
+
+            preferredTargetPlotIndex = targetIndex;
             break;
         }
-
-        const targetState = context.plotStates?.[targetIndex];
-        const targetPlot = plots[targetIndex];
-        if (!targetState || !targetPlot) {
-            failedResults.push({ errorCode: 'NO_VALID_TARGET', errorMessage: 'No adjacent valid plot available.' });
-            continue;
-        }
-
-        if (targetState.destroyed || targetState.autoFarmer) {
-            failedResults.push({ errorCode: 'INVALID_TARGET', errorMessage: 'Assigned target is no longer workable.' });
-            continue;
-        }
-
-        if (targetPlot.disabled) {
-            failedResults.push({ errorCode: 'TARGET_DISABLED', errorMessage: 'Assigned target plot is currently unavailable.' });
-            continue;
-        }
-
-        const result = handleAdjacentPlotClickMk1(targetPlot, targetIndex, {
-            ignoreToolRequirement: true,
-            countClick: false,
-            playSfx: false,
-            isAutoFarmerAction: true,
-        });
-
-        if (result?.success) {
-            successfulTargets.push(targetIndex);
-            continue;
-        }
-
-        failedResults.push({
-            errorCode: result?.errorCode || 'UNKNOWN_ERROR',
-            errorMessage: result?.errorMessage || 'AutoFarmer could not work an adjacent plot.',
-        });
     }
 
-    if (!successfulTargets.length) {
-        const firstFailure = failedResults[0] || {
-            errorCode: 'NO_VALID_TARGET',
-            errorMessage: 'No adjacent valid plot available.',
-        };
+    if (preferredTargetPlotIndex === null) {
+        return { success: false, errorCode: 'NO_VALID_TARGET', errorMessage: 'No adjacent valid plot available.' };
+    }
+
+    const targetState = context.plotStates?.[preferredTargetPlotIndex];
+    const targetPlot = plots[preferredTargetPlotIndex];
+    if (!targetState || !targetPlot) {
         return {
             success: false,
-            errorCode: firstFailure.errorCode,
-            errorMessage: firstFailure.errorMessage,
-            preferredTargetPlotIndex: null,
+            errorCode: 'NO_VALID_TARGET',
+            errorMessage: 'No adjacent valid plot available.',
+            preferredTargetPlotIndex,
         };
     }
 
-    const lastSuccessfulTarget = successfulTargets[successfulTargets.length - 1];
-    const lastSuccessfulPosition = neighborIndices.indexOf(lastSuccessfulTarget);
-    const nextPreferredTargetPlotIndex = lastSuccessfulPosition >= 0
-        ? neighborIndices[(lastSuccessfulPosition + 1) % neighborIndices.length]
-        : lastSuccessfulTarget;
+    if (targetState.destroyed || targetState.autoFarmer) {
+        return {
+            success: false,
+            errorCode: 'INVALID_TARGET',
+            errorMessage: 'Assigned target is no longer workable.',
+            preferredTargetPlotIndex,
+        };
+    }
+
+    if (targetPlot.disabled) {
+        return {
+            success: false,
+            errorCode: 'TARGET_DISABLED',
+            errorMessage: 'Assigned target plot is currently unavailable.',
+            preferredTargetPlotIndex,
+        };
+    }
+
+    const result = handleAdjacentPlotClickMk1(targetPlot, preferredTargetPlotIndex, {
+        ignoreToolRequirement: true,
+        countClick: false,
+        playSfx: false,
+        isAutoFarmerAction: true,
+    });
+
+    if (result?.success) {
+        return {
+            success: true,
+            errorCode: null,
+            errorMessage: '',
+            preferredTargetPlotIndex,
+        };
+    }
 
     return {
-        success: true,
-        errorCode: null,
-        errorMessage: '',
-        preferredTargetPlotIndex: nextPreferredTargetPlotIndex,
+        success: false,
+        errorCode: result?.errorCode || 'UNKNOWN_ERROR',
+        errorMessage: result?.errorMessage || 'AutoFarmer could not work an adjacent plot.',
+        preferredTargetPlotIndex,
     };
 }
 

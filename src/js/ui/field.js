@@ -3,7 +3,6 @@ import { getState, updateState, reconcileAllFieldsProgress } from "../state.js";
 import { handlePlotClick } from '../handlers/plotHandlers.js'; 
 import { getPlotDisabledTime } from '../handlers/plotHandlers.js';
 import { syncPlotButtonPresentation } from '../handlers/plotHandlers.js';
-import { progressionConfig } from '../configs/progressionConfig.js';
 
 const TITLEBAR_SELECT_ID = 'field-title-select';
 const FIELD_SUBTITLE_ID = 'field-subtitlebar';
@@ -36,7 +35,6 @@ function ensureActiveFieldPlotStates(gameState) {
     }
 
     const normalizedPlotStates = [];
-    const autoFarmerMaxLevel = Math.max(1, Number(progressionConfig.upgradesEconomy?.autoFarmerUpgrade?.maxLevel) || 8);
     for (let i = 0; i < plots; i++) {
         const existing = currentPlotStates[i];
         normalizedPlotStates.push({
@@ -48,7 +46,7 @@ function ensureActiveFieldPlotStates(gameState) {
             destroyed: Boolean(existing?.destroyed),
             autoFarmer: existing?.autoFarmer && typeof existing.autoFarmer === 'object'
                 ? {
-                    level: Math.min(autoFarmerMaxLevel, Math.max(1, Number(existing.autoFarmer.level) || 1)),
+                    level: Math.max(1, Number(existing.autoFarmer.level) || 1),
                     tickMs: Math.max(250, Number(existing.autoFarmer.tickMs) || 2500),
                     lastTickAt: Number(existing.autoFarmer.lastTickAt) || 0,
                     preferredTargetPlotIndex: Number.isInteger(existing.autoFarmer.preferredTargetPlotIndex)

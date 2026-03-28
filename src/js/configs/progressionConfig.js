@@ -94,21 +94,6 @@ const progressionConfig = {
                 pack1000: 210,
             },
         },
-        autoFarmerUpgrade: {
-            maxLevel: 8,
-            mk2Cost: 220,
-            costStep: 220,
-            destroyRefundByLevel: {
-                1: 40,
-                2: 100,
-                3: 180,
-                4: 280,
-                5: 400,
-                6: 540,
-                7: 700,
-                8: 880,
-            },
-        },
     },
     bulkTiers: {
         seedPacks: [

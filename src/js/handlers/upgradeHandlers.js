@@ -2,7 +2,6 @@
 
 import { getState, updateState, incrementTotalClicks } from "../state.js";
 import { updateResourceBar } from "../ui/resource.js";
-import { updateField } from "../ui/field.js";
 import {
     getUpgradeValues,
     updateUpgradeValues,
@@ -10,73 +9,8 @@ import {
     renderClickUpgradesSection,
 } from "../ui/upgrades.js";
 import { updateClicksDisplay } from "../ui/clicks.js";
-import { showConfirmation, showDialog, showNotification } from "../ui/macNotifications.js";
+import { showNotification } from "../ui/macNotifications.js";
 import { progressionConfig } from "../configs/progressionConfig.js";
-
-const AUTO_FARMER_MAX_LEVEL = Math.max(1, Number(progressionConfig.upgradesEconomy?.autoFarmerUpgrade?.maxLevel) || 8);
-
-function getAutoFarmerUpgradeCostForCurrentLevel(currentLevel) {
-    const normalizedCurrentLevel = Math.max(1, Number(currentLevel) || 1);
-    if (normalizedCurrentLevel >= AUTO_FARMER_MAX_LEVEL) {
-        return 0;
-    }
-
-    const baseCost = Math.max(1, Number(progressionConfig.upgradesEconomy?.autoFarmerUpgrade?.mk2Cost) || 200);
-    const costStep = Math.max(1, Number(progressionConfig.upgradesEconomy?.autoFarmerUpgrade?.costStep) || 200);
-    const nextLevel = normalizedCurrentLevel + 1;
-    const stepsFromMk2 = Math.max(0, nextLevel - 2);
-    return baseCost + (stepsFromMk2 * costStep);
-}
-
-function getEligibleAutoFarmerPlots(gameState) {
-    const activeFieldId = gameState.activeFieldId;
-    const activeField = gameState.fields?.[activeFieldId];
-    if (!activeField || !Array.isArray(activeField.plotStates)) {
-        return [];
-    }
-
-    return activeField.plotStates.reduce((rows, plotState, index) => {
-        if (!plotState?.autoFarmer) {
-            return rows;
-        }
-
-        const currentLevel = Math.min(AUTO_FARMER_MAX_LEVEL, Math.max(1, Number(plotState.autoFarmer.level) || 1));
-        if (currentLevel >= AUTO_FARMER_MAX_LEVEL) {
-            return rows;
-        }
-
-        rows.push({
-            plotIndex: index,
-            plotNumber: index + 1,
-            currentLevel,
-            nextLevel: currentLevel + 1,
-            cost: getAutoFarmerUpgradeCostForCurrentLevel(currentLevel),
-        });
-        return rows;
-    }, []);
-}
-
-function buildAutoFarmerSelectionBody(eligiblePlots) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'mac-dialog-content';
-
-    const message = document.createElement('p');
-    message.className = 'mac-dialog-message';
-    message.textContent = 'Select an AutoFarmer to calibrate to the next Mk tier.';
-    wrapper.appendChild(message);
-
-    const list = document.createElement('ul');
-    list.className = 'quest-popup-requirements';
-
-    eligiblePlots.forEach((entry) => {
-        const item = document.createElement('li');
-        item.textContent = `Plot ${entry.plotNumber}: Mk.${entry.currentLevel} -> Mk.${entry.nextLevel} (${entry.cost} coins)`;
-        list.appendChild(item);
-    });
-
-    wrapper.appendChild(list);
-    return wrapper;
-}
 
 function finalizeClickUpgradeInteraction() {
     renderClickUpgradesSection();
@@ -221,124 +155,6 @@ function buyToolAutoChangerChargePack1000() {
     buyToolAutoChangerChargePack(1000, upgradeValues.toolAutoChangerChargePack1000Cost);
 }
 
-async function buyAutoFarmerUpgrade() {
-    const gameState = getState();
-
-    if (!gameState.autoFarmerUpgradeUnlocked) {
-        showNotification('AutoFarmer upgrades are not unlocked yet.', 'Upgrades');
-        return;
-    }
-
-    const eligiblePlots = getEligibleAutoFarmerPlots(gameState);
-    if (!eligiblePlots.length) {
-        showNotification('No AutoFarmer below Mk.8 is available to upgrade.', 'AutoFarmer Upgrade');
-        return;
-    }
-
-    const selectedPlotIndex = await showDialog({
-        title: 'AutoFarmer Upgrade',
-        body: buildAutoFarmerSelectionBody(eligiblePlots),
-        closeValue: null,
-        buttons: [
-            ...eligiblePlots.map((entry, index) => ({
-                label: `Plot ${entry.plotNumber} Mk.${entry.currentLevel} -> Mk.${entry.nextLevel}`,
-                value: entry.plotIndex,
-                autofocus: index === 0,
-            })),
-            {
-                label: 'Cancel',
-                value: null,
-            },
-        ],
-    });
-
-    if (!Number.isInteger(selectedPlotIndex)) {
-        return;
-    }
-
-    const freshState = getState();
-    const activeFieldId = freshState.activeFieldId;
-    const activeField = freshState.fields?.[activeFieldId];
-    const targetPlotState = activeField?.plotStates?.[selectedPlotIndex];
-    const currentLevel = Math.min(AUTO_FARMER_MAX_LEVEL, Math.max(1, Number(targetPlotState?.autoFarmer?.level) || 1));
-
-    if (!targetPlotState?.autoFarmer || currentLevel >= AUTO_FARMER_MAX_LEVEL) {
-        showNotification('That AutoFarmer is no longer eligible for upgrade.', 'AutoFarmer Upgrade');
-        return;
-    }
-
-    const upgradeCost = getAutoFarmerUpgradeCostForCurrentLevel(currentLevel);
-    if (freshState.coins < upgradeCost) {
-        showNotification('Not enough coins for this upgrade.', 'Upgrades');
-        return;
-    }
-
-    const confirmed = await showConfirmation(
-        `Upgrade AutoFarmer on plot ${selectedPlotIndex + 1} from Mk.${currentLevel} to Mk.${currentLevel + 1} for ${upgradeCost} coins?`,
-        {
-            title: 'Confirm AutoFarmer Upgrade',
-        },
-    );
-
-    if (!confirmed) {
-        return;
-    }
-
-    const finalState = getState();
-    const finalFieldId = finalState.activeFieldId;
-    const finalField = finalState.fields?.[finalFieldId];
-    const finalTarget = finalField?.plotStates?.[selectedPlotIndex];
-    if (!finalField || !Array.isArray(finalField.plotStates) || !finalTarget?.autoFarmer) {
-        showNotification('AutoFarmer was removed before upgrade completed.', 'AutoFarmer Upgrade');
-        return;
-    }
-
-    const finalCurrentLevel = Math.min(AUTO_FARMER_MAX_LEVEL, Math.max(1, Number(finalTarget.autoFarmer.level) || 1));
-    const finalCost = getAutoFarmerUpgradeCostForCurrentLevel(finalCurrentLevel);
-
-    if (finalCurrentLevel >= AUTO_FARMER_MAX_LEVEL) {
-        showNotification('That AutoFarmer is already Mk.8.', 'AutoFarmer Upgrade');
-        return;
-    }
-
-    if (finalState.coins < finalCost) {
-        showNotification('Not enough coins for this upgrade.', 'Upgrades');
-        return;
-    }
-
-    const nextPlotStates = [...finalField.plotStates];
-    nextPlotStates[selectedPlotIndex] = {
-        ...finalTarget,
-        autoFarmer: {
-            ...finalTarget.autoFarmer,
-            level: finalCurrentLevel + 1,
-            lastErrorCode: null,
-            lastErrorMessage: '',
-            flashingUntil: 0,
-        },
-        lastUpdatedAt: Date.now(),
-    };
-
-    updateState({
-        coins: finalState.coins - finalCost,
-        totalCoinsSpent: finalState.totalCoinsSpent + finalCost,
-        fields: {
-            ...finalState.fields,
-            [finalFieldId]: {
-                ...finalField,
-                plotStates: nextPlotStates,
-            },
-        },
-    });
-
-    updateField();
-    renderClickUpgradesSection();
-    updateResourceBar();
-    incrementTotalClicks();
-    updateClicksDisplay();
-    showNotification(`AutoFarmer on plot ${selectedPlotIndex + 1} upgraded to Mk.${finalCurrentLevel + 1}.`, 'AutoFarmer Upgrade');
-}
-
 
 export {
     buyWaterCapacityUpgrade,
@@ -353,5 +169,4 @@ export {
     buyToolAutoChangerChargePack100,
     buyToolAutoChangerChargePack500,
     buyToolAutoChangerChargePack1000,
-    buyAutoFarmerUpgrade,
 };
