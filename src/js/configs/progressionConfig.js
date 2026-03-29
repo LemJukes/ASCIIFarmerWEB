@@ -2,11 +2,11 @@ const progressionConfig = {
     achievements: {
         totalCoinsSpent: [80, 240, 700, 2000],
         totalCoinsEarned: [20, 90, 260, 700, 1600],
-        waterRefillsPurchased: [4, 12, 28],
+        waterRefillsPurchased: [4, 12, 28, 55, 95, 150, 230, 340, 500],
         seedsBought: {
-            wheat: [15, 50, 140],
-            corn: [10, 35, 100],
-            tomato: [8, 25, 70],
+            wheat: [15, 50, 140, 300, 600, 1100, 1900, 3000, 4500],
+            corn: [10, 35, 100, 220, 450, 850, 1450, 2300, 3400],
+            tomato: [8, 25, 70, 160, 330, 620, 1050, 1700, 2500],
         },
         cropsSold: {
             wheat: [12, 40, 120],
@@ -106,6 +106,12 @@ const progressionConfig = {
             { quantity: 5, discountMultiplier: 0.9 },
             { quantity: 15, discountMultiplier: 0.8 },
             { quantity: 30, discountMultiplier: 0.72 },
+            { quantity: 60, discountMultiplier: 0.68 },
+            { quantity: 120, discountMultiplier: 0.64 },
+            { quantity: 220, discountMultiplier: 0.6 },
+            { quantity: 400, discountMultiplier: 0.56 },
+            { quantity: 700, discountMultiplier: 0.52 },
+            { quantity: 1000, discountMultiplier: 0.5 },
         ],
         cropSales: [
             { quantity: 5, bonusPercent: 8 },
@@ -116,6 +122,12 @@ const progressionConfig = {
             { quantity: 30, costMultiplier: 0.95 },
             { quantity: 80, costMultiplier: 0.85 },
             { quantity: 160, costMultiplier: 0.75 },
+            { quantity: 250, costMultiplier: 0.7 },
+            { quantity: 360, costMultiplier: 0.65 },
+            { quantity: 500, costMultiplier: 0.6 },
+            { quantity: 650, costMultiplier: 0.56 },
+            { quantity: 820, costMultiplier: 0.53 },
+            { quantity: 1000, costMultiplier: 0.5 },
         ],
     },
 };

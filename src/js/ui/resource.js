@@ -26,7 +26,17 @@ function createResourceItem(label, value, elementId, ariaLabel, options = {}) {
         resourceItem.style.display = options.display;
     }
 
-    resourceItem.innerHTML = `${label}:<br> <span id="${elementId}" aria-label="${ariaLabel}">${value}</span>`;
+    const labelEl = document.createElement('span');
+    labelEl.classList.add('resource-item-label');
+    labelEl.textContent = `${label}:`;
+
+    const valueEl = document.createElement('span');
+    valueEl.id = elementId;
+    valueEl.setAttribute('aria-label', ariaLabel);
+    valueEl.textContent = String(value);
+
+    resourceItem.appendChild(labelEl);
+    resourceItem.appendChild(valueEl);
     return resourceItem;
 }
 
@@ -79,15 +89,41 @@ function initializeResourceBar(){
     secondaryResourceBar.id = 'resource-bar-secondary';
     secondaryResourceBar.setAttribute('aria-label', 'Secondary Resource Bar');
 
+    const tertiaryResourceBar = document.createElement('div');
+    tertiaryResourceBar.classList.add('resource-bar');
+    tertiaryResourceBar.id = 'resource-bar-tertiary';
+    tertiaryResourceBar.setAttribute('aria-label', 'Tertiary Resource Bar');
+
     const gameState = getState(); // Retrieves the initial player resource values
     
-    // Coins
-    primaryResourceBar.appendChild(createResourceItem('Coins', gameState.coins, 'coins', 'Player coins', {
-        offset: true,
-    }));
+    // Coins Section
+    primaryResourceBar.appendChild(createResourceGroup('Coins', [
+        {
+            label: 'Balance',
+            value: gameState.coins,
+            elementId: 'coins',
+            ariaLabel: 'Player coins',
+        },
+    ]));
+
+    // Equipment Resources Section
+    secondaryResourceBar.appendChild(createResourceGroup('Equipment Resources', [
+        {
+            label: 'Water',
+            value: gameState.water,
+            elementId: 'water',
+            ariaLabel: 'Current water',
+        },
+        {
+            label: 'Water Cap',
+            value: gameState.waterCapacity,
+            elementId: 'water-capacity',
+            ariaLabel: 'Water capacity',
+        },
+    ]));
 
     // Seeds Group
-    secondaryResourceBar.appendChild(createResourceGroup('Seeds', [
+    tertiaryResourceBar.appendChild(createResourceGroup('Seeds', [
         {
             label: 'Wheat',
             value: gameState.wheatSeeds,
@@ -112,16 +148,8 @@ function initializeResourceBar(){
         },
     ]));
 
-    // Water
-    primaryResourceBar.appendChild(createResourceItem('Water', gameState.water, 'water', 'Current water', {
-        offset: true,
-    }));
-    primaryResourceBar.appendChild(createResourceItem('Water Cap', gameState.waterCapacity, 'water-capacity', 'Water capacity', {
-        offset: true,
-    }));
-
     // Crops Group
-    secondaryResourceBar.appendChild(createResourceGroup('Crops', [
+    tertiaryResourceBar.appendChild(createResourceGroup('Crops', [
         {
             label: 'Wheat',
             value: gameState.wheat,
@@ -149,6 +177,7 @@ function initializeResourceBar(){
 
     resourcePanel.appendChild(primaryResourceBar);
     resourcePanel.appendChild(secondaryResourceBar);
+    resourcePanel.appendChild(tertiaryResourceBar);
 
     const htmlMain = document.querySelector('main');
     htmlMain.appendChild(resourcePanel);

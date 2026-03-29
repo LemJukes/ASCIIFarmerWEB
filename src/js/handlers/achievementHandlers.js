@@ -1,6 +1,6 @@
 import { getState, updateState } from "../state.js";
 import { progressionConfig, getAchievementValues as getProgressionAchievementValues } from "../configs/progressionConfig.js";
-import { addBulkSeedButton, addBulkCropSaleButton, addBulkWaterRefillButton, refreshPlotFeatureStoreSections } from "../ui/store.js";
+import { addBulkSeedButton, addBulkCropSaleButton, addBulkWaterRefillButton, addSellAllCropButton, refreshPlotFeatureStoreSections } from "../ui/store.js";
 import { wrapInMacWindow } from "../ui/macWindow.js";
 import { showNotification } from "../ui/macNotifications.js";
 import {
@@ -278,6 +278,7 @@ function updateCropsSold(cropType, amount) {
 function checkCropsSoldAchievements(currentState) {
     const gameState = currentState ?? getState();
     const cropThresholds = progressionConfig.achievements.cropsSold;
+    const SELL_ALL_UNLOCK_THRESHOLD = 500;
 
     cropTypes.forEach((cropType) => {
         const key = `${cropType}Sold`;
@@ -292,6 +293,10 @@ function checkCropsSoldAchievements(currentState) {
                 addBulkCropSaleButton(cropType, threshold, index + 1);
             }
         });
+
+        if (gameState[key] >= SELL_ALL_UNLOCK_THRESHOLD) {
+            addSellAllCropButton(cropType);
+        }
     });
 }
 

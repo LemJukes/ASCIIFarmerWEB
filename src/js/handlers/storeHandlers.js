@@ -751,9 +751,59 @@ function sellTomato() {
     }
 }
 
+function sellAllCrop(cropType) {
+    const cropConfig = {
+        wheat: { inventoryKey: 'wheat', unitPriceKey: 'wheatPrice', displayName: 'wheat' },
+        corn: { inventoryKey: 'corn', unitPriceKey: 'cornPrice', displayName: 'corn' },
+        tomato: { inventoryKey: 'tomato', unitPriceKey: 'tomatoPrice', displayName: 'tomatoes' },
+    };
+
+    const config = cropConfig[cropType];
+    if (!config) {
+        return;
+    }
+
+    const gameState = getState();
+    const storeValues = getStoreValues();
+    const availableAmount = Math.max(0, Number(gameState[config.inventoryKey]) || 0);
+
+    if (availableAmount <= 0) {
+        showNotification(`No ${config.displayName} to sell!`, 'Store');
+        return;
+    }
+
+    const unitPrice = Math.max(0, Number(storeValues[config.unitPriceKey]) || 0);
+    const payout = availableAmount * unitPrice;
+
+    updateState({
+        coins: gameState.coins + payout,
+        [config.inventoryKey]: gameState[config.inventoryKey] - availableAmount,
+        crops: Math.max(0, gameState.crops - availableAmount),
+    });
+
+    updateCoinsEarned(payout);
+    updateCropsSold(cropType, availableAmount);
+    updateResourceBar();
+    incrementTotalClicks();
+    updateClicksDisplay();
+}
+
+function sellAllWheat() {
+    sellAllCrop('wheat');
+}
+
+function sellAllCorn() {
+    sellAllCrop('corn');
+}
+
+function sellAllTomato() {
+    sellAllCrop('tomato');
+}
+
 export { buySeed, buyWater, buyPlot, sellCrops, buyBulkSeeds, sellBulkCrops,
          buyWheatSeeds, buyCornSeeds, buyTomatoSeeds,
          sellWheat, sellCorn, sellTomato,
+         sellAllWheat, sellAllCorn, sellAllTomato,
          buyBulkSeedPack, sellBulkCropPack, buyBulkWaterRefill,
          attemptWaterAutoRefillPurchase,
          buyNewField,

@@ -69,8 +69,162 @@ import { getState, } from "../state.js";
 import { buySeed, buyWater, buyPlot, sellCrops, buyBulkSeeds, sellBulkCrops, 
          buyWheatSeeds, buyCornSeeds, buyTomatoSeeds,
          sellWheat, sellCorn, sellTomato,
+         sellAllWheat, sellAllCorn, sellAllTomato,
          buyBulkSeedPack, sellBulkCropPack, buyBulkWaterRefill, buyNewField,
          buyDestroyPlotAction, buyRestorePlotAction, buyAutoFarmerAction, buyDisassembleAutoFarmerAction } from "../handlers/storeHandlers.js";
+
+const STORE_SECTION_COLLAPSE_STORAGE_PREFIX = 'storeSectionCollapsed:';
+const COLLAPSIBLE_STORE_SECTION_IDS = [
+    'buyWheatSeedsSection',
+    'buyCornSeedsSection',
+    'buyTomatoSeedsSection',
+    'buyWaterSection',
+    'sellWheatSection',
+    'sellCornSection',
+    'sellTomatoSection',
+];
+
+function getStoreSectionCollapseStorageKey(sectionId) {
+    return `${STORE_SECTION_COLLAPSE_STORAGE_PREFIX}${sectionId}`;
+}
+
+function getSectionLabelText(section) {
+    const directTextNodes = Array.from(section.childNodes).filter(
+        (node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0,
+    );
+
+    const textFromNodes = directTextNodes
+        .map((node) => node.textContent.trim())
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+
+    const labelText =
+        textFromNodes ||
+        section.dataset.sectionLabel ||
+        section.getAttribute('aria-label')?.replace(/\s+Title$/, '').trim() ||
+        'Store Item';
+
+    directTextNodes.forEach((node) => node.remove());
+    section.dataset.sectionLabel = labelText;
+    return labelText;
+}
+
+function getLastSectionAction(section) {
+    const actionButtons = Array.from(section.querySelectorAll('.store-button')).filter(
+        (button) => !button.classList.contains('store-section-collapse-btn'),
+    );
+
+    if (actionButtons.length === 0) {
+        return { button: null, value: null };
+    }
+
+    const lastButton = actionButtons[actionButtons.length - 1];
+    let pairedValue = null;
+    let cursor = lastButton.nextElementSibling;
+
+    while (cursor) {
+        if (cursor.classList.contains('item-price')) {
+            pairedValue = cursor;
+            break;
+        }
+
+        if (cursor.classList.contains('store-button')) {
+            break;
+        }
+
+        cursor = cursor.nextElementSibling;
+    }
+
+    return {
+        button: lastButton,
+        value: pairedValue,
+    };
+}
+
+function applyStoreSectionCollapsedState(section, isCollapsed) {
+    section.classList.toggle('item-title--collapsed', isCollapsed);
+    section.dataset.collapsed = isCollapsed ? 'true' : 'false';
+
+    const collapseButton = section.querySelector('.store-section-collapse-btn');
+    const label = section.querySelector('.item-title-label');
+    const visibleElements = new Set([collapseButton, label].filter(Boolean));
+
+    if (isCollapsed) {
+        const { button, value } = getLastSectionAction(section);
+        if (button) {
+            visibleElements.add(button);
+        }
+        if (value) {
+            visibleElements.add(value);
+        }
+    }
+
+    Array.from(section.children).forEach((child) => {
+        if (visibleElements.has(child)) {
+            child.style.display = '';
+        } else {
+            child.style.display = isCollapsed ? 'none' : '';
+        }
+    });
+
+    if (collapseButton) {
+        const labelText = section.dataset.sectionLabel || 'section';
+        collapseButton.textContent = isCollapsed ? '+' : '-';
+        collapseButton.setAttribute('aria-label', isCollapsed ? `Expand ${labelText}` : `Collapse ${labelText}`);
+        collapseButton.setAttribute('title', isCollapsed ? `Expand ${labelText}` : `Collapse ${labelText}`);
+    }
+}
+
+function syncCollapsedStoreSection(section) {
+    if (!section || section.dataset.collapsed !== 'true') {
+        return;
+    }
+
+    applyStoreSectionCollapsedState(section, true);
+}
+
+function setupCollapsibleStoreSection(section) {
+    if (!section || section.dataset.collapsibleInitialized === 'true') {
+        return;
+    }
+
+    const labelText = getSectionLabelText(section);
+    section.classList.add('item-title--collapsible');
+
+    const collapseButton = document.createElement('button');
+    collapseButton.classList.add('store-button', 'store-section-collapse-btn');
+    collapseButton.setAttribute('type', 'button');
+
+    const label = document.createElement('span');
+    label.classList.add('item-title-label');
+    label.textContent = labelText;
+
+    section.prepend(label);
+    section.prepend(collapseButton);
+
+    const storageKey = getStoreSectionCollapseStorageKey(section.id);
+    const isInitiallyCollapsed = localStorage.getItem(storageKey) === 'true';
+
+    applyStoreSectionCollapsedState(section, isInitiallyCollapsed);
+
+    collapseButton.addEventListener('click', () => {
+        const nextCollapsed = section.dataset.collapsed !== 'true';
+        applyStoreSectionCollapsedState(section, nextCollapsed);
+        localStorage.setItem(storageKey, nextCollapsed ? 'true' : 'false');
+    });
+
+    section.dataset.collapsibleInitialized = 'true';
+}
+
+function initializeCollapsibleStoreSections() {
+    COLLAPSIBLE_STORE_SECTION_IDS.forEach((sectionId) => {
+        const section = document.getElementById(sectionId);
+        if (section) {
+            setupCollapsibleStoreSection(section);
+        }
+    });
+}
 
 function initializeStoreTitle() {
     // Store Title as a Button
@@ -427,6 +581,8 @@ function initializeStore() {
         console.error('Main div not found');
     }
 
+    initializeCollapsibleStoreSections();
+
     refreshPlotFeatureStoreSections();
 }
 
@@ -495,6 +651,8 @@ function addBulkSeedButton(cropType, achievementValue, bonusTier) {
     bulkCost.id = `${buttonId}-cost`;
     bulkCost.textContent = `${totalCost} coins`;
     section.appendChild(bulkCost);
+
+    syncCollapsedStoreSection(section);
 }
 
 function addBulkCropSaleButton(cropType, achievementValue, bonusTier) {
@@ -535,6 +693,40 @@ function addBulkCropSaleButton(cropType, achievementValue, bonusTier) {
     bulkValue.id = `${buttonId}-value`;
     bulkValue.textContent = `${payout} coins (+${bonusPercent}%)`;
     section.appendChild(bulkValue);
+
+    syncCollapsedStoreSection(section);
+}
+
+function addSellAllCropButton(cropType) {
+    const cropSectionMap = {
+        wheat: { sectionId: 'sellWheatSection', onClick: sellAllWheat },
+        corn: { sectionId: 'sellCornSection', onClick: sellAllCorn },
+        tomato: { sectionId: 'sellTomatoSection', onClick: sellAllTomato },
+    };
+
+    const sectionConfig = cropSectionMap[cropType];
+    if (!sectionConfig) {
+        return;
+    }
+
+    const section = document.getElementById(sectionConfig.sectionId);
+    if (!section) {
+        return;
+    }
+
+    const buttonId = `${cropType}-sell-all-button`;
+    if (document.getElementById(buttonId)) {
+        return;
+    }
+
+    const sellAllButton = document.createElement('button');
+    sellAllButton.classList.add('store-button');
+    sellAllButton.id = buttonId;
+    sellAllButton.textContent = 'Sell All';
+    sellAllButton.addEventListener('click', sectionConfig.onClick);
+    section.appendChild(sellAllButton);
+
+    syncCollapsedStoreSection(section);
 }
 
 function addBulkWaterRefillButton(achievementValue, bonusTier) {
@@ -569,6 +761,8 @@ function addBulkWaterRefillButton(achievementValue, bonusTier) {
     waterCost.id = `${buttonId}-cost`;
     waterCost.textContent = `${scaledCost} coins`;
     buyWaterSection.appendChild(waterCost);
+
+    syncCollapsedStoreSection(buyWaterSection);
 }
 
 export { initializeStore, 
@@ -579,5 +773,6 @@ export { initializeStore,
          updateStoreValues,
          addBulkSeedButton, 
          addBulkCropSaleButton,
+         addSellAllCropButton,
          addBulkWaterRefillButton,
          refreshPlotFeatureStoreSections };
