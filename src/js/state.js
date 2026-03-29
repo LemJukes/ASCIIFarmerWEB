@@ -1,6 +1,7 @@
 //state.js
 import { savePartialSnapshot, loadSnapshot } from "./persistence.js";
 import { progressionConfig } from "./configs/progressionConfig.js";
+import { AUTO_FARMER_BASE_TICK_MS, AUTO_FARMER_MIN_TICK_MS } from "./configs/autoFarmerConfig.js";
 
 const DEFAULT_FIELD_ID = 'field-1';
 
@@ -9,9 +10,15 @@ function normalizeAutoFarmerState(autoFarmer) {
         return null;
     }
 
+    const preferredSeedType = (autoFarmer.preferredSeedType === 'wheat'
+        || autoFarmer.preferredSeedType === 'corn'
+        || autoFarmer.preferredSeedType === 'tomato')
+        ? autoFarmer.preferredSeedType
+        : null;
+
     return {
         level: Math.max(1, Number(autoFarmer.level) || 1),
-        tickMs: Math.max(250, Number(autoFarmer.tickMs) || 2500),
+        tickMs: Math.max(AUTO_FARMER_MIN_TICK_MS, Number(autoFarmer.tickMs) || AUTO_FARMER_BASE_TICK_MS),
         lastTickAt: Number(autoFarmer.lastTickAt) || 0,
         preferredTargetPlotIndex: Number.isInteger(autoFarmer.preferredTargetPlotIndex)
             ? Number(autoFarmer.preferredTargetPlotIndex)
@@ -21,6 +28,7 @@ function normalizeAutoFarmerState(autoFarmer) {
             ? autoFarmer.lastErrorMessage
             : '',
         flashingUntil: Number(autoFarmer.flashingUntil) || 0,
+        preferredSeedType,
     };
 }
 

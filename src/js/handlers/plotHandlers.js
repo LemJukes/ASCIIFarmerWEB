@@ -7,7 +7,9 @@ import { playPlotBubbleForState, playAdjacentBubbleForState } from '../ui/sfx.js
 import { updateClicksDisplay } from '../ui/clicks.js';
 import { updateToolboxDisplay } from '../ui/toolbox.js';
 import { showNotification, showConfirmation } from '../ui/macNotifications.js';
+import { showAutoFarmerDetailWindow } from '../ui/autoFarmerDetail.js';
 import { TOOLS, WATERING_SYMBOLS, HARVEST_SYMBOLS, getRequiredToolForSymbol } from '../configs/toolConfig.js';
+import { getAutoFarmerDisassembleRefund } from '../configs/autoFarmerConfig.js';
 
 const GRID_WIDTH = 9;
 const OUT_OF_CHARGES_MESSAGE = 'Auto-Changer is out of charges. Buy more charges in Upgrades.';
@@ -89,6 +91,71 @@ function getSeedInventoryKey(seedType) {
     }
 
     return 'wheatSeeds';
+}
+
+function getUnlockedSeedTypes(gameState) {
+    const unlockedSeeds = ['wheat'];
+
+    if (gameState.cornUnlocked) {
+        unlockedSeeds.push('corn');
+    }
+
+    if (gameState.tomatoUnlocked) {
+        unlockedSeeds.push('tomato');
+    }
+
+    return unlockedSeeds;
+}
+
+function resolveSeedTypeForAction(gameState, options = {}) {
+    const {
+        seedTypeOverride = null,
+        enforceOverride = false,
+    } = options;
+
+    const unlockedSeeds = getUnlockedSeedTypes(gameState);
+    if (typeof seedTypeOverride !== 'string' || seedTypeOverride.length === 0) {
+        return {
+            ok: true,
+            seedType: getSelectedSeedType(gameState),
+            errorCode: null,
+            errorMessage: '',
+        };
+    }
+
+    if (!['wheat', 'corn', 'tomato'].includes(seedTypeOverride)) {
+        return {
+            ok: false,
+            seedType: null,
+            errorCode: 'INVALID_SEED_TYPE',
+            errorMessage: 'Preferred AutoFarmer seed type is invalid.',
+        };
+    }
+
+    if (!unlockedSeeds.includes(seedTypeOverride)) {
+        if (enforceOverride) {
+            return {
+                ok: false,
+                seedType: null,
+                errorCode: 'PREFERRED_SEED_LOCKED',
+                errorMessage: `Preferred seed ${seedTypeOverride} is not unlocked.`,
+            };
+        }
+
+        return {
+            ok: true,
+            seedType: getSelectedSeedType(gameState),
+            errorCode: null,
+            errorMessage: '',
+        };
+    }
+
+    return {
+        ok: true,
+        seedType: seedTypeOverride,
+        errorCode: null,
+        errorMessage: '',
+    };
 }
 
 function getActiveFieldContext() {
@@ -243,7 +310,7 @@ function syncPlotButtonPresentation(plot, plotState, plotIndex, now = Date.now()
             ].join('');
         }
 
-        plot.disabled = true;
+        plot.disabled = false;
         plot.classList.add('autofarmer-plot');
 
         if (isErrorVisualActive) {
@@ -355,16 +422,20 @@ function handlePlotSelectionInteraction(plot, plotIndex, context) {
                     return;
                 }
 
+                const refundAmount = getAutoFarmerDisassembleRefund(ps2.autoFarmer?.level);
+
                 ps2.autoFarmer = null;
                 ps2.lastUpdatedAt = Date.now();
 
                 commitActiveFieldPlotStates(gs, context.activeFieldId, ps, af.plots);
                 updateState({
+                    coins: gs.coins + refundAmount,
                     plotSelectionMode: null,
                     autoFarmerDisassembledCount: (Number(gs.autoFarmerDisassembledCount) || 0) + 1,
                 });
                 syncPlotButtonPresentation(plot, ps2, plotIndex);
-                showNotification(`AutoFarmer on plot ${plotIndex + 1} disassembled.`, 'Disassemble AutoFarmer');
+                updateResourceBar();
+                showNotification(`AutoFarmer on plot ${plotIndex + 1} disassembled. Refunded ${refundAmount} coins.`, 'Disassemble AutoFarmer');
             },
             onCancel: () => {
                 // Keep selection mode active so player may click a different plot
@@ -444,7 +515,16 @@ function handlePlotClick(plot, plotIndex) {
         return;
     }
 
-    if (initialPlot.destroyed || initialPlot.autoFarmer) {
+    if (initialPlot.autoFarmer) {
+        showAutoFarmerDetailWindow({
+            plot,
+            plotIndex,
+            fieldId: initialContext.activeFieldId,
+        });
+        return;
+    }
+
+    if (initialPlot.destroyed) {
         return;
     }
 
@@ -690,6 +770,7 @@ function handleAdjacentPlotClickMk1(plot, plotIndex, options = {}) {
         countClick = true,
         playSfx = true,
         isAutoFarmerAction = false,
+        seedTypeOverride = null,
     } = options;
 
     const initialContext = getActiveFieldContext();
@@ -752,10 +833,26 @@ function handleAdjacentPlotClickMk1(plot, plotIndex, options = {}) {
             break;
             
         case '=': // Tilled
-            const selectedSeedType = getSelectedSeedType(gameState);
+            const resolvedSeed = resolveSeedTypeForAction(gameState, {
+                seedTypeOverride,
+                enforceOverride: isAutoFarmerAction,
+            });
+            if (!resolvedSeed.ok) {
+                return { success: false, errorCode: resolvedSeed.errorCode, errorMessage: resolvedSeed.errorMessage };
+            }
+
+            const selectedSeedType = resolvedSeed.seedType;
             const selectedSeedInventoryKey = getSeedInventoryKey(selectedSeedType);
 
             if (gameState[selectedSeedInventoryKey] < 1) {
+                if (isAutoFarmerAction && typeof seedTypeOverride === 'string' && seedTypeOverride.length > 0) {
+                    return {
+                        success: false,
+                        errorCode: 'PREFERRED_SEED_UNAVAILABLE',
+                        errorMessage: `Preferred seed ${selectedSeedType} is unavailable.`,
+                    };
+                }
+
                 return { success: false, errorCode: 'NO_SEEDS', errorMessage: `Not enough ${selectedSeedType} seeds.` };
             }
             
@@ -906,60 +1003,42 @@ function attemptAutoFarmerCycle(autoFarmerPlotIndex) {
         }
     }
 
-    if (preferredTargetPlotIndex === null) {
-        for (const targetIndex of neighborIndices) {
-            const targetState = context.plotStates?.[targetIndex];
-            if (!targetState) {
-                continue;
-            }
+    const startNeighborOrderIndex = preferredTargetPlotIndex !== null
+        ? Math.max(0, neighborIndices.indexOf(preferredTargetPlotIndex))
+        : 0;
 
-            if (targetState.destroyed || targetState.autoFarmer) {
-                continue;
-            }
+    let resolvedTargetPlotIndex = null;
+    for (let offset = 0; offset < neighborIndices.length; offset++) {
+        const neighborOrderIndex = (startNeighborOrderIndex + offset) % neighborIndices.length;
+        const targetIndex = neighborIndices[neighborOrderIndex];
+        const targetState = context.plotStates?.[targetIndex];
+        const targetPlot = plots[targetIndex];
 
-            preferredTargetPlotIndex = targetIndex;
-            break;
+        if (!targetState || !targetPlot) {
+            continue;
         }
+
+        if (targetState.destroyed || targetState.autoFarmer || targetPlot.disabled) {
+            continue;
+        }
+
+        resolvedTargetPlotIndex = targetIndex;
+        break;
     }
 
-    if (preferredTargetPlotIndex === null) {
+    if (resolvedTargetPlotIndex === null) {
         return { success: false, errorCode: 'NO_VALID_TARGET', errorMessage: 'No adjacent valid plot available.' };
     }
 
-    const targetState = context.plotStates?.[preferredTargetPlotIndex];
+    preferredTargetPlotIndex = resolvedTargetPlotIndex;
     const targetPlot = plots[preferredTargetPlotIndex];
-    if (!targetState || !targetPlot) {
-        return {
-            success: false,
-            errorCode: 'NO_VALID_TARGET',
-            errorMessage: 'No adjacent valid plot available.',
-            preferredTargetPlotIndex,
-        };
-    }
-
-    if (targetState.destroyed || targetState.autoFarmer) {
-        return {
-            success: false,
-            errorCode: 'INVALID_TARGET',
-            errorMessage: 'Assigned target is no longer workable.',
-            preferredTargetPlotIndex,
-        };
-    }
-
-    if (targetPlot.disabled) {
-        return {
-            success: false,
-            errorCode: 'TARGET_DISABLED',
-            errorMessage: 'Assigned target plot is currently unavailable.',
-            preferredTargetPlotIndex,
-        };
-    }
 
     const result = handleAdjacentPlotClickMk1(targetPlot, preferredTargetPlotIndex, {
         ignoreToolRequirement: true,
-        countClick: false,
+        countClick: true,
         playSfx: false,
         isAutoFarmerAction: true,
+        seedTypeOverride: sourceState.autoFarmer.preferredSeedType ?? null,
     });
 
     if (result?.success) {

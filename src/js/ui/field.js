@@ -3,6 +3,7 @@ import { getState, updateState, reconcileAllFieldsProgress } from "../state.js";
 import { handlePlotClick } from '../handlers/plotHandlers.js'; 
 import { getPlotDisabledTime } from '../handlers/plotHandlers.js';
 import { syncPlotButtonPresentation } from '../handlers/plotHandlers.js';
+import { AUTO_FARMER_BASE_TICK_MS, AUTO_FARMER_MIN_TICK_MS } from '../configs/autoFarmerConfig.js';
 
 const TITLEBAR_SELECT_ID = 'field-title-select';
 const FIELD_SUBTITLE_ID = 'field-subtitlebar';
@@ -47,7 +48,7 @@ function ensureActiveFieldPlotStates(gameState) {
             autoFarmer: existing?.autoFarmer && typeof existing.autoFarmer === 'object'
                 ? {
                     level: Math.max(1, Number(existing.autoFarmer.level) || 1),
-                    tickMs: Math.max(250, Number(existing.autoFarmer.tickMs) || 2500),
+                    tickMs: Math.max(AUTO_FARMER_MIN_TICK_MS, Number(existing.autoFarmer.tickMs) || AUTO_FARMER_BASE_TICK_MS),
                     lastTickAt: Number(existing.autoFarmer.lastTickAt) || 0,
                     preferredTargetPlotIndex: Number.isInteger(existing.autoFarmer.preferredTargetPlotIndex)
                         ? Number(existing.autoFarmer.preferredTargetPlotIndex)
@@ -55,6 +56,11 @@ function ensureActiveFieldPlotStates(gameState) {
                     lastErrorCode: typeof existing.autoFarmer.lastErrorCode === 'string' ? existing.autoFarmer.lastErrorCode : null,
                     lastErrorMessage: typeof existing.autoFarmer.lastErrorMessage === 'string' ? existing.autoFarmer.lastErrorMessage : '',
                     flashingUntil: Number(existing.autoFarmer.flashingUntil) || 0,
+                    preferredSeedType: existing.autoFarmer.preferredSeedType === 'wheat'
+                        || existing.autoFarmer.preferredSeedType === 'corn'
+                        || existing.autoFarmer.preferredSeedType === 'tomato'
+                        ? existing.autoFarmer.preferredSeedType
+                        : null,
                 }
                 : null,
         });

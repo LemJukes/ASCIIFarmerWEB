@@ -1,6 +1,7 @@
 import { getState, updateState } from '../state.js';
 import { attemptAutoFarmerCycle } from './plotHandlers.js';
 import { showNotification } from '../ui/macNotifications.js';
+import { AUTO_FARMER_BASE_TICK_MS, AUTO_FARMER_MIN_TICK_MS } from '../configs/autoFarmerConfig.js';
 
 const AUTO_FARMER_ENGINE_TICK_MS = 250;
 const AUTO_FARMER_FLASH_DURATION_MS = 1200;
@@ -64,7 +65,7 @@ function processAutoFarmerCycle() {
         }
 
         const autoFarmer = plotState.autoFarmer;
-        const tickMs = Math.max(250, Number(autoFarmer.tickMs) || 2500);
+        const tickMs = Math.max(AUTO_FARMER_MIN_TICK_MS, Number(autoFarmer.tickMs) || AUTO_FARMER_BASE_TICK_MS);
         const lastTickAt = Number(autoFarmer.lastTickAt) || 0;
 
         if ((now - lastTickAt) < tickMs) {

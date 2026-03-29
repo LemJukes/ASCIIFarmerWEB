@@ -1228,6 +1228,95 @@ body.light {
     z-index: 1900;
 }
 
+.autofarmer-detail-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    background: rgba(255, 255, 255, 0.42);
+    z-index: 1950;
+}
+
+.autofarmer-detail-overlay--visible {
+    display: block;
+}
+
+.autofarmer-detail-window {
+    position: absolute;
+    margin: 0;
+    max-width: none;
+    min-width: min(260px, calc(100vw - 16px));
+}
+
+.autofarmer-detail-window--expand-right {
+    transform-origin: left center;
+    animation: autofarmerDetailExpandRight 0.22s ease-out;
+}
+
+.autofarmer-detail-window--expand-left {
+    transform-origin: right center;
+    animation: autofarmerDetailExpandLeft 0.22s ease-out;
+}
+
+@keyframes autofarmerDetailExpandRight {
+    from {
+        transform: scaleX(0.08);
+        opacity: 0.7;
+    }
+
+    to {
+        transform: scaleX(1);
+        opacity: 1;
+    }
+}
+
+@keyframes autofarmerDetailExpandLeft {
+    from {
+        transform: scaleX(0.08);
+        opacity: 0.7;
+    }
+
+    to {
+        transform: scaleX(1);
+        opacity: 1;
+    }
+}
+
+.autofarmer-detail-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+}
+
+.autofarmer-detail-meta,
+.autofarmer-detail-mode,
+.autofarmer-detail-label {
+    margin: 0;
+    font-size: 0.82em;
+    text-align: left;
+}
+
+.autofarmer-detail-seed-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.autofarmer-detail-label {
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.autofarmer-detail-select {
+    width: 100%;
+    flex: 1 1 auto;
+    font-size: 0.82em;
+}
+
+.autofarmer-detail-actions {
+    justify-content: space-between;
+}
+
 .keybinds-overlay--visible {
     display: flex;
 }
@@ -1423,6 +1512,18 @@ body.light {
         justify-content: center;
         text-align: center;
     }
+
+    .autofarmer-detail-window {
+        left: 8px !important;
+        right: 8px !important;
+        top: auto !important;
+        bottom: 8px;
+    }
+
+    .autofarmer-detail-window--expand-right,
+    .autofarmer-detail-window--expand-left {
+        transform-origin: center bottom;
+    }
 }
 
 /* Strip borders / margins from containers that are now inside a mac-window */
@@ -1478,6 +1579,10 @@ body.light {
 
     body:not(.light) .keybinds-overlay {
         background: rgba(0, 0, 0, 0.6);
+    }
+
+    body:not(.light) .autofarmer-detail-overlay {
+        background: rgba(0, 0, 0, 0.45);
     }
 
     body:not(.light) .keybinds-section + .keybinds-section {
@@ -1548,6 +1653,10 @@ body.dark .mac-welcome-overlay {
 
 body.dark .keybinds-overlay {
     background: rgba(0, 0, 0, 0.6);
+}
+
+body.dark .autofarmer-detail-overlay {
+    background: rgba(0, 0, 0, 0.45);
 }
 
 body.dark .keybinds-section + .keybinds-section {

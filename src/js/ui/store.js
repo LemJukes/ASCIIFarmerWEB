@@ -276,6 +276,18 @@ function initializeStore() {
     fieldExpansionTitle.setAttribute('aria-label', 'Field Expansion Section Title');
     store.appendChild(fieldExpansionTitle);
 
+    // AutoFarmer Section
+    const autoFarmerSection = document.createElement('section');
+    autoFarmerSection.classList.add('store-section');
+    autoFarmerSection.id = 'autofarmer-store-section';
+    autoFarmerSection.setAttribute('aria-label', 'AutoFarmer Section');
+
+    const autoFarmerTitle = document.createElement('h3');
+    autoFarmerTitle.classList.add('store-section-title');
+    autoFarmerTitle.textContent = 'AutoFarmer';
+    autoFarmerTitle.setAttribute('aria-label', 'AutoFarmer Section Title');
+    store.appendChild(autoFarmerTitle);
+
     // Plot Purchasing
         // Plot Item Title
         const buyPlotSection = document.createElement('section');
@@ -367,7 +379,7 @@ function initializeStore() {
         buildAutoFarmerSection.textContent = 'Build AutoFarmer';
         buildAutoFarmerSection.setAttribute('aria-label', 'Build AutoFarmer Title');
         buildAutoFarmerSection.style.display = gameState.autoFarmerUnlocked ? 'flex' : 'none';
-        fieldExpansionSection.appendChild(buildAutoFarmerSection);
+        autoFarmerSection.appendChild(buildAutoFarmerSection);
 
         const buildAutoFarmerButton = document.createElement('button');
         buildAutoFarmerButton.classList.add('store-button');
@@ -387,7 +399,7 @@ function initializeStore() {
         disassembleAutoFarmerSection.textContent = 'Disassemble AutoFarmer';
         disassembleAutoFarmerSection.setAttribute('aria-label', 'Disassemble AutoFarmer Title');
         disassembleAutoFarmerSection.style.display = gameState.disassembleAutoFarmerUnlocked ? 'flex' : 'none';
-        fieldExpansionSection.appendChild(disassembleAutoFarmerSection);
+        autoFarmerSection.appendChild(disassembleAutoFarmerSection);
 
         const disassembleAutoFarmerButton = document.createElement('button');
         disassembleAutoFarmerButton.classList.add('store-button');
@@ -405,6 +417,7 @@ function initializeStore() {
     buyItemsTitle.appendChild(buyItemsSection);
     playerSellableItemsTitle.appendChild(playerSellableItems);
     fieldExpansionTitle.appendChild(fieldExpansionSection);
+    autoFarmerTitle.appendChild(autoFarmerSection);
 
     // Append store to the main div
     const mainDiv = document.querySelector('main');

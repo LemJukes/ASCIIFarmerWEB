@@ -12,6 +12,7 @@ import { trackAchievements,
         } from "./achievementHandlers.js";
 import { updateClicksDisplay } from "../ui/clicks.js";
 import { progressionConfig } from "../configs/progressionConfig.js";
+import { AUTO_FARMER_BASE_TICK_MS } from "../configs/autoFarmerConfig.js";
 import { showNotification } from "../ui/macNotifications.js";
 
 const DESTROY_PLOT_COST = 25;
@@ -150,12 +151,13 @@ function buyAutoFarmerAction() {
 
     targetPlot.autoFarmer = {
         level: 1,
-        tickMs: 2500,
+        tickMs: AUTO_FARMER_BASE_TICK_MS,
         lastTickAt: 0,
         preferredTargetPlotIndex: null,
         lastErrorCode: null,
         lastErrorMessage: '',
         flashingUntil: 0,
+        preferredSeedType: null,
     };
     targetPlot.lastUpdatedAt = Date.now();
 
