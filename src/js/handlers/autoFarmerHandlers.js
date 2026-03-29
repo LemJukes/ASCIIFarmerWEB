@@ -65,6 +65,10 @@ function processAutoFarmerCycle() {
         }
 
         const autoFarmer = plotState.autoFarmer;
+        if (autoFarmer.isPaused) {
+            return;
+        }
+
         const tickMs = Math.max(AUTO_FARMER_MIN_TICK_MS, Number(autoFarmer.tickMs) || AUTO_FARMER_BASE_TICK_MS);
         const lastTickAt = Number(autoFarmer.lastTickAt) || 0;
 
@@ -99,10 +103,14 @@ function processAutoFarmerCycle() {
             nextAutoFarmer.flashingUntil = now + AUTO_FARMER_FLASH_DURATION_MS;
 
             const lastNotifiedCode = notifiedErrorByAutoFarmerKey.get(autoFarmerKey);
-            if (lastNotifiedCode !== errorCode) {
+            if (!nextAutoFarmer.suppressWarnings && lastNotifiedCode !== errorCode) {
                 showNotification(`AutoFarmer on plot ${plotIndex + 1}: ${errorMessage}`, 'AutoFarmer');
                 notifiedErrorByAutoFarmerKey.set(autoFarmerKey, errorCode);
+                return;
             }
+
+            // Keep tracked error code in sync even when warnings are suppressed.
+            notifiedErrorByAutoFarmerKey.set(autoFarmerKey, errorCode);
         });
     });
 }

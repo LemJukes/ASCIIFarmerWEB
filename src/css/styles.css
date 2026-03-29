@@ -1317,6 +1317,15 @@ body.light {
     justify-content: space-between;
 }
 
+.autofarmer-detail-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    font-size: 0.82em;
+    text-align: left;
+}
+
 .keybinds-overlay--visible {
     display: flex;
 }

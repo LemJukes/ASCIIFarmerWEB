@@ -116,6 +116,38 @@ function setAutoFarmerPreferredSeed(fieldId, plotIndex, preferredSeedType) {
     return true;
 }
 
+function setAutoFarmerOperationalSettings(fieldId, plotIndex, updates = {}) {
+    const snapshot = resolveAutoFarmerSnapshot(fieldId, plotIndex);
+    if (!snapshot) {
+        return false;
+    }
+
+    const nextPlotStates = [...snapshot.field.plotStates];
+    nextPlotStates[plotIndex] = {
+        ...snapshot.plotState,
+        autoFarmer: {
+            ...snapshot.autoFarmer,
+            isPaused: typeof updates.isPaused === 'boolean' ? updates.isPaused : Boolean(snapshot.autoFarmer.isPaused),
+            suppressWarnings: typeof updates.suppressWarnings === 'boolean'
+                ? updates.suppressWarnings
+                : Boolean(snapshot.autoFarmer.suppressWarnings),
+        },
+        lastUpdatedAt: Date.now(),
+    };
+
+    updateState({
+        fields: {
+            ...snapshot.gameState.fields,
+            [fieldId]: {
+                ...snapshot.field,
+                plotStates: nextPlotStates,
+            },
+        },
+    });
+
+    return true;
+}
+
 function upgradeAutoFarmer(fieldId, plotIndex) {
     const snapshot = resolveAutoFarmerSnapshot(fieldId, plotIndex);
     if (!snapshot) {
@@ -246,6 +278,10 @@ function buildPanelContent({ fieldId, plotIndex, onRefresh }) {
         modeText.textContent = `Mode: Using selected seed (${toSeedLabel(selectedSeedType)})`;
     }
 
+    const operationText = document.createElement('p');
+    operationText.className = 'autofarmer-detail-mode';
+    operationText.textContent = `Operation: ${snapshot.autoFarmer.isPaused ? 'Paused' : 'Running'}`;
+
     const seedRow = document.createElement('div');
     seedRow.className = 'autofarmer-detail-seed-row';
 
@@ -275,6 +311,20 @@ function buildPanelContent({ fieldId, plotIndex, onRefresh }) {
 
     const footer = document.createElement('div');
     footer.className = 'mac-button-group autofarmer-detail-actions';
+
+    const operationBtn = document.createElement('button');
+    operationBtn.className = 'mac-button';
+    operationBtn.type = 'button';
+    operationBtn.textContent = snapshot.autoFarmer.isPaused ? 'Resume Operation' : 'Pause Operation';
+    operationBtn.addEventListener('click', () => {
+        setAutoFarmerOperationalSettings(fieldId, plotIndex, {
+            isPaused: !snapshot.autoFarmer.isPaused,
+        });
+
+        if (typeof onRefresh === 'function') {
+            onRefresh();
+        }
+    });
 
     const upgradeButton = document.createElement('button');
     upgradeButton.className = 'mac-button';
@@ -321,9 +371,40 @@ function buildPanelContent({ fieldId, plotIndex, onRefresh }) {
         closeAutoFarmerDetailWindow();
     });
 
+    const suppressWarningsRow = document.createElement('label');
+    suppressWarningsRow.className = 'autofarmer-detail-toggle-row';
+
+    const suppressWarningsToggle = document.createElement('input');
+    suppressWarningsToggle.type = 'checkbox';
+    suppressWarningsToggle.checked = Boolean(snapshot.autoFarmer.suppressWarnings);
+    suppressWarningsToggle.setAttribute('aria-label', 'Suppress AutoFarmer popup warnings');
+
+    const suppressWarningsText = document.createElement('span');
+    suppressWarningsText.textContent = 'Suppress popup warnings';
+
+    suppressWarningsToggle.addEventListener('change', () => {
+        setAutoFarmerOperationalSettings(fieldId, plotIndex, {
+            suppressWarnings: suppressWarningsToggle.checked,
+        });
+    });
+
+    suppressWarningsRow.append(suppressWarningsToggle, suppressWarningsText);
+
     footer.append(clearBtn, saveBtn);
     seedRow.append(seedLabel, seedSelect);
-    content.append(plotNumberText, levelText, clickRateText, targetText, modeText, seedRow, upgradeButton, footer);
+    content.append(
+        plotNumberText,
+        levelText,
+        clickRateText,
+        targetText,
+        modeText,
+        operationText,
+        seedRow,
+        suppressWarningsRow,
+        operationBtn,
+        upgradeButton,
+        footer,
+    );
 
     return content;
 }

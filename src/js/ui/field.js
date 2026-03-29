@@ -61,6 +61,8 @@ function ensureActiveFieldPlotStates(gameState) {
                         || existing.autoFarmer.preferredSeedType === 'tomato'
                         ? existing.autoFarmer.preferredSeedType
                         : null,
+                    isPaused: Boolean(existing.autoFarmer.isPaused),
+                    suppressWarnings: Boolean(existing.autoFarmer.suppressWarnings),
                 }
                 : null,
         });

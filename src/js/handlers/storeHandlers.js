@@ -158,6 +158,8 @@ function buyAutoFarmerAction() {
         lastErrorMessage: '',
         flashingUntil: 0,
         preferredSeedType: null,
+        isPaused: false,
+        suppressWarnings: false,
     };
     targetPlot.lastUpdatedAt = Date.now();
 

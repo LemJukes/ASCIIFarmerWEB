@@ -29,6 +29,8 @@ function normalizeAutoFarmerState(autoFarmer) {
             : '',
         flashingUntil: Number(autoFarmer.flashingUntil) || 0,
         preferredSeedType,
+        isPaused: Boolean(autoFarmer.isPaused),
+        suppressWarnings: Boolean(autoFarmer.suppressWarnings),
     };
 }
 
