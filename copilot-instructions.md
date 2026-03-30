@@ -51,6 +51,13 @@ High-signal phrases:
 Anti-signals:
 - engine tick interval changes
 - save schema migration work
+- AutoFarmer interval or engine-driven timing changes, even when they affect plot transitions
+
+Clarification:
+- Fallow disabledUntil timeout and state-machine timing belong to plot-loop.
+- Fallow cost scaling and progression curve tuning belong to economy-balance.
+- If a request says duration or timeout, route to plot-loop first.
+- If a request says cost scaling or progression curve, route to economy-balance first.
 
 Owns:
 - src/js/handlers/plotHandlers.js
@@ -115,6 +122,10 @@ Anti-signals:
 - global non-quest economy tuning
 - generic UI theming without quest behavior changes
 
+Clarification:
+- Quest unlock cost or requirement gates inside quest progression belong to quest-reward.
+- Global price curves, mk scaling, and non-quest progression pricing belong to economy-balance.
+
 Owns:
 - src/js/handlers/questHandlers.js
 - src/js/configs/questConfig.js
@@ -124,6 +135,11 @@ Owns:
 Avoid owning:
 - Pure economy repricing not tied to quests
 - Non-quest window styling
+
+Coordination note:
+- quest-reward owns quest readiness trigger logic and idempotent state markers such as rewardAppliedAt.
+- Consult automation-systems when a quest notification relies on shared cadence or throttling behavior.
+- Prevent duplicate quest notifications on reload by persisting and checking quest reward trigger state.
 
 ### macintosh-ui
 Use when request includes: Mac window, titlebar, subtitlebar, retro control style, notification UI styling, dialog presentation/layout, dark mode icon swaps, keyboard focus UX.
