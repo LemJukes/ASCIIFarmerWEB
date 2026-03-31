@@ -557,9 +557,13 @@ function applyQuestReward(quest) {
     if (quest.reward.type === QUEST_REWARD_TYPES.UNLOCK_DISASSEMBLE_AUTO_FARMER) {
         updateState({
             disassembleAutoFarmerUnlocked: true,
+            powerPlantUnlocked: true,
+            processingStationUnlocked: true,
+            disassemblePowerPlantUnlocked: true,
+            disassembleProcessingStationUnlocked: true,
             questProgress: nextQuestProgress,
         });
-        showNotification('Disassemble AutoFarmer unlocked in the store.', 'Quest Reward');
+        showNotification('Disassemble AutoFarmer, Build Power Plants, Build Processing Stations, and their Disassemble features unlocked in the store.', 'Quest Reward');
     }
 }
 

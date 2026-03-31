@@ -2,8 +2,64 @@
 import { savePartialSnapshot, loadSnapshot } from "./persistence.js";
 import { progressionConfig } from "./configs/progressionConfig.js";
 import { AUTO_FARMER_BASE_TICK_MS, AUTO_FARMER_MIN_TICK_MS } from "./configs/autoFarmerConfig.js";
+import {
+    clampEfficiencyPercent,
+    computeStationCostPerClick,
+    createDefaultStationState,
+    getStationPoolKey,
+} from "./configs/stationConfig.js";
 
 const DEFAULT_FIELD_ID = 'field-1';
+
+function normalizeLinkedPlotIndex(value) {
+    return Number.isInteger(value) && Number(value) >= 0 ? Number(value) : null;
+}
+
+function normalizeStationState(station) {
+    if (!station || typeof station !== 'object') {
+        return null;
+    }
+
+    const baseStation = createDefaultStationState();
+    const efficiencyPercent = clampEfficiencyPercent(station.efficiencyPercent ?? baseStation.efficiencyPercent);
+    const linkedIndices = Array.isArray(station.linkedAutoFarmerPlotIndices)
+        ? [...new Set(station.linkedAutoFarmerPlotIndices
+            .filter((index) => Number.isInteger(index) && Number(index) >= 0)
+            .map((index) => Number(index)))]
+        : [];
+
+    return {
+        level: Math.max(1, Number(station.level) || 1),
+        efficiencyPercent,
+        costPerClick: computeStationCostPerClick(efficiencyPercent),
+        linkedAutoFarmerPlotIndices: linkedIndices,
+        lastErrorCode: station.lastErrorCode ?? null,
+        lastErrorMessage: typeof station.lastErrorMessage === 'string' ? station.lastErrorMessage : '',
+        isPaused: Boolean(station.isPaused),
+    };
+}
+
+function normalizeStationCostPoolsByPlot(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return {};
+    }
+
+    const normalized = {};
+    Object.entries(value).forEach(([key, amount]) => {
+        if (typeof key !== 'string' || !key.includes(':')) {
+            return;
+        }
+
+        const parsedAmount = Number(amount);
+        if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
+            return;
+        }
+
+        normalized[key] = parsedAmount;
+    });
+
+    return normalized;
+}
 
 function normalizeAutoFarmerState(autoFarmer) {
     if (!autoFarmer || typeof autoFarmer !== 'object') {
@@ -31,11 +87,15 @@ function normalizeAutoFarmerState(autoFarmer) {
         preferredSeedType,
         isPaused: Boolean(autoFarmer.isPaused),
         suppressWarnings: Boolean(autoFarmer.suppressWarnings),
+        linkedPowerPlantPlotIndex: normalizeLinkedPlotIndex(autoFarmer.linkedPowerPlantPlotIndex),
+        linkedProcessingStationPlotIndex: normalizeLinkedPlotIndex(autoFarmer.linkedProcessingStationPlotIndex),
     };
 }
 
 function normalizePlotState(plot) {
     const normalizedAutoFarmer = normalizeAutoFarmerState(plot?.autoFarmer);
+    const normalizedPowerPlant = normalizeStationState(plot?.powerPlant);
+    const normalizedProcessingStation = normalizeStationState(plot?.processingStation);
     const isDestroyed = Boolean(plot?.destroyed) || plot?.symbol === '⊠';
 
     return {
@@ -46,6 +106,8 @@ function normalizePlotState(plot) {
         lastUpdatedAt: Number(plot?.lastUpdatedAt) || Date.now(),
         destroyed: isDestroyed,
         autoFarmer: normalizedAutoFarmer,
+        powerPlant: normalizedPowerPlant,
+        processingStation: normalizedProcessingStation,
     };
 }
 
@@ -108,6 +170,10 @@ function reconcileQuestRewardUnlocks(stateLike) {
 
     if (hasQuestBeenCompleted(stateLike, 'autofarmer-field-operations-review')) {
         stateLike.disassembleAutoFarmerUnlocked = true;
+        stateLike.powerPlantUnlocked = true;
+        stateLike.processingStationUnlocked = true;
+        stateLike.disassemblePowerPlantUnlocked = true;
+        stateLike.disassembleProcessingStationUnlocked = true;
     }
 }
 
@@ -270,17 +336,17 @@ const initialGameState = {
     water: 10,
 
     // Crop-Specific Seeds
-    wheatSeeds: 1, // Start with some wheat seeds
-    cornSeeds: 0,
-    tomatoSeeds: 0,
+    wheatSeeds: 1000, // Start with some wheat seeds
+    cornSeeds: 1000,
+    tomatoSeeds: 1000,
 
     // Crop-Specific Inventory
-    wheat: 0,
-    corn: 0,
-    tomato: 0,
+    wheat: 1000,
+    corn: 1000,
+    tomato: 1000,
 
     // Field Information
-    plots: 1,
+    plots: 81,
     plotDisableCoefficient: 1.15, // Coefficient used to calculate plot disable time
     plotStates: [], // Backward-compatible mirror of active field plot states
     fields: {
@@ -295,28 +361,40 @@ const initialGameState = {
     restorePlotUnlocked: false,
     autoFarmerUnlocked: false,
     disassembleAutoFarmerUnlocked: false,
+    powerPlantUnlocked: false,
+    processingStationUnlocked: false,
+    disassemblePowerPlantUnlocked: false,
+    disassembleProcessingStationUnlocked: false,
     plotSelectionMode: null,
     autoFarmerPurchasedCount: 0,
     autoFarmerDisassembledCount: 0,
     autoFarmerCropsHarvested: 0,
     autoFarmerNextCost: 100,
+    powerPlantPurchasedCount: 0,
+    processingStationPurchasedCount: 0,
+    powerPlantDisassembledCount: 0,
+    processingStationDisassembledCount: 0,
+    powerPlantNextCost: 250,
+    processingStationNextCost: 250,
+    powerPlantCostPoolsByPlot: {},
+    processingStationCostPoolsByPlot: {},
 
     // Crop Unlock Tracking
     cornUnlocked: false,  // Corn unlock threshold is defined in progressionConfig.unlocks.cropsByTotalCoinsEarned.corn
     tomatoUnlocked: false, // Tomato unlock threshold is defined in progressionConfig.unlocks.cropsByTotalCoinsEarned.tomato
 
     // Game Progress Information
-    totalCoinsSpent: 0,       // Total coins spent on seeds, upgrades, and other purchases
+    totalCoinsSpent: 100000,       // Total coins spent on seeds, upgrades, and other purchases
     totalCoinsEarned: 100000,      // Total number of coins the player has earned throughout the game
-    cropsSold: 0,             // Total number of crops sold by the player (all types combined)
-    wheatSold: 0,             // Total wheat sold
-    cornSold: 0,              // Total corn sold
-    tomatoSold: 0,            // Total tomatoes sold
-    seedsBought: 0,           // Total number of seeds bought by the player
-    wheatSeedsBought: 0,      // Total wheat seeds bought
-    cornSeedsBought: 0,       // Total corn seeds bought
-    tomatoSeedsBought: 0,     // Total tomato seeds bought
-    waterRefillsPurchased: 0, // Total number of times the player has clicked the water refil button
+    cropsSold: 10000,             // Total number of crops sold by the player (all types combined)
+    wheatSold: 1000,             // Total wheat sold
+    cornSold: 1000,              // Total corn sold
+    tomatoSold: 1000,            // Total tomatoes sold
+    seedsBought: 10000,           // Total number of seeds bought by the player
+    wheatSeedsBought: 1000,      // Total wheat seeds bought
+    cornSeedsBought: 1000,       // Total corn seeds bought
+    tomatoSeedsBought: 1000,     // Total tomato seeds bought
+    waterRefillsPurchased: 1000, // Total number of times the player has clicked the water refil button
     totalClicksClicked: 0,    // Total number of successful button clicks
     totalPlayTimeMs: 0,       // Accumulated play time in ms from all previous sessions
     gameStartedAt: Date.now(), // Timestamp for when this game/save started
@@ -407,7 +485,62 @@ function applyStateSnapshot(snapshot) {
     merged.questsActive = normalizedQuestsActive;
     merged.questsCompleted = normalizedQuestsCompleted;
     merged.questProgress = normalizedQuestProgress;
+    merged.powerPlantCostPoolsByPlot = normalizeStationCostPoolsByPlot(merged.powerPlantCostPoolsByPlot);
+    merged.processingStationCostPoolsByPlot = normalizeStationCostPoolsByPlot(merged.processingStationCostPoolsByPlot);
     reconcileQuestRewardUnlocks(merged);
+
+    if (merged.autoFarmerUnlocked) {
+        merged.powerPlantUnlocked = true;
+    }
+
+    if (merged.autoFarmerUnlocked) {
+        merged.processingStationUnlocked = true;
+    }
+
+    if (merged.disassembleAutoFarmerUnlocked) {
+        merged.disassemblePowerPlantUnlocked = true;
+    }
+
+    if (merged.disassembleAutoFarmerUnlocked) {
+        merged.disassembleProcessingStationUnlocked = true;
+    }
+
+    Object.entries(fieldsShape.fields).forEach(([fieldId, field]) => {
+        if (!field || !Array.isArray(field.plotStates)) {
+            return;
+        }
+
+        field.plotStates.forEach((plotState, plotIndex) => {
+            if (!plotState?.autoFarmer) {
+                return;
+            }
+
+            const linkedPowerPlant = normalizeLinkedPlotIndex(plotState.autoFarmer.linkedPowerPlantPlotIndex);
+            const linkedProcessingStation = normalizeLinkedPlotIndex(plotState.autoFarmer.linkedProcessingStationPlotIndex);
+
+            if (linkedPowerPlant !== null && !field.plotStates[linkedPowerPlant]?.powerPlant) {
+                plotState.autoFarmer.linkedPowerPlantPlotIndex = null;
+            }
+
+            if (linkedProcessingStation !== null && !field.plotStates[linkedProcessingStation]?.processingStation) {
+                plotState.autoFarmer.linkedProcessingStationPlotIndex = null;
+            }
+
+            if (Number.isInteger(plotState.autoFarmer.linkedPowerPlantPlotIndex)) {
+                const key = getStationPoolKey(fieldId, plotState.autoFarmer.linkedPowerPlantPlotIndex);
+                if (!Number.isFinite(merged.powerPlantCostPoolsByPlot[key])) {
+                    merged.powerPlantCostPoolsByPlot[key] = 0;
+                }
+            }
+
+            if (Number.isInteger(plotState.autoFarmer.linkedProcessingStationPlotIndex)) {
+                const key = getStationPoolKey(fieldId, plotState.autoFarmer.linkedProcessingStationPlotIndex);
+                if (!Number.isFinite(merged.processingStationCostPoolsByPlot[key])) {
+                    merged.processingStationCostPoolsByPlot[key] = 0;
+                }
+            }
+        });
+    });
 
     Object.assign(gameState, merged, {
         fields: fieldsShape.fields,

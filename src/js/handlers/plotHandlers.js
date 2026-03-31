@@ -10,6 +10,14 @@ import { showNotification, showConfirmation } from '../ui/macNotifications.js';
 import { showAutoFarmerDetailWindow } from '../ui/autoFarmerDetail.js';
 import { TOOLS, WATERING_SYMBOLS, HARVEST_SYMBOLS, getRequiredToolForSymbol } from '../configs/toolConfig.js';
 import { getAutoFarmerDisassembleRefund } from '../configs/autoFarmerConfig.js';
+import { showPowerPlantDetailWindow } from '../ui/powerPlantDetail.js';
+import { showProcessingStationDetailWindow } from '../ui/processingStationDetail.js';
+import {
+    STATION_CAPACITY_PER_BUILDING,
+    formatStationCostPerClick,
+    getPowerPlantDisassembleRefund,
+    getProcessingStationDisassembleRefund,
+} from '../configs/stationConfig.js';
 
 const GRID_WIDTH = 9;
 const OUT_OF_CHARGES_MESSAGE = 'Auto-Changer is out of charges. Buy more charges in Upgrades.';
@@ -227,6 +235,14 @@ function getAutoChangerRequiredTool(currentSymbol) {
 }
 
 function getPlotStateLabel(plotState, now = Date.now()) {
+    if (plotState?.powerPlant) {
+        return 'Power Plant';
+    }
+
+    if (plotState?.processingStation) {
+        return 'Processing Station';
+    }
+
     if (plotState?.autoFarmer) {
         return 'AutoFarmer';
     }
@@ -265,7 +281,7 @@ function getPlotStateLabel(plotState, now = Date.now()) {
 }
 
 function getRequiredToolLabel(plotState, now = Date.now()) {
-    if (plotState?.autoFarmer || plotState?.destroyed) {
+    if (plotState?.autoFarmer || plotState?.powerPlant || plotState?.processingStation || plotState?.destroyed) {
         return 'None';
     }
 
@@ -288,6 +304,22 @@ function buildPlotHoverText(plotState, plotIndex, now = Date.now()) {
         return `Plot: ${plotNumber}\nState: ${plotStateLabel}\nRequired Tool: ${requiredToolLabel}${autoFarmerErrorText}`;
     }
 
+    if (plotState?.powerPlant) {
+        const linkUsage = `${plotState.powerPlant.linkedAutoFarmerPlotIndices.length}/${STATION_CAPACITY_PER_BUILDING}`;
+        const stationErrorText = plotState.powerPlant.lastErrorMessage
+            ? `\nPower Plant: ${plotState.powerPlant.lastErrorMessage}`
+            : '\nPower Plant: Operational';
+        return `Plot: ${plotNumber}\nState: ${plotStateLabel}\nRequired Tool: ${requiredToolLabel}\nEfficiency: ${plotState.powerPlant.efficiencyPercent}%\nCost/Click: ${formatStationCostPerClick(plotState.powerPlant.costPerClick)}\nLinked AutoFarmers: ${linkUsage}${stationErrorText}`;
+    }
+
+    if (plotState?.processingStation) {
+        const linkUsage = `${plotState.processingStation.linkedAutoFarmerPlotIndices.length}/${STATION_CAPACITY_PER_BUILDING}`;
+        const stationErrorText = plotState.processingStation.lastErrorMessage
+            ? `\nProcessing Station: ${plotState.processingStation.lastErrorMessage}`
+            : '\nProcessing Station: Operational';
+        return `Plot: ${plotNumber}\nState: ${plotStateLabel}\nRequired Tool: ${requiredToolLabel}\nEfficiency: ${plotState.processingStation.efficiencyPercent}%\nCost/Click: ${formatStationCostPerClick(plotState.processingStation.costPerClick)}\nLinked AutoFarmers: ${linkUsage}${stationErrorText}`;
+    }
+
     return `Plot: ${plotNumber}\nState: ${plotStateLabel}\nRequired Tool: ${requiredToolLabel}`;
 }
 
@@ -296,7 +328,7 @@ function syncPlotButtonPresentation(plot, plotState, plotIndex, now = Date.now()
         return;
     }
 
-    plot.classList.remove('destroyed-plot', 'autofarmer-plot', 'autofarmer-error');
+    plot.classList.remove('destroyed-plot', 'autofarmer-plot', 'autofarmer-error', 'powerplant-plot', 'powerplant-error', 'processingstation-plot', 'processingstation-error');
 
     if (plotState.autoFarmer) {
         const isErrorVisualActive = !!plotState.autoFarmer.lastErrorCode;
@@ -315,6 +347,40 @@ function syncPlotButtonPresentation(plot, plotState, plotIndex, now = Date.now()
 
         if (isErrorVisualActive) {
             plot.classList.add('autofarmer-error');
+        }
+    } else if (plotState.powerPlant) {
+        const isErrorVisualActive = !!plotState.powerPlant.lastErrorCode;
+
+        if (!plot.querySelector('.powerplant-gif-light')) {
+            plot.innerHTML = [
+                `<img class="powerplant-gif powerplant-gif-light" src="./src/assets/Power Plant/Power Plant.gif" alt="Power Plant">`,
+                `<img class="powerplant-gif powerplant-gif-dark-ver" src="./src/assets/Power Plant/Power Plant Dark Mode.gif" alt="Power Plant">`,
+                `<img class="powerplant-gif powerplant-gif-error" src="./src/assets/Power Plant/Power Plant.gif" alt="Power Plant error">`,
+            ].join('');
+        }
+
+        plot.disabled = false;
+        plot.classList.add('powerplant-plot');
+
+        if (isErrorVisualActive) {
+            plot.classList.add('powerplant-error');
+        }
+    } else if (plotState.processingStation) {
+        const isErrorVisualActive = !!plotState.processingStation.lastErrorCode;
+
+        if (!plot.querySelector('.processingstation-gif-light')) {
+            plot.innerHTML = [
+                `<img class="processingstation-gif processingstation-gif-light" src="./src/assets/Processing Station/Processing Station.gif" alt="Processing Station">`,
+                `<img class="processingstation-gif processingstation-gif-dark-ver" src="./src/assets/Processing Station/Processing Station Dark Mode.gif" alt="Processing Station">`,
+                `<img class="processingstation-gif processingstation-gif-error" src="./src/assets/Processing Station/Processing Station.gif" alt="Processing Station error">`,
+            ].join('');
+        }
+
+        plot.disabled = false;
+        plot.classList.add('processingstation-plot');
+
+        if (isErrorVisualActive) {
+            plot.classList.add('processingstation-error');
         }
     } else if (plotState.destroyed) {
         const gameState = getState();
@@ -352,8 +418,8 @@ function handlePlotSelectionInteraction(plot, plotIndex, context) {
     }
 
     if (mode === 'destroy') {
-        if (plotState.autoFarmer) {
-            showNotification('Cannot destroy a plot with an AutoFarmer on it.', 'Destroy Plot');
+        if (plotState.autoFarmer || plotState.powerPlant || plotState.processingStation) {
+            showNotification('Cannot destroy a plot with a building on it.', 'Destroy Plot');
             return true;
         }
 
@@ -444,6 +510,124 @@ function handlePlotSelectionInteraction(plot, plotIndex, context) {
         return true;
     }
 
+    if (mode === 'disassemblePowerPlant') {
+        if (!plotState.powerPlant) {
+            showNotification('That plot does not have a Power Plant to disassemble.', 'Disassemble Power Plant');
+            return true;
+        }
+
+        showConfirmation(`Disassemble the Power Plant on plot ${plotIndex + 1}? Linked AutoFarmers will enter an error state.`, {
+            title: 'Disassemble Power Plant',
+            onConfirm: () => {
+                const gs = getState();
+                const af = gs.fields?.[context.activeFieldId];
+                if (!af || !Array.isArray(af.plotStates)) {
+                    return;
+                }
+
+                const ps = af.plotStates;
+                const ps2 = ps[plotIndex];
+                if (!ps2) {
+                    return;
+                }
+
+                const linkedIndices = Array.isArray(ps2.powerPlant?.linkedAutoFarmerPlotIndices)
+                    ? [...ps2.powerPlant.linkedAutoFarmerPlotIndices]
+                    : [];
+
+                linkedIndices.forEach((linkedPlotIndex) => {
+                    const linkedPlot = ps[linkedPlotIndex];
+                    if (!linkedPlot?.autoFarmer) {
+                        return;
+                    }
+
+                    linkedPlot.autoFarmer.linkedPowerPlantPlotIndex = null;
+                    linkedPlot.autoFarmer.lastErrorCode = 'INFRASTRUCTURE_MISSING';
+                    linkedPlot.autoFarmer.lastErrorMessage = 'Linked power plant was removed.';
+                    linkedPlot.autoFarmer.flashingUntil = Date.now() + 1200;
+                    linkedPlot.lastUpdatedAt = Date.now();
+                });
+
+                const refundAmount = getPowerPlantDisassembleRefund(ps2.powerPlant?.level);
+                ps2.powerPlant = null;
+                ps2.lastUpdatedAt = Date.now();
+
+                commitActiveFieldPlotStates(gs, context.activeFieldId, ps, af.plots);
+                updateState({
+                    coins: gs.coins + refundAmount,
+                    plotSelectionMode: null,
+                    powerPlantDisassembledCount: (Number(gs.powerPlantDisassembledCount) || 0) + 1,
+                });
+                syncPlotButtonPresentation(plot, ps2, plotIndex);
+                updateResourceBar();
+                showNotification(`Power Plant on plot ${plotIndex + 1} disassembled. Refunded ${refundAmount} coins.`, 'Disassemble Power Plant');
+            },
+            onCancel: () => {
+                // Keep selection mode active so player may click a different plot
+            },
+        });
+        return true;
+    }
+
+    if (mode === 'disassembleProcessingStation') {
+        if (!plotState.processingStation) {
+            showNotification('That plot does not have a Processing Station to disassemble.', 'Disassemble Processing Station');
+            return true;
+        }
+
+        showConfirmation(`Disassemble the Processing Station on plot ${plotIndex + 1}? Linked AutoFarmers will enter an error state.`, {
+            title: 'Disassemble Processing Station',
+            onConfirm: () => {
+                const gs = getState();
+                const af = gs.fields?.[context.activeFieldId];
+                if (!af || !Array.isArray(af.plotStates)) {
+                    return;
+                }
+
+                const ps = af.plotStates;
+                const ps2 = ps[plotIndex];
+                if (!ps2) {
+                    return;
+                }
+
+                const linkedIndices = Array.isArray(ps2.processingStation?.linkedAutoFarmerPlotIndices)
+                    ? [...ps2.processingStation.linkedAutoFarmerPlotIndices]
+                    : [];
+
+                linkedIndices.forEach((linkedPlotIndex) => {
+                    const linkedPlot = ps[linkedPlotIndex];
+                    if (!linkedPlot?.autoFarmer) {
+                        return;
+                    }
+
+                    linkedPlot.autoFarmer.linkedProcessingStationPlotIndex = null;
+                    linkedPlot.autoFarmer.lastErrorCode = 'INFRASTRUCTURE_MISSING';
+                    linkedPlot.autoFarmer.lastErrorMessage = 'Linked processing station was removed.';
+                    linkedPlot.autoFarmer.flashingUntil = Date.now() + 1200;
+                    linkedPlot.lastUpdatedAt = Date.now();
+                });
+
+                const refundAmount = getProcessingStationDisassembleRefund(ps2.processingStation?.level);
+                ps2.processingStation = null;
+                ps2.lastUpdatedAt = Date.now();
+
+                commitActiveFieldPlotStates(gs, context.activeFieldId, ps, af.plots);
+                updateState({
+                    coins: gs.coins + refundAmount,
+                    plotSelectionMode: null,
+                    processingStationDisassembledCount: (Number(gs.processingStationDisassembledCount) || 0) + 1,
+                });
+                syncPlotButtonPresentation(plot, ps2, plotIndex);
+                updateResourceBar();
+                showNotification(`Processing Station on plot ${plotIndex + 1} disassembled. Refunded ${refundAmount} coins.`, 'Disassemble Processing Station');
+            },
+            onCancel: () => {
+                // Keep selection mode active so player may click a different plot
+            },
+        });
+        return true;
+    }
+
     updateState({ plotSelectionMode: null });
     return true;
 }
@@ -517,6 +701,24 @@ function handlePlotClick(plot, plotIndex) {
 
     if (initialPlot.autoFarmer) {
         showAutoFarmerDetailWindow({
+            plot,
+            plotIndex,
+            fieldId: initialContext.activeFieldId,
+        });
+        return;
+    }
+
+    if (initialPlot.powerPlant) {
+        showPowerPlantDetailWindow({
+            plot,
+            plotIndex,
+            fieldId: initialContext.activeFieldId,
+        });
+        return;
+    }
+
+    if (initialPlot.processingStation) {
+        showProcessingStationDetailWindow({
             plot,
             plotIndex,
             fieldId: initialContext.activeFieldId,
@@ -725,7 +927,7 @@ function applyExpandedClickPattern(index, offsets) {
         const targetPlot = plots[targetIndex];
         const targetState = context?.plotStates?.[targetIndex];
 
-        if (!targetPlot || targetPlot.disabled || targetState?.destroyed || targetState?.autoFarmer) {
+        if (!targetPlot || targetPlot.disabled || targetState?.destroyed || targetState?.autoFarmer || targetState?.powerPlant || targetState?.processingStation) {
             return;
         }
 
@@ -783,7 +985,7 @@ function handleAdjacentPlotClickMk1(plot, plotIndex, options = {}) {
         return { success: false, errorCode: 'NO_PLOT', errorMessage: 'Target plot does not exist.' };
     }
 
-    if (initialPlot.destroyed || initialPlot.autoFarmer) {
+    if (initialPlot.destroyed || initialPlot.autoFarmer || initialPlot.powerPlant || initialPlot.processingStation) {
         return { success: false, errorCode: 'INVALID_TARGET', errorMessage: 'Target plot cannot be worked.' };
     }
 
@@ -816,7 +1018,7 @@ function handleAdjacentPlotClickMk1(plot, plotIndex, options = {}) {
         return { success: false, errorCode: 'NO_PLOT', errorMessage: 'Target plot does not exist.' };
     }
 
-    if (plotState.destroyed || plotState.autoFarmer) {
+    if (plotState.destroyed || plotState.autoFarmer || plotState.powerPlant || plotState.processingStation) {
         return { success: false, errorCode: 'INVALID_TARGET', errorMessage: 'Target plot cannot be worked.' };
     }
 
@@ -1018,7 +1220,7 @@ function attemptAutoFarmerCycle(autoFarmerPlotIndex) {
             continue;
         }
 
-        if (targetState.destroyed || targetState.autoFarmer || targetPlot.disabled) {
+        if (targetState.destroyed || targetState.autoFarmer || targetState.powerPlant || targetState.processingStation || targetPlot.disabled) {
             continue;
         }
 

@@ -280,8 +280,26 @@ main {
     border: 1px solid #000;
 }
 
+.plotButton.powerplant-plot,
+.plotButton.processingstation-plot {
+    padding: 0;
+    position: relative;
+    background: #f4f4f4;
+    border: 1px solid #000;
+}
+
 /* All three gifs hidden by default; specific rules below reveal the right one */
 .plotButton .autofarmer-gif {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+}
+
+.plotButton .powerplant-gif,
+.plotButton .processingstation-gif {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -297,6 +315,22 @@ main {
 
 /* Error state: show only error gif */
 .plotButton.autofarmer-error .autofarmer-gif-error {
+    display: block;
+}
+
+.plotButton.powerplant-plot:not(.powerplant-error) .powerplant-gif-light {
+    display: block;
+}
+
+.plotButton.powerplant-error .powerplant-gif-error {
+    display: block;
+}
+
+.plotButton.processingstation-plot:not(.processingstation-error) .processingstation-gif-light {
+    display: block;
+}
+
+.plotButton.processingstation-error .processingstation-gif-error {
     display: block;
 }
 
@@ -867,7 +901,6 @@ body,
 .mac-subtitle-center-label,
 .field-subtitle-select,
 .mac-close-btn,
-.mac-zoom-btn,
 .quest-card,
 .quest-empty-state,
 .quest-page-label,
@@ -920,11 +953,27 @@ body,
         border-color: #fff;
     }
 
+    body:not(.light) .plotButton.powerplant-plot,
+    body:not(.light) .plotButton.processingstation-plot {
+        background: #000;
+        border-color: #fff;
+    }
+
     body:not(.light) .plotButton.autofarmer-plot:not(.autofarmer-error) .autofarmer-gif-light {
         display: none;
     }
 
     body:not(.light) .plotButton.autofarmer-plot:not(.autofarmer-error) .autofarmer-gif-dark-ver {
+        display: block;
+    }
+
+    body:not(.light) .plotButton.powerplant-plot:not(.powerplant-error) .powerplant-gif-light,
+    body:not(.light) .plotButton.processingstation-plot:not(.processingstation-error) .processingstation-gif-light {
+        display: none;
+    }
+
+    body:not(.light) .plotButton.powerplant-plot:not(.powerplant-error) .powerplant-gif-dark-ver,
+    body:not(.light) .plotButton.processingstation-plot:not(.processingstation-error) .processingstation-gif-dark-ver {
         display: block;
     }
 
@@ -1034,11 +1083,27 @@ body.dark .plotButton.autofarmer-plot {
     border-color: #fff;
 }
 
+body.dark .plotButton.powerplant-plot,
+body.dark .plotButton.processingstation-plot {
+    background: #000;
+    border-color: #fff;
+}
+
 body.dark .plotButton.autofarmer-plot:not(.autofarmer-error) .autofarmer-gif-light {
     display: none;
 }
 
 body.dark .plotButton.autofarmer-plot:not(.autofarmer-error) .autofarmer-gif-dark-ver {
+    display: block;
+}
+
+body.dark .plotButton.powerplant-plot:not(.powerplant-error) .powerplant-gif-light,
+body.dark .plotButton.processingstation-plot:not(.processingstation-error) .processingstation-gif-light {
+    display: none;
+}
+
+body.dark .plotButton.powerplant-plot:not(.powerplant-error) .powerplant-gif-dark-ver,
+body.dark .plotButton.processingstation-plot:not(.processingstation-error) .processingstation-gif-dark-ver {
     display: block;
 }
 
@@ -1182,9 +1247,8 @@ body.light {
     transition: background 5s ease, color 5s ease;
 }
 
-/* Close box (left) and zoom box (right) — small outlined squares */
-.mac-close-btn,
-.mac-zoom-btn {
+/* Close box (left) — small outlined square */
+.mac-close-btn {
     width: 13px;
     height: 13px;
     flex-shrink: 0;
@@ -1196,11 +1260,6 @@ body.light {
     cursor: pointer;
     font: inherit;
     transition: background 5s ease, border-color 5s ease;
-}
-
-.mac-zoom-btn {
-    pointer-events: none;
-    cursor: default;
 }
 
 /* Collapsible content — CSS grid-row trick for smooth height animation */
@@ -1308,7 +1367,19 @@ body.light {
     z-index: 1950;
 }
 
+.station-detail-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    background: rgba(255, 255, 255, 0.42);
+    z-index: 1950;
+}
+
 .autofarmer-detail-overlay--visible {
+    display: block;
+}
+
+.station-detail-overlay--visible {
     display: block;
 }
 
@@ -1319,6 +1390,13 @@ body.light {
     min-width: min(260px, calc(100vw - 16px));
 }
 
+.station-detail-window {
+    position: absolute;
+    margin: 0;
+    max-width: none;
+    min-width: min(300px, calc(100vw - 16px));
+}
+
 .autofarmer-detail-window--expand-right {
     transform-origin: left center;
     animation: autofarmerDetailExpandRight 0.22s ease-out;
@@ -1327,6 +1405,16 @@ body.light {
 .autofarmer-detail-window--expand-left {
     transform-origin: right center;
     animation: autofarmerDetailExpandLeft 0.22s ease-out;
+}
+
+.station-detail-window--expand-right {
+    transform-origin: left center;
+    animation: stationDetailExpandRight 0.22s ease-out;
+}
+
+.station-detail-window--expand-left {
+    transform-origin: right center;
+    animation: stationDetailExpandLeft 0.22s ease-out;
 }
 
 @keyframes autofarmerDetailExpandRight {
@@ -1342,6 +1430,30 @@ body.light {
 }
 
 @keyframes autofarmerDetailExpandLeft {
+    from {
+        transform: scaleX(0.08);
+        opacity: 0.7;
+    }
+
+    to {
+        transform: scaleX(1);
+        opacity: 1;
+    }
+}
+
+@keyframes stationDetailExpandRight {
+    from {
+        transform: scaleX(0.08);
+        opacity: 0.7;
+    }
+
+    to {
+        transform: scaleX(1);
+        opacity: 1;
+    }
+}
+
+@keyframes stationDetailExpandLeft {
     from {
         transform: scaleX(0.08);
         opacity: 0.7;
@@ -1396,6 +1508,45 @@ body.light {
     gap: 8px;
     font-size: 0.82em;
     text-align: left;
+}
+
+.station-detail-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+}
+
+.station-detail-meta,
+.station-detail-label {
+    margin: 0;
+    font-size: 0.82em;
+    text-align: left;
+}
+
+.station-detail-link-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.station-detail-select {
+    width: 100%;
+    flex: 1 1 auto;
+    font-size: 0.82em;
+}
+
+.station-detail-linked-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.station-detail-linked-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 }
 
 .keybinds-overlay--visible {
@@ -1642,8 +1793,7 @@ body.light {
         color: #fff;
     }
 
-    body:not(.light) .mac-close-btn,
-    body:not(.light) .mac-zoom-btn {
+    body:not(.light) .mac-close-btn {
         border-color: #fff;
         background: #000;
     }
@@ -1663,6 +1813,10 @@ body.light {
     }
 
     body:not(.light) .autofarmer-detail-overlay {
+        background: rgba(0, 0, 0, 0.45);
+    }
+
+    body:not(.light) .station-detail-overlay {
         background: rgba(0, 0, 0, 0.45);
     }
 
@@ -1716,8 +1870,7 @@ body.dark .mac-title {
     color: #fff;
 }
 
-body.dark .mac-close-btn,
-body.dark .mac-zoom-btn {
+body.dark .mac-close-btn {
     border-color: #fff;
     background: #000;
 }
@@ -1737,6 +1890,10 @@ body.dark .keybinds-overlay {
 }
 
 body.dark .autofarmer-detail-overlay {
+    background: rgba(0, 0, 0, 0.45);
+}
+
+body.dark .station-detail-overlay {
     background: rgba(0, 0, 0, 0.45);
 }
 
@@ -1789,8 +1946,7 @@ body.light .mac-title {
     color: #000;
 }
 
-body.light .mac-close-btn,
-body.light .mac-zoom-btn {
+body.light .mac-close-btn {
     border-color: #000;
     background: #fff;
 }

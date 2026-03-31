@@ -47,15 +47,8 @@ export function wrapInMacWindow(titleEl, contentEl) {
     titleSpan.classList.add('mac-title');
     titleSpan.textContent = titleText;
 
-    const zoomBtn = document.createElement('button');
-    zoomBtn.classList.add('mac-zoom-btn');
-    zoomBtn.setAttribute('aria-hidden', 'true');
-    zoomBtn.setAttribute('tabindex', '-1');
-    zoomBtn.setAttribute('type', 'button');
-
     titlebar.appendChild(closeBtn);
     titlebar.appendChild(titleSpan);
-    titlebar.appendChild(zoomBtn);
 
     // Collapsible content wrapper (CSS grid trick for smooth animation)
     const macContent = document.createElement('div');

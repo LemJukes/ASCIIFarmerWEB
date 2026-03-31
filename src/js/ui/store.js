@@ -71,7 +71,10 @@ import { buySeed, buyWater, buyPlot, sellCrops, buyBulkSeeds, sellBulkCrops,
          sellWheat, sellCorn, sellTomato,
          sellAllWheat, sellAllCorn, sellAllTomato,
          buyBulkSeedPack, sellBulkCropPack, buyBulkWaterRefill, buyNewField,
-         buyDestroyPlotAction, buyRestorePlotAction, buyAutoFarmerAction, buyDisassembleAutoFarmerAction } from "../handlers/storeHandlers.js";
+         buyDestroyPlotAction, buyRestorePlotAction,
+         buyAutoFarmerAction, buyDisassembleAutoFarmerAction,
+         buyPowerPlantAction, buyProcessingStationAction,
+         buyDisassemblePowerPlantAction, buyDisassembleProcessingStationAction } from "../handlers/storeHandlers.js";
 
 const STORE_SECTION_COLLAPSE_STORAGE_PREFIX = 'storeSectionCollapsed:';
 const COLLAPSIBLE_STORE_SECTION_IDS = [
@@ -567,11 +570,104 @@ function initializeStore() {
         disassembleAutoFarmerCost.textContent = '50 coins';
         disassembleAutoFarmerSection.appendChild(disassembleAutoFarmerCost);
 
+    // Infrastructure Section
+    const infrastructureSection = document.createElement('section');
+    infrastructureSection.classList.add('store-section');
+    infrastructureSection.id = 'infrastructure-store-section';
+    infrastructureSection.setAttribute('aria-label', 'Infrastructure Section');
+
+    const infrastructureTitle = document.createElement('h3');
+    infrastructureTitle.classList.add('store-section-title');
+    infrastructureTitle.textContent = 'Infrastructure';
+    infrastructureTitle.setAttribute('aria-label', 'Infrastructure Section Title');
+    store.appendChild(infrastructureTitle);
+
+        const buildPowerPlantSection = document.createElement('section');
+        buildPowerPlantSection.classList.add('item-title');
+        buildPowerPlantSection.id = 'buildPowerPlantSection';
+        buildPowerPlantSection.textContent = 'Build Power Plant';
+        buildPowerPlantSection.setAttribute('aria-label', 'Build Power Plant Title');
+        buildPowerPlantSection.style.display = gameState.powerPlantUnlocked ? 'flex' : 'none';
+        infrastructureSection.appendChild(buildPowerPlantSection);
+
+        const buildPowerPlantButton = document.createElement('button');
+        buildPowerPlantButton.classList.add('store-button');
+        buildPowerPlantButton.textContent = 'Build';
+        buildPowerPlantButton.onclick = buyPowerPlantAction;
+        buildPowerPlantSection.appendChild(buildPowerPlantButton);
+
+        const buildPowerPlantCost = document.createElement('span');
+        buildPowerPlantCost.classList.add('item-price');
+        buildPowerPlantCost.id = 'build-powerplant-cost';
+        buildPowerPlantCost.textContent = `${Math.max(250, Number(gameState.powerPlantNextCost) || 250)} coins`;
+        buildPowerPlantSection.appendChild(buildPowerPlantCost);
+
+        const disassemblePowerPlantSection = document.createElement('section');
+        disassemblePowerPlantSection.classList.add('item-title');
+        disassemblePowerPlantSection.id = 'disassemblePowerPlantSection';
+        disassemblePowerPlantSection.textContent = 'Disassemble Power Plant';
+        disassemblePowerPlantSection.setAttribute('aria-label', 'Disassemble Power Plant Title');
+        disassemblePowerPlantSection.style.display = gameState.disassemblePowerPlantUnlocked ? 'flex' : 'none';
+        infrastructureSection.appendChild(disassemblePowerPlantSection);
+
+        const disassemblePowerPlantButton = document.createElement('button');
+        disassemblePowerPlantButton.classList.add('store-button');
+        disassemblePowerPlantButton.textContent = 'Select Plot';
+        disassemblePowerPlantButton.onclick = buyDisassemblePowerPlantAction;
+        disassemblePowerPlantSection.appendChild(disassemblePowerPlantButton);
+
+        const disassemblePowerPlantCost = document.createElement('span');
+        disassemblePowerPlantCost.classList.add('item-price');
+        disassemblePowerPlantCost.id = 'disassemble-powerplant-cost';
+        disassemblePowerPlantCost.textContent = '50 coins';
+        disassemblePowerPlantSection.appendChild(disassemblePowerPlantCost);
+
+        const buildProcessingStationSection = document.createElement('section');
+        buildProcessingStationSection.classList.add('item-title');
+        buildProcessingStationSection.id = 'buildProcessingStationSection';
+        buildProcessingStationSection.textContent = 'Build Processing Station';
+        buildProcessingStationSection.setAttribute('aria-label', 'Build Processing Station Title');
+        buildProcessingStationSection.style.display = gameState.processingStationUnlocked ? 'flex' : 'none';
+        infrastructureSection.appendChild(buildProcessingStationSection);
+
+        const buildProcessingStationButton = document.createElement('button');
+        buildProcessingStationButton.classList.add('store-button');
+        buildProcessingStationButton.textContent = 'Build';
+        buildProcessingStationButton.onclick = buyProcessingStationAction;
+        buildProcessingStationSection.appendChild(buildProcessingStationButton);
+
+        const buildProcessingStationCost = document.createElement('span');
+        buildProcessingStationCost.classList.add('item-price');
+        buildProcessingStationCost.id = 'build-processingstation-cost';
+        buildProcessingStationCost.textContent = `${Math.max(250, Number(gameState.processingStationNextCost) || 250)} coins`;
+        buildProcessingStationSection.appendChild(buildProcessingStationCost);
+
+        const disassembleProcessingStationSection = document.createElement('section');
+        disassembleProcessingStationSection.classList.add('item-title');
+        disassembleProcessingStationSection.id = 'disassembleProcessingStationSection';
+        disassembleProcessingStationSection.textContent = 'Disassemble Processing Station';
+        disassembleProcessingStationSection.setAttribute('aria-label', 'Disassemble Processing Station Title');
+        disassembleProcessingStationSection.style.display = gameState.disassembleProcessingStationUnlocked ? 'flex' : 'none';
+        infrastructureSection.appendChild(disassembleProcessingStationSection);
+
+        const disassembleProcessingStationButton = document.createElement('button');
+        disassembleProcessingStationButton.classList.add('store-button');
+        disassembleProcessingStationButton.textContent = 'Select Plot';
+        disassembleProcessingStationButton.onclick = buyDisassembleProcessingStationAction;
+        disassembleProcessingStationSection.appendChild(disassembleProcessingStationButton);
+
+        const disassembleProcessingStationCost = document.createElement('span');
+        disassembleProcessingStationCost.classList.add('item-price');
+        disassembleProcessingStationCost.id = 'disassemble-processingstation-cost';
+        disassembleProcessingStationCost.textContent = '50 coins';
+        disassembleProcessingStationSection.appendChild(disassembleProcessingStationCost);
+
     // Append sections to store
     buyItemsTitle.appendChild(buyItemsSection);
     playerSellableItemsTitle.appendChild(playerSellableItems);
     fieldExpansionTitle.appendChild(fieldExpansionSection);
     autoFarmerTitle.appendChild(autoFarmerSection);
+    store.appendChild(infrastructureSection);
 
     // Append store to the main div
     const mainDiv = document.querySelector('main');
@@ -612,6 +708,36 @@ function refreshPlotFeatureStoreSections() {
     const disassembleSection = document.getElementById('disassembleAutoFarmerSection');
     if (disassembleSection) {
         disassembleSection.style.display = gameState.disassembleAutoFarmerUnlocked ? 'flex' : 'none';
+    }
+
+    const powerPlantSection = document.getElementById('buildPowerPlantSection');
+    if (powerPlantSection) {
+        powerPlantSection.style.display = gameState.powerPlantUnlocked ? 'flex' : 'none';
+    }
+
+    const powerPlantCost = document.getElementById('build-powerplant-cost');
+    if (powerPlantCost) {
+        powerPlantCost.textContent = `${Math.max(250, Number(gameState.powerPlantNextCost) || 250)} coins`;
+    }
+
+    const disassemblePowerPlantSection = document.getElementById('disassemblePowerPlantSection');
+    if (disassemblePowerPlantSection) {
+        disassemblePowerPlantSection.style.display = gameState.disassemblePowerPlantUnlocked ? 'flex' : 'none';
+    }
+
+    const processingStationSection = document.getElementById('buildProcessingStationSection');
+    if (processingStationSection) {
+        processingStationSection.style.display = gameState.processingStationUnlocked ? 'flex' : 'none';
+    }
+
+    const processingStationCost = document.getElementById('build-processingstation-cost');
+    if (processingStationCost) {
+        processingStationCost.textContent = `${Math.max(250, Number(gameState.processingStationNextCost) || 250)} coins`;
+    }
+
+    const disassembleProcessingStationSection = document.getElementById('disassembleProcessingStationSection');
+    if (disassembleProcessingStationSection) {
+        disassembleProcessingStationSection.style.display = gameState.disassembleProcessingStationUnlocked ? 'flex' : 'none';
     }
 }
 

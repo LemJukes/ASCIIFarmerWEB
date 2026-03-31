@@ -2,6 +2,7 @@ import { getState, updateState } from '../state.js';
 import { attemptAutoFarmerCycle } from './plotHandlers.js';
 import { showNotification } from '../ui/macNotifications.js';
 import { AUTO_FARMER_BASE_TICK_MS, AUTO_FARMER_MIN_TICK_MS } from '../configs/autoFarmerConfig.js';
+import { getStationPoolKey, STATION_CAPACITY_PER_BUILDING } from '../configs/stationConfig.js';
 
 const AUTO_FARMER_ENGINE_TICK_MS = 250;
 const AUTO_FARMER_FLASH_DURATION_MS = 1200;
@@ -69,6 +70,55 @@ function processAutoFarmerCycle() {
             return;
         }
 
+        const autoFarmerCount = activeField.plotStates.reduce((count, entry) => count + (entry?.autoFarmer ? 1 : 0), 0);
+        const linkedPowerPlantPlotIndex = Number.isInteger(autoFarmer.linkedPowerPlantPlotIndex)
+            ? Number(autoFarmer.linkedPowerPlantPlotIndex)
+            : null;
+        const linkedProcessingStationPlotIndex = Number.isInteger(autoFarmer.linkedProcessingStationPlotIndex)
+            ? Number(autoFarmer.linkedProcessingStationPlotIndex)
+            : null;
+
+        const linkedPowerPlant = linkedPowerPlantPlotIndex !== null
+            ? activeField.plotStates[linkedPowerPlantPlotIndex]?.powerPlant
+            : null;
+        const linkedProcessingStation = linkedProcessingStationPlotIndex !== null
+            ? activeField.plotStates[linkedProcessingStationPlotIndex]?.processingStation
+            : null;
+
+        const isSingleFreeAutoFarmer = autoFarmerCount === 1;
+        if (!isSingleFreeAutoFarmer && (!linkedPowerPlant || !linkedProcessingStation)) {
+            const now = Date.now();
+            updateAutoFarmerStatus(activeFieldId, plotIndex, (nextAutoFarmer) => {
+                nextAutoFarmer.lastTickAt = now;
+                nextAutoFarmer.lastErrorCode = 'INFRASTRUCTURE_MISSING';
+                nextAutoFarmer.lastErrorMessage = 'Requires linked Power Plant and Processing Station.';
+                nextAutoFarmer.flashingUntil = now + AUTO_FARMER_FLASH_DURATION_MS;
+            });
+            return;
+        }
+
+        if (linkedPowerPlant && (linkedPowerPlant.linkedAutoFarmerPlotIndices || []).length > STATION_CAPACITY_PER_BUILDING) {
+            const now = Date.now();
+            updateAutoFarmerStatus(activeFieldId, plotIndex, (nextAutoFarmer) => {
+                nextAutoFarmer.lastTickAt = now;
+                nextAutoFarmer.lastErrorCode = 'POWER_CAPACITY_EXCEEDED';
+                nextAutoFarmer.lastErrorMessage = 'Linked Power Plant is overloaded.';
+                nextAutoFarmer.flashingUntil = now + AUTO_FARMER_FLASH_DURATION_MS;
+            });
+            return;
+        }
+
+        if (linkedProcessingStation && (linkedProcessingStation.linkedAutoFarmerPlotIndices || []).length > STATION_CAPACITY_PER_BUILDING) {
+            const now = Date.now();
+            updateAutoFarmerStatus(activeFieldId, plotIndex, (nextAutoFarmer) => {
+                nextAutoFarmer.lastTickAt = now;
+                nextAutoFarmer.lastErrorCode = 'PROCESSING_CAPACITY_EXCEEDED';
+                nextAutoFarmer.lastErrorMessage = 'Linked Processing Station is overloaded.';
+                nextAutoFarmer.flashingUntil = now + AUTO_FARMER_FLASH_DURATION_MS;
+            });
+            return;
+        }
+
         const tickMs = Math.max(AUTO_FARMER_MIN_TICK_MS, Number(autoFarmer.tickMs) || AUTO_FARMER_BASE_TICK_MS);
         const lastTickAt = Number(autoFarmer.lastTickAt) || 0;
 
@@ -77,6 +127,44 @@ function processAutoFarmerCycle() {
         }
 
         const result = attemptAutoFarmerCycle(plotIndex);
+        let billingErrorCode = null;
+        let billingErrorMessage = '';
+
+        if (result?.success && !isSingleFreeAutoFarmer) {
+            const currentState = getState();
+            const powerPools = { ...(currentState.powerPlantCostPoolsByPlot || {}) };
+            const processingPools = { ...(currentState.processingStationCostPoolsByPlot || {}) };
+            let pendingCoinSpend = 0;
+
+            if (linkedPowerPlant && linkedPowerPlantPlotIndex !== null) {
+                const poolKey = getStationPoolKey(activeFieldId, linkedPowerPlantPlotIndex);
+                const nextPool = (Number(powerPools[poolKey]) || 0) + (Number(linkedPowerPlant.costPerClick) || 0);
+                const dueCoins = Math.floor(nextPool);
+                powerPools[poolKey] = nextPool - dueCoins;
+                pendingCoinSpend += dueCoins;
+            }
+
+            if (linkedProcessingStation && linkedProcessingStationPlotIndex !== null) {
+                const poolKey = getStationPoolKey(activeFieldId, linkedProcessingStationPlotIndex);
+                const nextPool = (Number(processingPools[poolKey]) || 0) + (Number(linkedProcessingStation.costPerClick) || 0);
+                const dueCoins = Math.floor(nextPool);
+                processingPools[poolKey] = nextPool - dueCoins;
+                pendingCoinSpend += dueCoins;
+            }
+
+            if (pendingCoinSpend > 0 && Number(currentState.coins) < pendingCoinSpend) {
+                billingErrorCode = 'INSUFFICIENT_COINS';
+                billingErrorMessage = 'Need more coins to pay station click-cost.';
+            } else if (pendingCoinSpend > 0 || linkedPowerPlant || linkedProcessingStation) {
+                updateState({
+                    coins: Number(currentState.coins) - pendingCoinSpend,
+                    totalCoinsSpent: Number(currentState.totalCoinsSpent) + pendingCoinSpend,
+                    powerPlantCostPoolsByPlot: powerPools,
+                    processingStationCostPoolsByPlot: processingPools,
+                });
+            }
+        }
+
         const autoFarmerKey = getAutoFarmerKey(activeFieldId, plotIndex);
 
         updateAutoFarmerStatus(activeFieldId, plotIndex, (nextAutoFarmer) => {
@@ -88,7 +176,7 @@ function processAutoFarmerCycle() {
                 nextAutoFarmer.preferredTargetPlotIndex = null;
             }
 
-            if (result?.success) {
+            if (result?.success && !billingErrorCode) {
                 nextAutoFarmer.lastErrorCode = null;
                 nextAutoFarmer.lastErrorMessage = '';
                 nextAutoFarmer.flashingUntil = 0;
@@ -96,8 +184,8 @@ function processAutoFarmerCycle() {
                 return;
             }
 
-            const errorCode = result?.errorCode || 'UNKNOWN_ERROR';
-            const errorMessage = result?.errorMessage || 'AutoFarmer could not work an adjacent plot.';
+            const errorCode = billingErrorCode || result?.errorCode || 'UNKNOWN_ERROR';
+            const errorMessage = billingErrorMessage || result?.errorMessage || 'AutoFarmer could not work an adjacent plot.';
             nextAutoFarmer.lastErrorCode = errorCode;
             nextAutoFarmer.lastErrorMessage = errorMessage;
             nextAutoFarmer.flashingUntil = now + AUTO_FARMER_FLASH_DURATION_MS;

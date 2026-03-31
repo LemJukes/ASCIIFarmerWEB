@@ -13,16 +13,59 @@ import { trackAchievements,
 import { updateClicksDisplay } from "../ui/clicks.js";
 import { progressionConfig } from "../configs/progressionConfig.js";
 import { AUTO_FARMER_BASE_TICK_MS } from "../configs/autoFarmerConfig.js";
-import { showNotification } from "../ui/macNotifications.js";
+import { showNotification, showDialog } from "../ui/macNotifications.js";
+import {
+    STATION_CAPACITY_PER_BUILDING,
+    createDefaultStationState,
+    getPowerPlantBuildCost,
+    getNextPowerPlantBuildCost,
+    getProcessingStationBuildCost,
+    getNextProcessingStationBuildCost,
+} from "../configs/stationConfig.js";
 
 const DESTROY_PLOT_COST = 25;
 const RESTORE_PLOT_COST = 50;
 const AUTO_FARMER_BASE_COST = 100;
 const AUTO_FARMER_COST_STEP = 100;
 const DISASSEMBLE_AUTO_FARMER_COST = 50;
+const DISASSEMBLE_POWER_PLANT_COST = 50;
+const DISASSEMBLE_PROCESSING_STATION_COST = 50;
 const WATER_AUTO_BUYER_CONFIG = progressionConfig.storeEconomy.water.autoBuyer || {};
 const WATER_AUTO_BUYER_SURCHARGE_MULTIPLIER = Math.max(1, Number(WATER_AUTO_BUYER_CONFIG.surchargeMultiplier) || 1.1);
 const WATER_AUTO_BUYER_TRIGGER_BELOW = Math.max(1, Number(WATER_AUTO_BUYER_CONFIG.triggerBelow) || 5);
+
+function countFieldBuildings(activeField) {
+    const counts = {
+        autoFarmers: 0,
+        powerPlants: 0,
+        processingStations: 0,
+    };
+
+    if (!activeField || !Array.isArray(activeField.plotStates)) {
+        return counts;
+    }
+
+    activeField.plotStates.forEach((plotState) => {
+        if (plotState?.autoFarmer) {
+            counts.autoFarmers += 1;
+        }
+
+        if (plotState?.powerPlant) {
+            counts.powerPlants += 1;
+        }
+
+        if (plotState?.processingStation) {
+            counts.processingStations += 1;
+        }
+    });
+
+    return counts;
+}
+
+function getAutoFarmerCapacityForField(activeField) {
+    const counts = countFieldBuildings(activeField);
+    return Math.min(counts.powerPlants, counts.processingStations) * STATION_CAPACITY_PER_BUILDING;
+}
 
 function getActiveFieldForMutation(gameState) {
     const activeFieldId = gameState.activeFieldId;
@@ -112,8 +155,20 @@ function buyAutoFarmerAction() {
     }
 
     const { activeFieldId, activeField } = activeFieldContext;
+    const buildingCounts = countFieldBuildings(activeField);
+    const isFirstAutoFarmer = buildingCounts.autoFarmers === 0;
     const maxPlots = Number(activeField.plots) || activeField.plotStates.length;
-    const buildCost = Math.max(AUTO_FARMER_BASE_COST, Number(gameState.autoFarmerNextCost) || AUTO_FARMER_BASE_COST);
+    const buildCost = isFirstAutoFarmer
+        ? 0
+        : Math.max(AUTO_FARMER_BASE_COST, Number(gameState.autoFarmerNextCost) || AUTO_FARMER_BASE_COST);
+
+    if (!isFirstAutoFarmer) {
+        const fieldCapacity = getAutoFarmerCapacityForField(activeField);
+        if (buildingCounts.autoFarmers >= fieldCapacity) {
+            showNotification('AutoFarmer capacity reached. Build both a Power Plant and Processing Station to support more AutoFarmers.', 'AutoFarmer');
+            return;
+        }
+    }
 
     if (gameState.coins < buildCost) {
         showNotification('Not enough coins to build an AutoFarmer!', 'Store');
@@ -144,8 +199,8 @@ function buyAutoFarmerAction() {
         return;
     }
 
-    if (targetPlot.autoFarmer) {
-        showNotification('That plot already has an AutoFarmer.', 'AutoFarmer');
+    if (targetPlot.autoFarmer || targetPlot.powerPlant || targetPlot.processingStation) {
+        showNotification('That plot already has a building.', 'AutoFarmer');
         return;
     }
 
@@ -160,6 +215,8 @@ function buyAutoFarmerAction() {
         preferredSeedType: null,
         isPaused: false,
         suppressWarnings: false,
+        linkedPowerPlantPlotIndex: null,
+        linkedProcessingStationPlotIndex: null,
     };
     targetPlot.lastUpdatedAt = Date.now();
 
@@ -168,7 +225,9 @@ function buyAutoFarmerAction() {
         coins: gameState.coins - buildCost,
         totalCoinsSpent: gameState.totalCoinsSpent + buildCost,
         autoFarmerPurchasedCount: (Number(gameState.autoFarmerPurchasedCount) || 0) + 1,
-        autoFarmerNextCost: buildCost + AUTO_FARMER_COST_STEP,
+        autoFarmerNextCost: isFirstAutoFarmer
+            ? Math.max(AUTO_FARMER_BASE_COST, Number(gameState.autoFarmerNextCost) || AUTO_FARMER_BASE_COST)
+            : (buildCost + AUTO_FARMER_COST_STEP),
     });
 
     updateResourceBar();
@@ -176,7 +235,150 @@ function buyAutoFarmerAction() {
     trackAchievements();
     incrementTotalClicks();
     updateClicksDisplay();
-    showNotification(`AutoFarmer built on plot ${selectedPlotNumber}.`, 'AutoFarmer');
+    showNotification(
+        isFirstAutoFarmer
+            ? `AutoFarmer built on plot ${selectedPlotNumber}. First AutoFarmer is free.`
+            : `AutoFarmer built on plot ${selectedPlotNumber}.`,
+        'AutoFarmer',
+    );
+}
+
+function buyPowerPlantAction() {
+    const gameState = getState();
+    if (!gameState.powerPlantUnlocked) {
+        showNotification('Build Power Plant is not unlocked yet.', 'Store');
+        return;
+    }
+
+    const activeFieldContext = getActiveFieldForMutation(gameState);
+    if (!activeFieldContext) {
+        return;
+    }
+
+    const { activeFieldId, activeField } = activeFieldContext;
+    const maxPlots = Number(activeField.plots) || activeField.plotStates.length;
+    const buildCost = getPowerPlantBuildCost(gameState.powerPlantNextCost);
+
+    if (gameState.coins < buildCost) {
+        showNotification('Not enough coins to build a Power Plant!', 'Store');
+        return;
+    }
+
+    const selectedPlotText = window.prompt(`Build Power Plant on which destroyed plot? Enter plot number 1-${maxPlots}.`);
+    if (selectedPlotText === null) {
+        return;
+    }
+
+    const selectedPlotNumber = Number.parseInt(String(selectedPlotText).trim(), 10);
+    if (!Number.isFinite(selectedPlotNumber) || selectedPlotNumber < 1 || selectedPlotNumber > maxPlots) {
+        showNotification('Invalid plot number selected.', 'Power Plant');
+        return;
+    }
+
+    const selectedPlotIndex = selectedPlotNumber - 1;
+    const nextPlotStates = [...activeField.plotStates];
+    const targetPlot = nextPlotStates[selectedPlotIndex];
+    if (!targetPlot) {
+        showNotification('Selected plot does not exist.', 'Power Plant');
+        return;
+    }
+
+    if (!targetPlot.destroyed) {
+        showNotification('Power Plants can only be built on destroyed plots.', 'Power Plant');
+        return;
+    }
+
+    if (targetPlot.autoFarmer || targetPlot.powerPlant || targetPlot.processingStation) {
+        showNotification('That plot already has a building.', 'Power Plant');
+        return;
+    }
+
+    targetPlot.powerPlant = createDefaultStationState();
+    targetPlot.lastUpdatedAt = Date.now();
+
+    commitPlotStatesToActiveField(gameState, activeFieldId, activeField, nextPlotStates);
+    updateState({
+        coins: gameState.coins - buildCost,
+        totalCoinsSpent: gameState.totalCoinsSpent + buildCost,
+        powerPlantPurchasedCount: (Number(gameState.powerPlantPurchasedCount) || 0) + 1,
+        powerPlantNextCost: getNextPowerPlantBuildCost(buildCost),
+    });
+
+    updateResourceBar();
+    updateField();
+    trackAchievements();
+    incrementTotalClicks();
+    updateClicksDisplay();
+    showNotification(`Power Plant built on plot ${selectedPlotNumber}.`, 'Power Plant');
+}
+
+function buyProcessingStationAction() {
+    const gameState = getState();
+    if (!gameState.processingStationUnlocked) {
+        showNotification('Build Processing Station is not unlocked yet.', 'Store');
+        return;
+    }
+
+    const activeFieldContext = getActiveFieldForMutation(gameState);
+    if (!activeFieldContext) {
+        return;
+    }
+
+    const { activeFieldId, activeField } = activeFieldContext;
+    const maxPlots = Number(activeField.plots) || activeField.plotStates.length;
+    const buildCost = getProcessingStationBuildCost(gameState.processingStationNextCost);
+
+    if (gameState.coins < buildCost) {
+        showNotification('Not enough coins to build a Processing Station!', 'Store');
+        return;
+    }
+
+    const selectedPlotText = window.prompt(`Build Processing Station on which destroyed plot? Enter plot number 1-${maxPlots}.`);
+    if (selectedPlotText === null) {
+        return;
+    }
+
+    const selectedPlotNumber = Number.parseInt(String(selectedPlotText).trim(), 10);
+    if (!Number.isFinite(selectedPlotNumber) || selectedPlotNumber < 1 || selectedPlotNumber > maxPlots) {
+        showNotification('Invalid plot number selected.', 'Processing Station');
+        return;
+    }
+
+    const selectedPlotIndex = selectedPlotNumber - 1;
+    const nextPlotStates = [...activeField.plotStates];
+    const targetPlot = nextPlotStates[selectedPlotIndex];
+    if (!targetPlot) {
+        showNotification('Selected plot does not exist.', 'Processing Station');
+        return;
+    }
+
+    if (!targetPlot.destroyed) {
+        showNotification('Processing Stations can only be built on destroyed plots.', 'Processing Station');
+        return;
+    }
+
+    if (targetPlot.autoFarmer || targetPlot.powerPlant || targetPlot.processingStation) {
+        showNotification('That plot already has a building.', 'Processing Station');
+        return;
+    }
+
+    targetPlot.processingStation = createDefaultStationState();
+    targetPlot.lastUpdatedAt = Date.now();
+
+    commitPlotStatesToActiveField(gameState, activeFieldId, activeField, nextPlotStates);
+    updateState({
+        coins: gameState.coins - buildCost,
+        totalCoinsSpent: gameState.totalCoinsSpent + buildCost,
+        processingStationPurchasedCount: (Number(gameState.processingStationPurchasedCount) || 0) + 1,
+        processingStationNextCost: getNextProcessingStationBuildCost(buildCost),
+    });
+
+    updateResourceBar();
+    updateField();
+    trackAchievements();
+    incrementTotalClicks();
+    updateClicksDisplay();
+    showNotification(`Processing Station built on plot ${selectedPlotNumber}.`, 'Processing Station');
 }
 
 function buyDisassembleAutoFarmerAction() {
@@ -202,6 +404,56 @@ function buyDisassembleAutoFarmerAction() {
     incrementTotalClicks();
     updateClicksDisplay();
     showNotification('Select an AutoFarmer plot to disassemble by clicking it.', 'Disassemble AutoFarmer');
+}
+
+function buyDisassemblePowerPlantAction() {
+    const gameState = getState();
+    if (!gameState.disassemblePowerPlantUnlocked) {
+        showNotification('Disassemble Power Plant is not unlocked yet.', 'Store');
+        return;
+    }
+
+    if (gameState.coins < DISASSEMBLE_POWER_PLANT_COST) {
+        showNotification('Not enough coins to disassemble a Power Plant!', 'Store');
+        return;
+    }
+
+    updateState({
+        coins: gameState.coins - DISASSEMBLE_POWER_PLANT_COST,
+        totalCoinsSpent: gameState.totalCoinsSpent + DISASSEMBLE_POWER_PLANT_COST,
+        plotSelectionMode: 'disassemblePowerPlant',
+    });
+
+    updateResourceBar();
+    updateField();
+    incrementTotalClicks();
+    updateClicksDisplay();
+    showNotification('Select a Power Plant plot to disassemble by clicking it.', 'Disassemble Power Plant');
+}
+
+function buyDisassembleProcessingStationAction() {
+    const gameState = getState();
+    if (!gameState.disassembleProcessingStationUnlocked) {
+        showNotification('Disassemble Processing Station is not unlocked yet.', 'Store');
+        return;
+    }
+
+    if (gameState.coins < DISASSEMBLE_PROCESSING_STATION_COST) {
+        showNotification('Not enough coins to disassemble a Processing Station!', 'Store');
+        return;
+    }
+
+    updateState({
+        coins: gameState.coins - DISASSEMBLE_PROCESSING_STATION_COST,
+        totalCoinsSpent: gameState.totalCoinsSpent + DISASSEMBLE_PROCESSING_STATION_COST,
+        plotSelectionMode: 'disassembleProcessingStation',
+    });
+
+    updateResourceBar();
+    updateField();
+    incrementTotalClicks();
+    updateClicksDisplay();
+    showNotification('Select a Processing Station plot to disassemble by clicking it.', 'Disassemble Processing Station');
 }
 
 
@@ -479,6 +731,8 @@ function buyPlot() {
             lastUpdatedAt: Date.now(),
             destroyed: false,
             autoFarmer: null,
+            powerPlant: null,
+            processingStation: null,
         });
 
         const updatedFields = {
@@ -554,6 +808,8 @@ function buyNewField() {
                 lastUpdatedAt: Date.now(),
                 destroyed: false,
                 autoFarmer: null,
+                powerPlant: null,
+                processingStation: null,
             }],
         },
     };
@@ -786,6 +1042,11 @@ function sellAllCrop(cropType) {
     updateResourceBar();
     incrementTotalClicks();
     updateClicksDisplay();
+
+    showDialog({
+        title: 'Sale Complete',
+        message: `Sold: ${availableAmount} ${config.displayName}\nEarned: ${payout} coins`,
+    });
 }
 
 function sellAllWheat() {
@@ -807,4 +1068,7 @@ export { buySeed, buyWater, buyPlot, sellCrops, buyBulkSeeds, sellBulkCrops,
          buyBulkSeedPack, sellBulkCropPack, buyBulkWaterRefill,
          attemptWaterAutoRefillPurchase,
          buyNewField,
-         buyDestroyPlotAction, buyRestorePlotAction, buyAutoFarmerAction, buyDisassembleAutoFarmerAction };
+         buyDestroyPlotAction, buyRestorePlotAction,
+         buyAutoFarmerAction, buyDisassembleAutoFarmerAction,
+         buyPowerPlantAction, buyProcessingStationAction,
+         buyDisassemblePowerPlantAction, buyDisassembleProcessingStationAction };

@@ -63,6 +63,38 @@ function ensureActiveFieldPlotStates(gameState) {
                         : null,
                     isPaused: Boolean(existing.autoFarmer.isPaused),
                     suppressWarnings: Boolean(existing.autoFarmer.suppressWarnings),
+                    linkedPowerPlantPlotIndex: Number.isInteger(existing.autoFarmer.linkedPowerPlantPlotIndex)
+                        ? Number(existing.autoFarmer.linkedPowerPlantPlotIndex)
+                        : null,
+                    linkedProcessingStationPlotIndex: Number.isInteger(existing.autoFarmer.linkedProcessingStationPlotIndex)
+                        ? Number(existing.autoFarmer.linkedProcessingStationPlotIndex)
+                        : null,
+                }
+                : null,
+            powerPlant: existing?.powerPlant && typeof existing.powerPlant === 'object'
+                ? {
+                    level: Math.max(1, Number(existing.powerPlant.level) || 1),
+                    efficiencyPercent: Math.max(10, Math.min(100, Number(existing.powerPlant.efficiencyPercent) || 10)),
+                    costPerClick: Math.max(0, Number(existing.powerPlant.costPerClick) || 0.05),
+                    linkedAutoFarmerPlotIndices: Array.isArray(existing.powerPlant.linkedAutoFarmerPlotIndices)
+                        ? [...new Set(existing.powerPlant.linkedAutoFarmerPlotIndices.filter((idx) => Number.isInteger(idx) && idx >= 0))]
+                        : [],
+                    lastErrorCode: typeof existing.powerPlant.lastErrorCode === 'string' ? existing.powerPlant.lastErrorCode : null,
+                    lastErrorMessage: typeof existing.powerPlant.lastErrorMessage === 'string' ? existing.powerPlant.lastErrorMessage : '',
+                    isPaused: Boolean(existing.powerPlant.isPaused),
+                }
+                : null,
+            processingStation: existing?.processingStation && typeof existing.processingStation === 'object'
+                ? {
+                    level: Math.max(1, Number(existing.processingStation.level) || 1),
+                    efficiencyPercent: Math.max(10, Math.min(100, Number(existing.processingStation.efficiencyPercent) || 10)),
+                    costPerClick: Math.max(0, Number(existing.processingStation.costPerClick) || 0.05),
+                    linkedAutoFarmerPlotIndices: Array.isArray(existing.processingStation.linkedAutoFarmerPlotIndices)
+                        ? [...new Set(existing.processingStation.linkedAutoFarmerPlotIndices.filter((idx) => Number.isInteger(idx) && idx >= 0))]
+                        : [],
+                    lastErrorCode: typeof existing.processingStation.lastErrorCode === 'string' ? existing.processingStation.lastErrorCode : null,
+                    lastErrorMessage: typeof existing.processingStation.lastErrorMessage === 'string' ? existing.processingStation.lastErrorMessage : '',
+                    isPaused: Boolean(existing.processingStation.isPaused),
                 }
                 : null,
         });
