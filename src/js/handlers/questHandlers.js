@@ -1,6 +1,6 @@
 import { getState, updateState, incrementTotalClicks } from "../state.js";
 import { getStoreValues } from "../ui/store.js";
-import { showDialog, showNotification } from "../ui/macNotifications.js";
+import { showConfirmation, showDialog, showNotification } from "../ui/macNotifications.js";
 import { updateResourceBar } from "../ui/resource.js";
 import { updateClicksDisplay } from "../ui/clicks.js";
 import { trackAchievements } from "./achievementHandlers.js";
@@ -239,15 +239,44 @@ function showQuestUnlockDialog(quest) {
         title: `New Request: ${quest.name}`,
         body: createQuestUnlockBody(quest),
         dialogClassName: 'quest-popup-window',
-        closeValue: true,
+        closeValue: 'review-request',
         buttons: [
             {
                 label: 'Review Request',
-                value: true,
+                value: 'review-request',
                 autofocus: true,
+            },
+            {
+                label: 'Cancel Contract',
+                value: 'cancel-contract',
             },
         ],
     });
+}
+
+export function confirmQuestCancellation(questId) {
+    const gameState = getState();
+    const quest = getQuestDefinitionById(questId);
+
+    if (!quest || !isQuestActive(gameState, questId)) {
+        showNotification('That request is not currently active.', 'Quests');
+        return Promise.resolve(false);
+    }
+
+    if (quest.autoComplete) {
+        showNotification('This request cannot be declined.', 'Quests');
+        return Promise.resolve(false);
+    }
+
+    const prompt = `Cancel contract for ${quest.name}?`;
+    return showConfirmation(prompt, { title: 'Cancel Contract' })
+        .then((confirmed) => {
+            if (!confirmed) {
+                return false;
+            }
+
+            return declineQuest(questId);
+        });
 }
 
 function hasMetUnlockCondition(gameState, quest) {
@@ -332,7 +361,12 @@ function unlockQuest(questId) {
     });
 
     emitQuestUpdate();
-    showQuestUnlockDialog(quest);
+    showQuestUnlockDialog(quest)
+        .then((action) => {
+            if (action === 'cancel-contract') {
+                void confirmQuestCancellation(quest.id);
+            }
+        });
     return true;
 }
 
@@ -398,16 +432,7 @@ function declineQuest(questId) {
 
     emitQuestUpdate();
 
-    const nextState = getState();
-    const unlockTargetMessage = getUnlockTargetMessage(quest, nextState);
-    if (unlockTargetMessage) {
-        showNotification(
-            `${quest.name} declined. Future requests are on hold until this request reaches: ${unlockTargetMessage}.`,
-            'Quest Progression Paused',
-        );
-    } else {
-        showNotification(`${quest.name} declined. Future requests are now on hold.`, 'Quest Progression Paused');
-    }
+    showNotification(`${quest.name} contract canceled.`, 'Contract Canceled');
 
     trackAchievements();
     return true;

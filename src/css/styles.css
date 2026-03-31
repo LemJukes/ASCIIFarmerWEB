@@ -1745,13 +1745,6 @@ body.light {
         text-align: center;
     }
 
-    .autofarmer-detail-window {
-        left: 8px !important;
-        right: 8px !important;
-        top: auto !important;
-        bottom: 8px;
-    }
-
     .autofarmer-detail-window--expand-right,
     .autofarmer-detail-window--expand-left {
         transform-origin: center bottom;

@@ -229,13 +229,7 @@ function buildTitlebar(onClose) {
     titleSpan.className = 'mac-title';
     titleSpan.textContent = 'Power Plant Details';
 
-    const zoomBtn = document.createElement('button');
-    zoomBtn.className = 'mac-zoom-btn';
-    zoomBtn.type = 'button';
-    zoomBtn.setAttribute('aria-hidden', 'true');
-    zoomBtn.setAttribute('tabindex', '-1');
-
-    titlebar.append(closeBtn, titleSpan, zoomBtn);
+    titlebar.append(closeBtn, titleSpan);
     return titlebar;
 }
 
@@ -394,13 +388,13 @@ function positionWindow(windowEl, anchorRect) {
     if (shouldExpandRight) {
         const left = clamp(anchorRect.right + ANCHOR_GAP_PX, SCREEN_MARGIN_PX, window.innerWidth - 80);
         windowEl.style.left = `${Math.round(left)}px`;
-        windowEl.style.right = `${SCREEN_MARGIN_PX}px`;
+        windowEl.style.right = 'auto';
         windowEl.classList.add('station-detail-window--expand-right');
         return;
     }
 
     const right = clamp((window.innerWidth - anchorRect.left) + ANCHOR_GAP_PX, SCREEN_MARGIN_PX, window.innerWidth - 80);
-    windowEl.style.left = `${SCREEN_MARGIN_PX}px`;
+    windowEl.style.left = 'auto';
     windowEl.style.right = `${Math.round(right)}px`;
     windowEl.classList.add('station-detail-window--expand-left');
 }

@@ -265,13 +265,7 @@ function createTitlebar(onClose) {
     titleSpan.className = 'mac-title';
     titleSpan.textContent = 'Keybinds';
 
-    const zoomBtn = document.createElement('button');
-    zoomBtn.className = 'mac-zoom-btn';
-    zoomBtn.type = 'button';
-    zoomBtn.setAttribute('aria-hidden', 'true');
-    zoomBtn.setAttribute('tabindex', '-1');
-
-    titlebar.append(closeBtn, titleSpan, zoomBtn);
+    titlebar.append(closeBtn, titleSpan);
     return titlebar;
 }
 

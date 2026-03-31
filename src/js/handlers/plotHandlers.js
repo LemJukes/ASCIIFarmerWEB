@@ -632,7 +632,44 @@ function handlePlotSelectionInteraction(plot, plotIndex, context) {
     return true;
 }
 
-function resolveToolSelection(currentSymbol, showFailureAlert) {
+function consumeToolAutoChangerCharge(showFailureAlert) {
+    const upgradeValues = getUpgradeValues();
+    const canAutoChange = upgradeValues.toolAutoChangerPurchased && upgradeValues.toolAutoChangerEnabled;
+
+    if (!canAutoChange) {
+        return {
+            allowed: false,
+            canAutoChange,
+            outOfCharges: false,
+        };
+    }
+
+    if (upgradeValues.toolAutoChangerCharges < 1) {
+        if (showFailureAlert) {
+            showNotification(OUT_OF_CHARGES_MESSAGE, 'Upgrades');
+        }
+
+        return {
+            allowed: false,
+            canAutoChange,
+            outOfCharges: true,
+        };
+    }
+
+    updateUpgradeValues({ toolAutoChangerCharges: upgradeValues.toolAutoChangerCharges - 1 });
+    renderClickUpgradesSection();
+    return {
+        allowed: true,
+        canAutoChange,
+        outOfCharges: false,
+    };
+}
+
+function resolveToolSelection(currentSymbol, showFailureAlert, options = {}) {
+    const {
+        skipAutoChangeCharge = false,
+    } = options;
+
     const gameState = getState();
     const selectedTool = getSelectedTool(gameState);
     const requiredTool = getAutoChangerRequiredTool(currentSymbol);
@@ -660,22 +697,19 @@ function resolveToolSelection(currentSymbol, showFailureAlert) {
         };
     }
 
-    if (upgradeValues.toolAutoChangerCharges < 1) {
-        if (showFailureAlert) {
-            showNotification(OUT_OF_CHARGES_MESSAGE, 'Upgrades');
+    if (!skipAutoChangeCharge) {
+        const chargeResult = consumeToolAutoChangerCharge(showFailureAlert);
+        if (!chargeResult.allowed) {
+            return {
+                allowed: false,
+                gameState,
+                selectedTool,
+            };
         }
-
-        return {
-            allowed: false,
-            gameState,
-            selectedTool,
-        };
     }
 
-    updateUpgradeValues({ toolAutoChangerCharges: upgradeValues.toolAutoChangerCharges - 1 });
     updateState({ selectedTool: requiredTool });
     updateToolboxDisplay();
-    renderClickUpgradesSection();
 
     return {
         allowed: true,
@@ -931,7 +965,9 @@ function applyExpandedClickPattern(index, offsets) {
             return;
         }
 
-        handleAdjacentPlotClickMk1(targetPlot, targetIndex);
+        handleAdjacentPlotClickMk1(targetPlot, targetIndex, {
+            forceAutoChangerChargePerClick: true,
+        });
     });
 }
 
@@ -973,6 +1009,7 @@ function handleAdjacentPlotClickMk1(plot, plotIndex, options = {}) {
         playSfx = true,
         isAutoFarmerAction = false,
         seedTypeOverride = null,
+        forceAutoChangerChargePerClick = false,
     } = options;
 
     const initialContext = getActiveFieldContext();
@@ -998,7 +1035,19 @@ function handleAdjacentPlotClickMk1(plot, plotIndex, options = {}) {
             selectedTool: getSelectedTool(gameState),
         };
     } else {
-        toolSelection = resolveToolSelection(initialPlot.symbol, false);
+        let shouldSkipAutoChangeCharge = false;
+        if (forceAutoChangerChargePerClick) {
+            const chargeResult = consumeToolAutoChangerCharge(false);
+            if (!chargeResult.allowed && chargeResult.canAutoChange) {
+                return { success: false, errorCode: 'OUT_OF_CHARGES', errorMessage: OUT_OF_CHARGES_MESSAGE };
+            }
+
+            shouldSkipAutoChangeCharge = chargeResult.allowed;
+        }
+
+        toolSelection = resolveToolSelection(initialPlot.symbol, false, {
+            skipAutoChangeCharge: shouldSkipAutoChangeCharge,
+        });
     }
 
     if (!toolSelection.allowed) {

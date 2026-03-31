@@ -1,4 +1,4 @@
-import { getQuestPanelData, deliverQuest, declineQuest, QUESTS_UPDATED_EVENT } from "../handlers/questHandlers.js";
+import { getQuestPanelData, deliverQuest, confirmQuestCancellation, QUESTS_UPDATED_EVENT } from "../handlers/questHandlers.js";
 import { RESOURCES_UPDATED_EVENT } from "./resource.js";
 
 const QUESTS_TITLE_ID = 'quests-container-title';
@@ -253,10 +253,10 @@ function renderQuestCard(container, questData, totalQuests) {
         const declineButton = document.createElement('button');
         declineButton.className = 'mac-button quest-decline-button';
         declineButton.type = 'button';
-        declineButton.textContent = 'Decline';
+        declineButton.textContent = 'Cancel Contract';
         declineButton.disabled = !questData.canDecline;
         declineButton.addEventListener('click', () => {
-            declineQuest(questData.id);
+            void confirmQuestCancellation(questData.id);
         });
 
         actions.append(status, deliverButton, declineButton);
@@ -277,7 +277,7 @@ function renderEmptyQuestState(container, panelData) {
     body.className = 'quest-card-flavor';
 
     if (panelData.progressionPaused && panelData.blockedQuestName) {
-        body.textContent = `${panelData.blockedQuestName} was declined. Future requests are paused until unlock target is met.`;
+        body.textContent = `${panelData.blockedQuestName} contract canceled. Future requests are currently paused.`;
     } else {
         body.textContent = panelData.completedCount > 0
             ? 'farmr has cleared the current request queue. Watch for the next produce message.'
@@ -285,20 +285,6 @@ function renderEmptyQuestState(container, panelData) {
     }
 
     emptyState.append(heading, body);
-
-    if (panelData.progressionPaused && panelData.blockedQuestUnlockTarget) {
-        const details = document.createElement('p');
-        details.className = 'quest-card-flavor';
-        details.textContent = `Current re-offer target: ${panelData.blockedQuestUnlockTarget}.`;
-        emptyState.append(details);
-    }
-
-    if (panelData.progressionPaused && panelData.pendingOffsetSummary) {
-        const carryForward = document.createElement('p');
-        carryForward.className = 'quest-card-flavor';
-        carryForward.textContent = `On completion, later quest unlocks will increase by ${panelData.pendingOffsetSummary}.`;
-        emptyState.append(carryForward);
-    }
 
     container.replaceChildren(emptyState);
 }
