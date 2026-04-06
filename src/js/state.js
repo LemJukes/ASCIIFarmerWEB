@@ -330,23 +330,23 @@ function buildFieldStateSnapshot(fields) {
 
 const initialGameState = {
     // Player Resource Values
-    coins: 100000,
+    coins: 1,
     seeds: 1, // Generic seeds (kept for backward compatibility)
     crops: 0, // Generic crops (kept for backward compatibility)
     water: 10,
 
     // Crop-Specific Seeds
-    wheatSeeds: 1000, // Start with some wheat seeds
-    cornSeeds: 1000,
-    tomatoSeeds: 1000,
+    wheatSeeds: 1, // Start with some wheat seeds
+    cornSeeds: 0,
+    tomatoSeeds: 0,
 
     // Crop-Specific Inventory
-    wheat: 1000,
-    corn: 1000,
-    tomato: 1000,
+    wheat: 0,
+    corn: 0,
+    tomato: 0,
 
     // Field Information
-    plots: 81,
+    plots: 1,
     plotDisableCoefficient: 1.15, // Coefficient used to calculate plot disable time
     plotStates: [], // Backward-compatible mirror of active field plot states
     fields: {
@@ -384,17 +384,17 @@ const initialGameState = {
     tomatoUnlocked: false, // Tomato unlock threshold is defined in progressionConfig.unlocks.cropsByTotalCoinsEarned.tomato
 
     // Game Progress Information
-    totalCoinsSpent: 100000,       // Total coins spent on seeds, upgrades, and other purchases
-    totalCoinsEarned: 100000,      // Total number of coins the player has earned throughout the game
-    cropsSold: 10000,             // Total number of crops sold by the player (all types combined)
-    wheatSold: 1000,             // Total wheat sold
-    cornSold: 1000,              // Total corn sold
-    tomatoSold: 1000,            // Total tomatoes sold
-    seedsBought: 10000,           // Total number of seeds bought by the player
-    wheatSeedsBought: 1000,      // Total wheat seeds bought
-    cornSeedsBought: 1000,       // Total corn seeds bought
-    tomatoSeedsBought: 1000,     // Total tomato seeds bought
-    waterRefillsPurchased: 1000, // Total number of times the player has clicked the water refil button
+    totalCoinsSpent: 0,       // Total coins spent on seeds, upgrades, and other purchases
+    totalCoinsEarned: 0,      // Total number of coins the player has earned throughout the game
+    cropsSold: 0,             // Total number of crops sold by the player (all types combined)
+    wheatSold: 0,             // Total wheat sold
+    cornSold: 0,              // Total corn sold
+    tomatoSold: 0,            // Total tomatoes sold
+    seedsBought: 0,           // Total number of seeds bought by the player
+    wheatSeedsBought: 0,      // Total wheat seeds bought
+    cornSeedsBought: 0,       // Total corn seeds bought
+    tomatoSeedsBought: 0,     // Total tomato seeds bought
+    waterRefillsPurchased: 0, // Total number of times the player has clicked the water refil button
     totalClicksClicked: 0,    // Total number of successful button clicks
     totalPlayTimeMs: 0,       // Accumulated play time in ms from all previous sessions
     gameStartedAt: Date.now(), // Timestamp for when this game/save started
